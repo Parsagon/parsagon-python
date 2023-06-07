@@ -19,9 +19,7 @@ class SeleniumWrapper:
 
     class Interaction:
         """
-        Used when interacting with the loaded page - ensures proper actions are taken before and after the interaction.  If the webpage is modified and new elements appear that are not marked, but then an exception is raised, this will ensure that the webpage is re-marked all the same.
-
-        Single use.
+        Single use: Used when interacting with the loaded page - ensures proper actions are taken before and after the interaction.  If the webpage is modified and new elements appear that are not marked, but then an exception is raised, this will ensure that the webpage is re-marked all the same.
         """
 
         def __init__(self, wrapper):
@@ -106,7 +104,6 @@ class SeleniumWrapper:
 
         # Wait for website to load
         self.wait(5)
-        self.mark_html()
 
     def wait(self, seconds):
         time.sleep(seconds)

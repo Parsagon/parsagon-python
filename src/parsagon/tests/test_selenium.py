@@ -1,4 +1,4 @@
-from src.parsagon.browser import SeleniumWrapper
+from src.parsagon.selenium_wrapper import SeleniumWrapper
 
 
 def test_selenium():

@@ -44,11 +44,12 @@ def get_interaction_element_id(marked_html, elem_type, description):
     :return: The integer ID (data-psgn-id) of the element in the marked HTML.
     """
     assert elem_type.isupper()
-    return _api_call(
+    result = _api_call(
         httpx.post,
         "/transformers/get-nav-elem/",
         json={"html": marked_html, "elem_type": elem_type, "description": description},
     )["id"]
+    return int(result)
 
 
 def scrape_page(html, schema):

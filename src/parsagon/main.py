@@ -17,11 +17,11 @@ def main(task: str):
 
     logger.info("Sending task description to backend...")
     program_sketches = get_program_sketches(task)
-    logger.debug("Program sketches:\n%s", program_sketches)
 
     full_program = program_sketches["full"]
     abridged_program = program_sketches["abridged"]
     abridged_program += "\n\nfunc()\n"  # Make the program runnable
+    logger.debug("Program:\n%s", abridged_program)
 
     # Execute the abridged program to gather examples
     selenium_wrapper = SeleniumWrapper()

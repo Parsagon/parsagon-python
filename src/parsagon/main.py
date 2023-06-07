@@ -15,13 +15,13 @@ def main(task: str):
 
     logger.info("Launched with task description:\n%s", task)
 
-    logger.info("Sending task description to backend...")
+    logger.info("Analyzing task description...")
     program_sketches = get_program_sketches(task)
 
     full_program = program_sketches["full"]
     abridged_program = program_sketches["abridged"]
+    logger.debug("Program:\n%s", "\n".join(abridged_program.split("\n")[1:]))
     abridged_program += "\n\nfunc()\n"  # Make the program runnable
-    logger.debug("Program:\n%s", abridged_program)
 
     # Execute the abridged program to gather examples
     selenium_wrapper = SeleniumWrapper()

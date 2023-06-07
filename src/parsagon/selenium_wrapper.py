@@ -2,6 +2,7 @@ import logging
 import time
 
 import lxml.html
+from selenium.common.exceptions import InvalidElementStateException
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -109,6 +110,7 @@ class SeleniumWrapper:
         """
         Gets a selenium element by Parsagon ID (psgn-id).
         """
+        assert elem_id is not None
         return self.driver.find_element(By.XPATH, f'//*[@data-psgn-id="{elem_id}"]')
 
     # IMPORTANT: Do not change the names of arguments to the functions below without also changing the prompt to GPT in the backend - GPT must know the argument names.
@@ -141,7 +143,11 @@ class SeleniumWrapper:
         Fills an input text field, then presses an optional end key.
         """
         elem = self._get_elem(elem_id)
-        elem.clear()
+
+        try:
+            elem.clear()
+        except InvalidElementStateException as e:
+            logger.warning(f"Could not clear element {elem_id}: {e}")
         elem.send_keys(text)
         if enter:
             elem.send_keys(Keys.RETURN)

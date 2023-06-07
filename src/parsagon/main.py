@@ -3,6 +3,7 @@ import logging
 
 from src.parsagon.api import get_program_sketches
 
+from src.parsagon.selenium_wrapper import SeleniumWrapper
 
 logger = logging.getLogger(__name__)
 

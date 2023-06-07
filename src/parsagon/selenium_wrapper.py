@@ -1,5 +1,6 @@
 import logging
 import time
+from contextlib import ContextDecorator
 from tkinter.tix import Select
 
 import lxml.html
@@ -14,30 +15,8 @@ logger = logging.getLogger(__name__)
 
 class SeleniumWrapper:
     """
-    Wrapper around Selenium WebDriver.
+    Convenience wrapper around Selenium WebDriver for managing data-psgn-id and providing other HTML/Selenium utilities.  Doesn't use AI.
     """
-
-    class Interaction:
-        """
-        Single use: Used when interacting with the loaded page - ensures proper actions are taken before and after the interaction.  If the webpage is modified and new elements appear that are not marked, but then an exception is raised, this will ensure that the webpage is re-marked all the same.
-        """
-
-        def __init__(self, wrapper):
-            self.wrapper = wrapper
-
-        def __enter__(self):
-            """
-            Call before interaction. Goes to last window.
-            """
-            driver = self.wrapper.driver
-            driver.switch_to.window(driver.window_handles[-1])
-
-        def __exit__(self, exc_type, exc_value, exc_traceback):
-            """
-            Called after interaction.  Marks the HTML. Rethrows any exceptions.
-            """
-            self.wrapper.mark_html()
-            self.wrapper = None  # Avoid circular reference?
 
     def __init__(self, headless: bool = False) -> None:
         chrome_options = Options()
@@ -52,6 +31,10 @@ class SeleniumWrapper:
     def __del__(self) -> None:
         self.driver.close()
 
+    def switch_to_last_window(self):
+        driver = self.driver
+        driver.switch_to.window(driver.window_handles[-1])
+
     def mark_html(self):
         """
         Adds node IDs to elements on the current page that don't already have IDs.
@@ -61,17 +44,9 @@ class SeleniumWrapper:
         )
         self.max_elem_id = new_max_elem_id
 
-    def get_visible_html(self):
-        """
-        Returns cleaned html from the driver, hiding all elements that are not visible.
-        Script, noscript, style, and head elements are removed.
-        All elements must have node IDs added as data attributes.
-        """
-
+    def _get_cleaned_lxml_root(self):
         driver = self.driver
-
         html = driver.page_source
-        assert "data-psgn-id" in html
 
         parser = lxml.html.HTMLParser(remove_comments=True, remove_pis=True)
         root = lxml.html.fromstring(html, parser=parser)
@@ -81,8 +56,31 @@ class SeleniumWrapper:
             elem.text = ""
         for elem in root.iterfind(".//style"):
             elem.text = ""
+        return root
+
+    def get_scrape_html(self):
+        """
+        Returns cleaned html from the driver with script, noscript, and style elements removed, designed to preserve scrapable data.
+        """
+        root = self._get_cleaned_lxml_root()
+        return lxml.html.tostring(root).decode()
+
+    def get_visible_html(self):
+        """
+        Returns cleaned html from the driver, hiding all elements that are not visible.
+        Script, noscript, style, and head elements are removed.
+        All elements must have node IDs added as data attributes.
+        """
+
+        driver = self.driver
+        assert "data-psgn-id" in driver.page_source
+        root = self._get_cleaned_lxml_root()
+
+        # Remove head elements
         for elem in root.iterfind(".//head"):
             elem.text = ""
+
+        # Remove invisible elements
         for elem_id in range(self.max_elem_id):
             try:
                 lxml_elem = root.xpath(f'//*[@data-psgn-id="{elem_id}"]')[0]
@@ -96,59 +94,57 @@ class SeleniumWrapper:
 
         return lxml.html.tostring(root).decode()
 
-    def goto(self, url: str):
-
-        # Go to website
-        self.driver.switch_to.window(self.driver.window_handles[-1])
-        self.driver.get(url)
-
-        # Wait for website to load
-        self.wait(5)
-
     def wait(self, seconds):
         time.sleep(seconds)
 
-    def get_elem(self, elem_id: int):
+    def perform_interaction(self, interaction_type, elem_id, *args, **kwargs):
+        interaction_fn = {
+            "click_elem": self._click_elem,
+            "fill_input": self._fill_input,
+            "select_option": self._select_option,
+        }[interaction_type]
+        self.switch_to_last_window()
+        interaction_fn(elem_id, *args, **kwargs)
+
+    def _get_elem(self, elem_id: int):
         """
         Gets a selenium element by Parsagon ID (psgn-id).
         """
         return self.driver.find_element(By.XPATH, f'//*[@data-psgn-id="{elem_id}"]')
 
-    def click_button(self, elem):
+    # IMPORTANT: Do not change the names of arguments to the functions below without also changing the prompt to GPT in the backend - GPT must know the argument names.
+    def goto(self, url: str):
+
+        # Go to website
+        self.switch_to_last_window()
+        self.driver.get(url)
+
+        # Wait for website to load
+        self.wait(5)
+
+    def _click_elem(self, elem_id):
         """
         Clicks a button.
         """
-        elem = self._convert_elem(elem)
+        elem = self._get_elem(elem_id)
         elem.click()
 
-    def select_option(self, elem, option_name):
+    def _select_option(self, elem_id, option):
         """
         Selects an option by name from a dropdown.
         """
-        elem = self._convert_elem(elem)
+        elem = self._get_elem(elem_id)
         select_obj = Select(elem)
-        select_obj.select_by_visible_text(option_name)
+        select_obj.select_by_visible_text(option)
 
-    def fill_input(self, elem, text, end_key=None):
+    def _fill_input(self, elem_id, text, enter=False):
         """
         Fills an input text field, then presses an optional end key.
         """
-        elem = self._convert_elem(elem)
+        elem = self._get_elem(elem_id)
         elem.clear()
         elem.send_keys(text)
-        end_key = end_key.upper()
-        if end_key == "RETURN":
+        if enter:
             elem.send_keys(Keys.RETURN)
-        elif end_key == "NONE" or end_key is None:
-            pass
-        else:
-            raise RuntimeError("Invalid end key: " + end_key)
 
-    def _convert_elem(self, elem):
-        """
-        Helper to convert an "elem" argument to one of the methods above to a Selenium element.
-        """
-        result = elem
-        if isinstance(elem, int):
-            result = self.get_elem(elem)
-        return result
+    # (End of functions with controlled argument names)

@@ -65,7 +65,7 @@ class Executor:
         elem_id = get_interaction_element_id(visible_html, elem_type, description)
 
         # Perform the interaction
-        self.selenium_wrapper.perform_interaction(self, interaction_type, elem_id, *args, **kwargs)
+        self.selenium_wrapper.perform_interaction(interaction_type, elem_id, *args, **kwargs)
 
     def scrape_data(self, schema):
         """

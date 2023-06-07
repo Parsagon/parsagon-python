@@ -1,13 +1,12 @@
 import logging
 import time
-from contextlib import ContextDecorator
-from tkinter.tix import Select
 
 import lxml.html
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.select import Select
 from webdriver_manager.chrome import ChromeDriverManager
 
 logger = logging.getLogger(__name__)

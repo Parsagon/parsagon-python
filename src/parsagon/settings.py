@@ -12,6 +12,7 @@ LOGGING = {
     },
     "handlers": {
         "default": {
+            "level": "DEBUG",
             "formatter": "standard",
             "class": "logging.StreamHandler",
             "stream": "ext://sys.stdout",
@@ -19,5 +20,6 @@ LOGGING = {
     },
     "loggers": {
         "": {"handlers": ["default"], "level": LOG_LEVEL, "propagate": False},  # root logger
+        "src.parsagon": {"handlers": ["default"], "level": LOG_LEVEL, "propagate": False},
     },
 }

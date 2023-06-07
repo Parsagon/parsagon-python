@@ -3,6 +3,7 @@ from functools import partial
 
 from src.parsagon.api import get_interaction_element_id, scrape_page
 from src.parsagon.selenium_wrapper import SeleniumWrapper
+from selenium.common.exceptions import ElementNotInteractableException
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class Executor:
         def extract_call_id(*args, **kwargs):
             call_id = kwargs.pop("call_id")
             logger.info(f"Executing call {call_id}...")
-            print(call_id)
+            logger.debug(fn)
             return fn(*args, **kwargs)
 
         return extract_call_id
@@ -63,6 +64,7 @@ class Executor:
             "select_option": "SELECT",
         }[interaction_type]
         elem_id = get_interaction_element_id(visible_html, elem_type, description)
+        assert elem_id is not None and isinstance(elem_id, int)
 
         # Perform the interaction
         self.selenium_wrapper.perform_interaction(interaction_type, elem_id, *args, **kwargs)
@@ -72,7 +74,9 @@ class Executor:
         Scrapes data from the current page.
         """
         html = self.selenium_wrapper.get_scrape_html()
-        return scrape_page(html, schema)
+        result = scrape_page(html, schema)
+        print(result)
+        return result
 
     def execute(self, code):
         exec(code, self.execution_context)

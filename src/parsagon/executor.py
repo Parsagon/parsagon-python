@@ -16,6 +16,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 logger = logging.getLogger(__name__)
 
+
 class Executor:
     """
     Executes code produced by GPT with the proper context.
@@ -24,7 +25,9 @@ class Executor:
     def __init__(self):
         chrome_options = Options()
         chrome_options.add_argument("--start-maximized")
-        self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+        self.driver = webdriver.Chrome(
+            ChromeDriverManager().install(), options=chrome_options
+        )
         self.max_elem_id = 0
         self.execution_context = {
             "goto": self.goto,
@@ -33,17 +36,21 @@ class Executor:
             "select_option": self.select_option,
             "scrape_data": self.scrape_data,
         }
+        logger.debug("Available functions: %s", ",".join(self.execution_context.keys()))
         self.examples = defaultdict(list)
 
     def mark_html(self):
         """
         Adds node IDs to elements on the current page that don't already have IDs.
         """
-        #new_max_elem_id = self.driver.execute_script(
-            #f"let elemIdx = {self.max_elem_id}; for (const node of document.querySelectorAll(':not([data-psgn-id]):not(style)')) {{ node.setAttribute('data-psgn-id', elemIdx); elemIdx++; }} return elemIdx;"
-        #)
-        #self.max_elem_id = new_max_elem_id
-        self.driver.execute_script("let elemIdx = 0; for (const node of document.all) {{ node.setAttribute('data-psgn-id', elemIdx); elemIdx++; }}")
+        # new_max_elem_id = self.driver.execute_script(
+        # f"let elemIdx = {self.max_elem_id}; for (const node of document.querySelectorAll(':not([data-psgn-id]):not(style)')) {{ node.setAttribute('data-psgn-id', elemIdx); elemIdx++; }} return elemIdx;"
+        # )
+        # self.max_elem_id = new_max_elem_id
+        logger.debug("  Marking HTML...")
+        self.driver.execute_script(
+            "let elemIdx = 0; for (const node of document.all) {{ node.setAttribute('data-psgn-id', elemIdx); elemIdx++; }}"
+        )
 
     def _get_cleaned_lxml_root(self):
         driver = self.driver
@@ -85,7 +92,9 @@ class Executor:
         for elem_id in range(self.max_elem_id):
             try:
                 lxml_elem = root.xpath(f'//*[@data-psgn-id="{elem_id}"]')[0]
-                selenium_elem = driver.find_elements(By.XPATH, f'//*[@data-psgn-id="{elem_id}"]')[0]
+                selenium_elem = driver.find_elements(
+                    By.XPATH, f'//*[@data-psgn-id="{elem_id}"]'
+                )[0]
             except IndexError:
                 continue
             if not selenium_elem.is_displayed():
@@ -96,9 +105,12 @@ class Executor:
         return lxml.html.tostring(root).decode()
 
     def wait(self, seconds):
+        logger.debug(f"  Waiting {seconds} seconds...")
         time.sleep(seconds)
+        logger.debug("  Done waiting.")
 
     def get_elem_by_description(self, elem_type, description):
+        logger.info(f'Looking for {elem_type.lower()}: "{description}"')
         visible_html = self.get_visible_html()
         elem_id = get_interaction_element_id(visible_html, elem_type, description)
         return elem_id
@@ -108,15 +120,20 @@ class Executor:
         Gets a selenium element by Parsagon ID (psgn-id).
         """
         assert elem_id is not None
-        return self.driver.find_element(By.XPATH, f'//*[@data-psgn-id="{elem_id}"]')
+        result = self.driver.find_element(By.XPATH, f'//*[@data-psgn-id="{elem_id}"]')
+        elem_text = result.text
+        log_suffix = f' with text "{elem_text}"' if elem_text else ""
+        logger.info(f"Found element {elem_id}" + log_suffix)
+        return result
 
-    def goto(self, url, window_id=None):
+    def goto(self, url, call_id, window_id=None):
         if window_id in self.driver.window_handles:
             self.driver.switch_to.window(window_id)
         else:
             self.driver.switch_to.new_window("tab")
 
         # Go to website
+        logger.info(f"Going to {url}")
         self.driver.get(url)
 
         # Wait for website to load
@@ -135,6 +152,7 @@ class Executor:
         for i in range(3):
             try:
                 elem.click()
+                logger.info("Clicked element")
                 self.wait(5)
                 break
             except Exception as e:
@@ -142,7 +160,17 @@ class Executor:
         else:
             return False
         self.mark_html()
-        self.examples[call_id].append({"inputs": [{"format": "WEB", "dataStr": json.dumps({"html": self.get_scrape_html()})}], "output": [elem_id]})
+        self.examples[call_id].append(
+            {
+                "inputs": [
+                    {
+                        "format": "WEB",
+                        "dataStr": json.dumps({"html": self.get_scrape_html()}),
+                    }
+                ],
+                "output": [elem_id],
+            }
+        )
         return True
 
     def select_option(self, description, option, window_id, call_id):
@@ -154,11 +182,22 @@ class Executor:
         try:
             select_obj = Select(elem)
             select_obj.select_by_visible_text(option)
+            logger.info(f'Selected option "{option}"')
             self.wait(5)
         except:
             return False
         self.mark_html()
-        self.examples[call_id].append({"inputs": [{"format": "WEB", "dataStr": json.dumps({"html": self.get_scrape_html()})}], "output": [elem_id]})
+        self.examples[call_id].append(
+            {
+                "inputs": [
+                    {
+                        "format": "WEB",
+                        "dataStr": json.dumps({"html": self.get_scrape_html()}),
+                    }
+                ],
+                "output": [elem_id],
+            }
+        )
         return True
 
     def fill_input(self, description, text, enter, window_id, call_id):
@@ -171,24 +210,49 @@ class Executor:
         try:
             elem.clear()
             elem.send_keys(text)
+            logger.debug(f'Typed "{text}" into element')
             if enter:
                 elem.send_keys(Keys.RETURN)
+                logger.debug("Pressed enter")
             self.wait(5)
         except Exception as e:
             return False
         self.mark_html()
-        self.examples[call_id].append({"inputs": [{"format": "WEB", "dataStr": json.dumps({"html": self.get_scrape_html()})}], "output": [elem_id]})
+        self.examples[call_id].append(
+            {
+                "inputs": [
+                    {
+                        "format": "WEB",
+                        "dataStr": json.dumps({"html": self.get_scrape_html()}),
+                    }
+                ],
+                "output": [elem_id],
+            }
+        )
         return True
 
     def scrape_data(self, schema, window_id, call_id):
         """
         Scrapes data from the current page.
         """
+        logger.info("Scraping data...")
         html = self.get_scrape_html()
+        logger.debug("Saving HTML...")
         with open("test.html", "w") as f:
             f.write(html)
         result = scrape_page(html, schema)
-        self.examples[call_id].append({"inputs": [{"format": "WEB", "dataStr": json.dumps({"html": self.get_scrape_html()})}], "output": result})
+        logger.info(f"Scraped data:\n{result}")
+        self.examples[call_id].append(
+            {
+                "inputs": [
+                    {
+                        "format": "WEB",
+                        "dataStr": json.dumps({"html": self.get_scrape_html()}),
+                    }
+                ],
+                "output": result,
+            }
+        )
         return result["data"]
 
     def execute(self, code):

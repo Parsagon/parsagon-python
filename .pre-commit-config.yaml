@@ -3,4 +3,5 @@ repos:
     rev: 22.6.0
     hooks:
     - id: black
+      args: ["--config", "pyproject.toml"]
       files: ^src/parsagon

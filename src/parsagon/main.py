@@ -3,7 +3,6 @@ import logging
 
 from src.parsagon.api import get_program_sketches
 from src.parsagon.executor import Executor
-from src.parsagon.selenium_wrapper import SeleniumWrapper
 from src.parsagon.settings import LOGGING
 import logging.config
 
@@ -20,12 +19,11 @@ def main(task: str):
 
     full_program = program_sketches["full"]
     abridged_program = program_sketches["abridged"]
-    logger.debug("Program:\n%s", "\n".join(abridged_program.split("\n")[1:]))
-    abridged_program += "\n\nfunc()\n"  # Make the program runnable
+    #logger.debug("Program:\n%s", abridged_program)
+    abridged_program += "\n\noutput = func()\nprint(f'Program finished and returned a value of:\\n{output}')\n"  # Make the program runnable
 
     # Execute the abridged program to gather examples
-    selenium_wrapper = SeleniumWrapper()
-    executor = Executor(selenium_wrapper)
+    executor = Executor()
     executor.execute(abridged_program)
 
     logger.info("Done.")

@@ -59,4 +59,4 @@ def scrape_page(html, schema):
     :param schema: Schema of the data to scrape, in the format
     :return: Scraped data, with lists truncated.
     """
-    return _api_call(httpx.post, "/transformers/get-custom-data/", json={"html": html, "schema": schema})["data"]
+    return _api_call(httpx.post, "/transformers/get-custom-data/", json={"html": html, "schema": schema})

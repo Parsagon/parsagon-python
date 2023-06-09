@@ -121,20 +121,6 @@ class Executor:
         logger.info(f"Found element {elem_id}" + log_suffix)
         return result
 
-    def _examples_of_page_to_elem(self, html, elem_id):
-        """
-        Returns scraper search examples for a page going to an element
-        """
-        return {
-            "inputs": [
-                {
-                    "format": "WEB",
-                    "dataStr": json.dumps({"html": html}),
-                }
-            ],
-            "output": [elem_id],
-        }
-
     def goto(self, url, window_id=None):
         if window_id in self.driver.window_handles:
             self.driver.switch_to.window(window_id)
@@ -162,7 +148,10 @@ class Executor:
             CustomFunction(
                 "click_elem",
                 arguments={},
-                examples=self._examples_of_page_to_elem(self.get_scrape_html(), elem_id),
+                context={
+                    "html": self.get_scrape_html(),
+                    "elem_id": elem_id,
+                },
                 call_id=call_id,
             )
         )
@@ -191,7 +180,10 @@ class Executor:
                 arguments={
                     "option": option,
                 },
-                examples=self._examples_of_page_to_elem(self.get_scrape_html(), elem_id),
+                context={
+                    "html": self.get_scrape_html(),
+                    "elem_id": elem_id,
+                },
                 call_id=call_id,
             )
         )
@@ -218,7 +210,10 @@ class Executor:
                     "text": text,
                     "enter": enter,
                 },
-                examples=self._examples_of_page_to_elem(self.get_scrape_html(), elem_id),
+                context={
+                    "html": self.get_scrape_html(),
+                    "elem_id": elem_id,
+                },
                 call_id=call_id,
             )
         )
@@ -245,21 +240,20 @@ class Executor:
         with open("test.html", "w") as f:
             f.write(html)
         result = scrape_page(html, schema)
-        logger.info(f"Scraped data:\n{result}")
+        scraped_data = result["data"]
+        nodes = result["nodes"]
+        logger.info(f"Scraped data:\n{scraped_data}")
         self.custom_functions.append(
             CustomFunction(
                 "scrape_data",
                 arguments={
                     "schema": schema,
                 },
-                examples={
-                    "inputs": [
-                        {
-                            "format": "WEB",
-                            "dataStr": json.dumps({"html": self.get_scrape_html()}),
-                        }
-                    ],
-                    "output": result,
+                context={
+                    "html": self.get_scrape_html(),
+                    "url": self.driver.current_url,
+                    "nodes": nodes,
+                    "scraped_data": scraped_data,
                 },
                 call_id=call_id,
             )

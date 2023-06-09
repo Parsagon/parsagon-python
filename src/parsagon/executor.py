@@ -25,9 +25,7 @@ class Executor:
     def __init__(self):
         chrome_options = Options()
         chrome_options.add_argument("--start-maximized")
-        self.driver = webdriver.Chrome(
-            ChromeDriverManager().install(), options=chrome_options
-        )
+        self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
         self.max_elem_id = 0
         self.execution_context = {
             "goto": self.goto,
@@ -92,9 +90,7 @@ class Executor:
         for elem_id in range(self.max_elem_id):
             try:
                 lxml_elem = root.xpath(f'//*[@data-psgn-id="{elem_id}"]')[0]
-                selenium_elem = driver.find_elements(
-                    By.XPATH, f'//*[@data-psgn-id="{elem_id}"]'
-                )[0]
+                selenium_elem = driver.find_elements(By.XPATH, f'//*[@data-psgn-id="{elem_id}"]')[0]
             except IndexError:
                 continue
             if not selenium_elem.is_displayed():
@@ -126,7 +122,7 @@ class Executor:
         logger.info(f"Found element {elem_id}" + log_suffix)
         return result
 
-    def goto(self, url, call_id, window_id=None):
+    def goto(self, url, window_id=None):
         if window_id in self.driver.window_handles:
             self.driver.switch_to.window(window_id)
         else:

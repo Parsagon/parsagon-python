@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import logging
 
-from src.parsagon.api import get_program_sketches
+from src.parsagon.api import get_program_sketches, create_pipeline, create_transformer
 from src.parsagon.executor import Executor
 import logging.config
 
@@ -23,9 +23,11 @@ def parse_args():
         type=str,
         help="natural language description of the task to run, optionally with numbered steps.",
     )
+    parser.add_argument("-v", "--verbose", action="store_true", help="run the task in verbose mode")
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="run the task in verbose mode"
+        "-p", "--pipeline", type=str, help="the name of the pipeline to create (otherwise user input is required)"
     )
+
     return parser.parse_args()
 
 
@@ -33,6 +35,7 @@ def main():
     args = parse_args()
     logging.config.dictConfig(get_logging_config("DEBUG" if args.verbose else "INFO"))
     task = args.task
+    pipeline_name = args.pipeline
     logger.info("Launched with task description:\n%s", args.task)
 
     logger.info("Analyzing task description...")
@@ -46,5 +49,18 @@ def main():
     # Execute the abridged program to gather examples
     executor = Executor()
     executor.execute(abridged_program)
+
+    if not pipeline_name:
+        pipeline_name = input("Name this program, or press enter without typing a name to DISCARD: ")
+    if pipeline_name:
+        logger.info(f"Saving program as {pipeline_name}")
+        pipeline = create_pipeline(pipeline_name, full_program)
+        pipeline_id = pipeline["id"]
+        for transformer in executor.transformers:
+            logger.info(f"  Saving {transformer.type}...")
+            create_transformer(pipeline_id, transformer)
+        logger.info(f"Saved.")
+    else:
+        logger.info("Discarded program.")
 
     logger.info("Done.")

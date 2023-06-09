@@ -60,3 +60,11 @@ def scrape_page(html, schema):
     :return: Scraped data, with lists truncated.
     """
     return _api_call(httpx.post, "/transformers/get-custom-data/", json={"html": html, "schema": schema})
+
+
+def create_pipeline(name, program_sketch):
+    return _api_call(httpx.post, "/pipelines/", json={"name": name, "program_sketch": program_sketch})
+
+
+def create_transformer(pipeline_id, transformer):
+    return _api_call(httpx.post, "/transformers/", json={"pipeline": pipeline_id, **transformer.as_dict()})

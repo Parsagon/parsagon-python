@@ -1,10 +1,6 @@
-from collections import defaultdict
-from functools import partial
 import json
 import logging
 import time
-
-from src.parsagon.api import get_interaction_element_id, scrape_page
 
 import lxml.html
 from selenium import webdriver
@@ -14,12 +10,15 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
 from webdriver_manager.chrome import ChromeDriverManager
 
+from src.parsagon.api import get_interaction_element_id, scrape_page
+from src.parsagon.custom_function import CustomFunction
+
 logger = logging.getLogger(__name__)
 
 
 class Executor:
     """
-    Executes code produced by GPT with the proper context.
+    Executes code produced by GPT with the proper context.  Records custom_function usage along the way.
     """
 
     def __init__(self):
@@ -35,7 +34,7 @@ class Executor:
             "scrape_data": self.scrape_data,
         }
         logger.debug("Available functions: %s", ",".join(self.execution_context.keys()))
-        self.examples = defaultdict(list)
+        self.custom_functions = []
 
     def mark_html(self):
         """
@@ -122,6 +121,20 @@ class Executor:
         logger.info(f"Found element {elem_id}" + log_suffix)
         return result
 
+    def _examples_of_page_to_elem(self, html, elem_id):
+        """
+        Returns scraper search examples for a page going to an element
+        """
+        return {
+            "inputs": [
+                {
+                    "format": "WEB",
+                    "dataStr": json.dumps({"html": html}),
+                }
+            ],
+            "output": [elem_id],
+        }
+
     def goto(self, url, window_id=None):
         if window_id in self.driver.window_handles:
             self.driver.switch_to.window(window_id)
@@ -145,6 +158,14 @@ class Executor:
         elem_id = self.get_elem_by_description("BUTTON", description)
         self.driver.switch_to.window(window_id)
         elem = self._get_elem(elem_id)
+        self.custom_functions.append(
+            CustomFunction(
+                "click_elem",
+                arguments={},
+                examples=self._examples_of_page_to_elem(self.get_scrape_html(), elem_id),
+                call_id=call_id,
+            )
+        )
         for i in range(3):
             try:
                 elem.click()
@@ -156,17 +177,6 @@ class Executor:
         else:
             return False
         self.mark_html()
-        self.examples[call_id].append(
-            {
-                "inputs": [
-                    {
-                        "format": "WEB",
-                        "dataStr": json.dumps({"html": self.get_scrape_html()}),
-                    }
-                ],
-                "output": [elem_id],
-            }
-        )
         return True
 
     def select_option(self, description, option, window_id, call_id):
@@ -175,6 +185,16 @@ class Executor:
         """
         elem_id = self.get_elem_by_description("SELECT", description)
         elem = self._get_elem(elem_id)
+        self.custom_functions.append(
+            CustomFunction(
+                "select_option",
+                arguments={
+                    "option": option,
+                },
+                examples=self._examples_of_page_to_elem(self.get_scrape_html(), elem_id),
+                call_id=call_id,
+            )
+        )
         try:
             select_obj = Select(elem)
             select_obj.select_by_visible_text(option)
@@ -183,17 +203,6 @@ class Executor:
         except:
             return False
         self.mark_html()
-        self.examples[call_id].append(
-            {
-                "inputs": [
-                    {
-                        "format": "WEB",
-                        "dataStr": json.dumps({"html": self.get_scrape_html()}),
-                    }
-                ],
-                "output": [elem_id],
-            }
-        )
         return True
 
     def fill_input(self, description, text, enter, window_id, call_id):
@@ -202,7 +211,17 @@ class Executor:
         """
         elem_id = self.get_elem_by_description("INPUT", description)
         elem = self._get_elem(elem_id)
-
+        self.custom_functions.append(
+            CustomFunction(
+                "select_option",
+                arguments={
+                    "text": text,
+                    "enter": enter,
+                },
+                examples=self._examples_of_page_to_elem(self.get_scrape_html(), elem_id),
+                call_id=call_id,
+            )
+        )
         try:
             elem.clear()
             elem.send_keys(text)
@@ -214,17 +233,6 @@ class Executor:
         except Exception as e:
             return False
         self.mark_html()
-        self.examples[call_id].append(
-            {
-                "inputs": [
-                    {
-                        "format": "WEB",
-                        "dataStr": json.dumps({"html": self.get_scrape_html()}),
-                    }
-                ],
-                "output": [elem_id],
-            }
-        )
         return True
 
     def scrape_data(self, schema, window_id, call_id):
@@ -238,21 +246,26 @@ class Executor:
             f.write(html)
         result = scrape_page(html, schema)
         logger.info(f"Scraped data:\n{result}")
-        self.examples[call_id].append(
-            {
-                "inputs": [
-                    {
-                        "format": "WEB",
-                        "dataStr": json.dumps({"html": self.get_scrape_html()}),
-                    }
-                ],
-                "output": result,
-            }
+        self.custom_functions.append(
+            CustomFunction(
+                "scrape_data",
+                arguments={
+                    "schema": schema,
+                },
+                examples={
+                    "inputs": [
+                        {
+                            "format": "WEB",
+                            "dataStr": json.dumps({"html": self.get_scrape_html()}),
+                        }
+                    ],
+                    "output": result,
+                },
+                call_id=call_id,
+            )
         )
         return result["data"]
 
     def execute(self, code):
         exec(code, self.execution_context)
         self.driver.quit()
-        name = input("Name this program: ")
-        print(f"Saved program as {name}")

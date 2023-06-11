@@ -34,10 +34,16 @@ def parse_args():
 
 def main():
     args = parse_args()
-    logging.config.dictConfig(get_logging_config("DEBUG" if args.verbose else "INFO"))
     task = args.task
+    verbose = args.verbose
     pipeline_name = args.pipeline
-    logger.info("Launched with task description:\n%s", args.task)
+    parsagon_autogpt(task, pipeline_name, verbose)
+
+
+def parsagon_autogpt(task, pipeline_name=None, verbose=False):
+    logging.config.dictConfig(get_logging_config("DEBUG" if verbose else "INFO"))
+
+    logger.info("Launched with task description:\n%s", task)
 
     logger.info("Analyzing task description...")
     program_sketches = get_program_sketches(task)

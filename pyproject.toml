@@ -4,5 +4,34 @@ requires = [
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
+
 [tool.black]
 line-length = 120
+
+[project]
+name = "parsagon-autogpt"
+version = "0.0.1"
+description = "An AutoGPT for intelligent data scraping."
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+  { name="Sandy Suh", email="sandy@parsagon.io" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    # Also change requirements.in
+    'selenium == 4.9.1',
+    'lxml == 4.9.2',
+    'webdriver-manager == 3.8.6',
+    'httpx == 0.24.1'
+]
+
+[project.urls]
+"Homepage" = "https://parsagon.io"
+
+[project.scripts]
+parsagon-autogpt = "parsagon.main:main"

@@ -2,7 +2,7 @@ import json
 
 import httpx
 
-from src.parsagon import settings
+from parsagon import settings
 
 environment = "PANDAS_1.x"
 

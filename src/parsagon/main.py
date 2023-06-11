@@ -2,11 +2,12 @@ import argparse
 import asyncio
 import logging
 
-from src.parsagon.api import get_program_sketches, create_pipeline, create_transformer
-from src.parsagon.executor import Executor
+from parsagon import settings
+from parsagon.api import get_program_sketches, create_pipeline, create_transformers
+from parsagon.executor import Executor
 import logging.config
 
-from src.parsagon.settings import get_logging_config
+from parsagon.settings import get_logging_config
 
 logger = logging.getLogger(__name__)
 

@@ -25,7 +25,7 @@ def get_logging_config(log_level="INFO"):
                 "level": log_level,
                 "propagate": False,
             },  # root logger
-            "src.parsagon": {
+            "parsagon": {
                 "handlers": ["default"],
                 "level": log_level,
                 "propagate": False,

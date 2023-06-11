@@ -10,8 +10,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
 from webdriver_manager.chrome import ChromeDriverManager
 
-from src.parsagon.api import get_interaction_element_id, scrape_page
-from src.parsagon.custom_function import CustomFunction
+from parsagon.api import get_interaction_element_id, scrape_page
+from parsagon.custom_function import CustomFunction
 
 logger = logging.getLogger(__name__)
 

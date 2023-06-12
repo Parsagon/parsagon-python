@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import logging
 
-from src.parsagon.api import get_program_sketches, create_pipeline, create_transformer
+from src.parsagon.api import get_program_sketches, create_pipeline, create_transformers
 from src.parsagon.executor import Executor
 import logging.config
 
@@ -56,9 +56,9 @@ def main():
         logger.info(f"Saving program as {pipeline_name}")
         pipeline = create_pipeline(pipeline_name, full_program)
         pipeline_id = pipeline["id"]
-        for transformer in executor.transformers:
-            logger.info(f"  Saving {transformer.type}...")
-            create_transformer(pipeline_id, transformer)
+        for custom_function in executor.custom_functions:
+            logger.info(f"  Saving {custom_function.name}...")
+            create_transformers(pipeline_id, custom_function)
         logger.info(f"Saved.")
     else:
         logger.info("Discarded program.")

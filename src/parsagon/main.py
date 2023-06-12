@@ -97,5 +97,6 @@ def execute(pipeline_name, verbose=False):
     logger.info("Preparing to run pipeline %s", pipeline_name)
     code = get_pipeline_code(pipeline_name, init_vars={})["code"]
     logger.info("Running pipeline...")
-    exec(code)
+    globals_locals = {}
+    exec(code, globals_locals, globals_locals)
     logger.info("Done.")

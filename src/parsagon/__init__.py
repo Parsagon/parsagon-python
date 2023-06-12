@@ -1,1 +1,1 @@
-from parsagon.main import parsagon_autogpt
+from parsagon.main import parsagon_autogpt, execute

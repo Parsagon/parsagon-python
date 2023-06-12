@@ -1,20 +1,17 @@
 import argparse
-import asyncio
 import logging
-
-from parsagon import settings
-from parsagon.api import get_program_sketches, create_pipeline, create_transformers
-from parsagon.executor import Executor
 import logging.config
 
+from parsagon.api import get_program_sketches, create_pipeline, create_transformers, get_pipeline_code
+from parsagon.executor import Executor
 from parsagon.settings import get_logging_config
 
 logger = logging.getLogger(__name__)
 
 
-def parse_args():
+def parsagon_autogpt_cli():
     parser = argparse.ArgumentParser(
-        prog="parsagon",
+        prog="parsagon-autogpt",
         description="Scrapes and interacts with web pages based on natural language.",
     )
 
@@ -29,19 +26,19 @@ def parse_args():
         "-p", "--pipeline", type=str, help="the name of the pipeline to create (otherwise user input is required)"
     )
 
-    return parser.parse_args()
-
-
-def main():
-    args = parse_args()
+    args = parser.parse_args()
     task = args.task
     verbose = args.verbose
     pipeline_name = args.pipeline
-    parsagon_autogpt(task, pipeline_name, verbose)
+    parsagon_autogpt(task, pipeline_name, verbose=verbose)
+
+
+def configure_logging(verbose):
+    logging.config.dictConfig(get_logging_config("DEBUG" if verbose else "INFO"))
 
 
 def parsagon_autogpt(task, pipeline_name=None, verbose=False):
-    logging.config.dictConfig(get_logging_config("DEBUG" if verbose else "INFO"))
+    configure_logging(verbose)
 
     logger.info("Launched with task description:\n%s", task)
 
@@ -63,11 +60,42 @@ def parsagon_autogpt(task, pipeline_name=None, verbose=False):
         logger.info(f"Saving program as {pipeline_name}")
         pipeline = create_pipeline(pipeline_name, full_program)
         pipeline_id = pipeline["id"]
-        for transformer in executor.transformers:
+        for transformer in executor.custom_functions:
             logger.info(f"  Saving {transformer.type}...")
-            create_transformer(pipeline_id, transformer)
+            create_transformers(pipeline_id, transformer)
         logger.info(f"Saved.")
     else:
         logger.info("Discarded program.")
 
+    logger.info("Done.")
+
+
+def execute_cli():
+    parser = argparse.ArgumentParser(
+        prog="parsagon-exec",
+        description="Runs a created scraping pipeline.",
+    )
+
+    parser.add_argument(
+        "pipeline",
+        metavar="pipeline",
+        type=str,
+        help="the pipeline name to run",
+    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="run the task in verbose mode")
+    args = parser.parse_args()
+    pipeline_name = args.pipeline
+    verbose = args.verbose
+    return execute(pipeline_name, verbose=verbose)
+
+
+def execute(pipeline_name, verbose=False):
+    """
+    Executes pipeline code
+    """
+    configure_logging(verbose)
+    logger.info("Preparing to run pipeline %s", pipeline_name)
+    code = get_pipeline_code(pipeline_name, init_vars={})["code"]
+    logger.info("Running pipeline...")
+    exec(code)
     logger.info("Done.")

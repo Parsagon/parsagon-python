@@ -187,12 +187,16 @@ class Executor:
                 call_id=call_id,
             )
         )
-        try:
-            select_obj = Select(elem)
-            select_obj.select_by_visible_text(option)
-            logger.info(f'Selected option "{option}"')
-            self.wait(5)
-        except:
+        for i in range(3):
+            try:
+                select_obj = Select(elem)
+                select_obj.select_by_visible_text(option)
+                logger.info(f'Selected option "{option}"')
+                self.wait(5)
+                break
+            except Exception as e:
+                self.wait(5)
+        else:
             return False
         self.mark_html()
         return True
@@ -217,15 +221,19 @@ class Executor:
                 call_id=call_id,
             )
         )
-        try:
-            elem.clear()
-            elem.send_keys(text)
-            logger.debug(f'Typed "{text}" into element')
-            if enter:
-                elem.send_keys(Keys.RETURN)
-                logger.debug("Pressed enter")
-            self.wait(5)
-        except Exception as e:
+        for i in range(3):
+            try:
+                elem.clear()
+                elem.send_keys(text)
+                logger.debug(f'Typed "{text}" into element')
+                if enter:
+                    elem.send_keys(Keys.RETURN)
+                    logger.debug("Pressed enter")
+                self.wait(5)
+                break
+            except Exception as e:
+                self.wait(5)
+        else:
             return False
         self.mark_html()
         return True

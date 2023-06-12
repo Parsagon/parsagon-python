@@ -19,15 +19,18 @@ def _request_to_exception(response):
         raise Exception(errors)
 
 
-def _api_call(httpx_func, endpoint, json):
+def _api_call(httpx_func, endpoint, **kwargs):
     api_key = settings.API_KEY
     api_endpoint = f"{settings.API_BASE}/api{endpoint}"
     headers = {"Authorization": f"Token {api_key}"}
-    r = httpx_func(api_endpoint, headers=headers, json=json, timeout=None)
+    r = httpx_func(api_endpoint, headers=headers, timeout=None, **kwargs)
     if not r.is_success:
         _request_to_exception(r)
     else:
-        return r.json()
+        try:
+            return r.json()
+        except:
+            return None
 
 
 def get_program_sketches(description):
@@ -68,6 +71,10 @@ def scrape_page(html, schema):
 
 def create_pipeline(name, program_sketch):
     return _api_call(httpx.post, "/pipelines/", json={"name": name, "program_sketch": program_sketch})
+
+
+def delete_pipeline(pipeline_id):
+    return _api_call(httpx.delete, f"/pipelines/{pipeline_id}/")
 
 
 def _examples_of_page_to_elem(html, elem_id):

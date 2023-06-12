@@ -2,7 +2,7 @@ import argparse
 import logging
 import logging.config
 
-from parsagon.api import get_program_sketches, create_pipeline, create_transformers, get_pipeline_code
+from parsagon.api import get_program_sketches, create_pipeline, delete_pipeline, create_transformers, get_pipeline_code
 from parsagon.executor import Executor
 from parsagon.settings import get_logging_config
 
@@ -60,10 +60,14 @@ def parsagon_autogpt(task, pipeline_name=None, verbose=False):
         logger.info(f"Saving program as {pipeline_name}")
         pipeline = create_pipeline(pipeline_name, full_program)
         pipeline_id = pipeline["id"]
-        for custom_function in executor.custom_functions:
-            logger.info(f"  Saving {custom_function.name}...")
-            create_transformers(pipeline_id, custom_function)
-        logger.info(f"Saved.")
+        try:
+            for custom_function in executor.custom_functions:
+                logger.info(f"  Saving {custom_function.name}...")
+                create_transformers(pipeline_id, custom_function)
+            logger.info(f"Saved.")
+        except:
+            delete_pipeline(pipeline_id)
+            logger.info(f"An error occurred while saving the program. The program has been discarded.")
     else:
         logger.info("Discarded program.")
 

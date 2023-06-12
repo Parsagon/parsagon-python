@@ -146,17 +146,6 @@ class Executor:
         elem_id = self.get_elem_by_description("BUTTON", description)
         self.driver.switch_to.window(window_id)
         elem = self._get_elem(elem_id)
-        self.custom_functions.append(
-            CustomFunction(
-                "click_elem",
-                arguments={},
-                context={
-                    "html": self.get_scrape_html(),
-                    "elem_id": elem_id,
-                },
-                call_id=call_id,
-            )
-        )
         for i in range(3):
             try:
                 elem.click()
@@ -168,6 +157,17 @@ class Executor:
         else:
             return False
         self.mark_html()
+        self.custom_functions.append(
+            CustomFunction(
+                "click_elem",
+                arguments={},
+                examples=[{
+                    "html": self.get_scrape_html(),
+                    "elem_id": elem_id,
+                }],
+                call_id=call_id,
+            )
+        )
         return True
 
     def select_option(self, description, option, window_id, call_id):
@@ -176,19 +176,6 @@ class Executor:
         """
         elem_id = self.get_elem_by_description("SELECT", description)
         elem = self._get_elem(elem_id)
-        self.custom_functions.append(
-            CustomFunction(
-                "select_option",
-                arguments={
-                    "option": option,
-                },
-                context={
-                    "html": self.get_scrape_html(),
-                    "elem_id": elem_id,
-                },
-                call_id=call_id,
-            )
-        )
         for i in range(3):
             try:
                 select_obj = Select(elem)
@@ -196,11 +183,24 @@ class Executor:
                 logger.info(f'Selected option "{option}"')
                 self.wait(5)
                 break
-            except Exception as e:
+            except:
                 self.wait(5)
         else:
             return False
         self.mark_html()
+        self.custom_functions.append(
+            CustomFunction(
+                "select_option",
+                arguments={
+                    "option": option,
+                },
+                examples=[{
+                    "html": self.get_scrape_html(),
+                    "elem_id": elem_id,
+                }],
+                call_id=call_id,
+            )
+        )
         return True
 
     def fill_input(self, description, text, enter, window_id, call_id):
@@ -209,20 +209,6 @@ class Executor:
         """
         elem_id = self.get_elem_by_description("INPUT", description)
         elem = self._get_elem(elem_id)
-        self.custom_functions.append(
-            CustomFunction(
-                "select_option",
-                arguments={
-                    "text": text,
-                    "enter": enter,
-                },
-                context={
-                    "html": self.get_scrape_html(),
-                    "elem_id": elem_id,
-                },
-                call_id=call_id,
-            )
-        )
         for i in range(3):
             try:
                 elem.clear()
@@ -233,11 +219,25 @@ class Executor:
                     logger.debug("Pressed enter")
                 self.wait(5)
                 break
-            except Exception as e:
+            except:
                 self.wait(5)
         else:
             return False
         self.mark_html()
+        self.custom_functions.append(
+            CustomFunction(
+                "select_option",
+                arguments={
+                    "text": text,
+                    "enter": enter,
+                },
+                examples=[{
+                    "html": self.get_scrape_html(),
+                    "elem_id": elem_id,
+                }],
+                call_id=call_id,
+            )
+        )
         return True
 
     def scrape_data(self, schema, window_id, call_id):
@@ -247,8 +247,6 @@ class Executor:
         logger.info("Scraping data...")
         html = self.get_scrape_html()
         logger.debug("Saving HTML...")
-        with open("test.html", "w") as f:
-            f.write(html)
         result = scrape_page(html, schema)
         scraped_data = result["data"]
         nodes = result["nodes"]
@@ -259,12 +257,12 @@ class Executor:
                 arguments={
                     "schema": schema,
                 },
-                context={
+                examples=[{
                     "html": self.get_scrape_html(),
                     "url": self.driver.current_url,
                     "nodes": nodes,
                     "scraped_data": scraped_data,
-                },
+                }],
                 call_id=call_id,
             )
         )

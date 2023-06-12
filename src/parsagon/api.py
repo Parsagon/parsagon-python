@@ -19,15 +19,18 @@ def _request_to_exception(response):
         raise Exception(errors)
 
 
-def _api_call(httpx_func, endpoint, json):
+def _api_call(httpx_func, endpoint, **kwargs):
     api_key = settings.API_KEY
     api_endpoint = f"{settings.API_BASE}/api{endpoint}"
     headers = {"Authorization": f"Token {api_key}"}
-    r = httpx_func(api_endpoint, headers=headers, json=json, timeout=None)
+    r = httpx_func(api_endpoint, headers=headers, timeout=None, **kwargs)
     if not r.is_success:
         _request_to_exception(r)
     else:
-        return r.json()
+        try:
+            return r.json()
+        except:
+            return None
 
 
 def get_program_sketches(description):
@@ -70,6 +73,10 @@ def create_pipeline(name, program_sketch):
     return _api_call(httpx.post, "/pipelines/", json={"name": name, "program_sketch": program_sketch})
 
 
+def delete_pipeline(pipeline_id):
+    return _api_call(httpx.delete, f"/pipelines/{pipeline_id}/")
+
+
 def _examples_of_page_to_elem(html, elem_id):
     """
     Returns scraper search examples for a page going to an element
@@ -92,128 +99,10 @@ def create_transformers(pipeline_id, custom_function):
     :param custom_function:
     :return:
     """
-    name = custom_function.name
-    if name in ("click_elem", "select_option", "fill_input"):
-        action_type = {
-            "click_elem": "SCRAPE_CLICK_HTMLELEM",
-            "select_option": "SCRAPE_SELECT_HTMLELEM",
-            "fill_input": "SCRAPE_FILL_HTMLELEM",
-        }[name]
-        params = (
-            {
-                "actionType": action_type,
-                "inputVariableName": "page",
-                "outputWebActionSilent": False,
-                "actionName": action_type,
-                "inputType": "VAR",
-                "inputVariableNames": ["page"],
-                "inputScrapeInclude": "ALL",
-                "outputType": "VAR",
-                "outputVariableName": "page",
-                "outputVariableAction": "MODIFY",
-                "outputVariableType": "WEBPAGE",
-            },
-        )
-        html = custom_function.context["html"]
-        elem_id = custom_function.context["elem_id"]
-        scrape_elem_programs = _api_call(
-            httpx.post,
-            "/transformers/scraper-search",
-            json={
-                "params": params,
-                "examples": _examples_of_page_to_elem(html, elem_id),
-                "environment": environment,
-                "operation": "SCRAPE_HTMLELEM",
-                "field": {"name": "element", "type": "ACTION", "nodes": [[str(elem_id)]]},
-            },
-        )["programs"]
-        assert len(scrape_elem_programs) > 0
-        scrape_elem_tree = scrape_elem_programs[0]["tree"]
-        scrape_interact_programs = _api_call(
-            httpx.post,
-            "/transformers/scraper-search",
-            json={
-                "params": params,
-                "environment": environment,
-                "operation": action_type,
-                "partial_program": scrape_elem_tree,
-            },
-        )
-        assert len(scrape_interact_programs) > 0
-        tree = scrape_interact_programs[0]["tree"]
-
-    elif custom_function.name == "scrape_elem":
-        params = {
-            "actionType": "SCRAPE_WEB",
-            "inputVariableName": "page",
-            "outputVariableName": "scraped_data",
-            "actionName": "SCRAPE_WEB",
-            "inputType": "VAR",
-            "inputVariableNames": ["page"],
-            "inputScrapeInclude": "ALL",
-            "outputType": "VAR",
-            "outputVariableType": "JSON",
-            "outputVariableAction": "CREATE",
-        }
-        schema = custom_function.args["schema"]
-        nodes = custom_function.context["nodes"]
-        url = custom_function.context["url"]
-        html = custom_function.context["html"]
-
-        def get_scrape_type(gpt_type):
-            return {
-                "str": "TEXT",
-                "int": "TEXT",
-            }[gpt_type]
-
-        html_fields = [
-            {"name": name, "type": get_scrape_type(gpt_type), "nodes": nodes, "gpt_type": gpt_type}
-            for name, gpt_type in schema.keys
-        ]
-        field_sets = [html_fields]
-        input_sets = [[{"dataStr": json.dumps({"html": html, "url": url}), "format": "WEB"}]]
-        dataset0_obj = {"type": "OBJECT", "is_list": False, "object": None, "user_created": False, "name": "dataset0"}
-        columns = [
-            {
-                "name": name,
-                "type": get_scrape_type(gpt_type),
-                "is_list": False,
-                "object": dataset0_obj,
-                "user_created": True,
-            }
-            for name, gpt_type in schema.keys
-        ]
-
-        scrape_page_programs = _api_call(
-            httpx.post,
-            "/transformers/scraper-search",
-            json={
-                "params": params,
-                "examples": custom_function.examples,
-                "environment": environment,
-                "operation": "SCRAPE_PAGE_COMPOUND",
-                "field_sets": field_sets,
-                "input_sets": input_sets,
-                "columns": columns,
-            },
-        )["programs"]
-        tree = scrape_page_programs["programs"][0]["tree"]
-    else:
-        raise NotImplementedError(f"Custom function not implemented: {custom_function.name}")
-
-    return _api_call(
+    _api_call(
         httpx.post,
         "/transformers/",
-        json={
-            "pipeline": pipeline_id,
-            **custom_function.as_dict(),
-            "tree": tree,
-            "params": params,
-            "examples": [],
-            "aux_examples": [],
-            "outer_transformer": None,
-            "call_id": custom_function.call_id,
-        },
+        json={"pipeline": pipeline_id, **custom_function.to_json()},
     )
 
 

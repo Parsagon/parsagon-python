@@ -1,7 +1,11 @@
 from os import environ
 
-API_BASE = environ["API_BASE"].rstrip("/")
-API_KEY = environ["API_KEY"]
+API_BASE = environ.get("API_BASE", "https://parsagon.io").rstrip("/")
+
+try:
+    API_KEY = environ["API_KEY"]
+except KeyError:
+    raise Exception("Please set the API_KEY environment variable, e.g. by running: export API_KEY=...")
 
 
 def get_logging_config(log_level="INFO"):
@@ -25,7 +29,7 @@ def get_logging_config(log_level="INFO"):
                 "level": log_level,
                 "propagate": False,
             },  # root logger
-            "src.parsagon": {
+            "parsagon": {
                 "handlers": ["default"],
                 "level": log_level,
                 "propagate": False,

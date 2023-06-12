@@ -2,7 +2,7 @@ import json
 
 import httpx
 
-from src.parsagon import settings
+from parsagon import settings
 
 environment = "PANDAS_1.x"
 
@@ -96,4 +96,17 @@ def create_transformers(pipeline_id, custom_function):
         httpx.post,
         "/transformers/",
         json={"pipeline": pipeline_id, **custom_function.to_json()},
+    )
+
+
+def get_pipeline_code(pipeline_name, init_vars=None):
+    if init_vars is None:
+        init_vars = {}
+    return _api_call(
+        httpx.post,
+        f"/pipelines/get-code-by-name/",
+        json={
+            "pipeline_name": pipeline_name,
+            "init_vars": init_vars,
+        },
     )

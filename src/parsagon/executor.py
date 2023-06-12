@@ -4,14 +4,15 @@ import time
 
 import lxml.html
 from selenium import webdriver
+import seleniumwire.undetected_chromedriver as uc
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
 from webdriver_manager.chrome import ChromeDriverManager
 
-from src.parsagon.api import get_interaction_element_id, scrape_page
-from src.parsagon.custom_function import CustomFunction
+from parsagon.api import get_interaction_element_id, scrape_page
+from parsagon.custom_function import CustomFunction
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,10 @@ class Executor:
     """
 
     def __init__(self):
-        chrome_options = Options()
+        chrome_options = uc.ChromeOptions()
         chrome_options.add_argument("--start-maximized")
-        self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+        # ChromeDriverManager().install(),
+        self.driver = uc.Chrome(options=chrome_options)
         self.max_elem_id = 0
         self.execution_context = {
             "goto": self.goto,
@@ -122,7 +124,6 @@ class Executor:
         return result
 
     def goto(self, url, window_id=None):
-        logger.info(time.time())
         if window_id in self.driver.window_handles:
             self.driver.switch_to.window(window_id)
         else:
@@ -142,7 +143,6 @@ class Executor:
         """
         Clicks a button.
         """
-        logger.info(time.time())
         elem_id = self.get_elem_by_description("BUTTON", description)
         self.driver.switch_to.window(window_id)
         elem = self._get_elem(elem_id)
@@ -161,29 +161,31 @@ class Executor:
             CustomFunction(
                 "click_elem",
                 arguments={},
-                examples={
+                examples=[{
                     "html": self.get_scrape_html(),
                     "elem_id": elem_id,
-                },
+                }],
                 call_id=call_id,
             )
         )
-        logger.info(time.time())
         return True
 
     def select_option(self, description, option, window_id, call_id):
         """
         Selects an option by name from a dropdown.
         """
-        logger.info(time.time())
         elem_id = self.get_elem_by_description("SELECT", description)
         elem = self._get_elem(elem_id)
-        try:
-            select_obj = Select(elem)
-            select_obj.select_by_visible_text(option)
-            logger.info(f'Selected option "{option}"')
-            self.wait(5)
-        except:
+        for i in range(3):
+            try:
+                select_obj = Select(elem)
+                select_obj.select_by_visible_text(option)
+                logger.info(f'Selected option "{option}"')
+                self.wait(5)
+                break
+            except:
+                self.wait(5)
+        else:
             return False
         self.mark_html()
         self.custom_functions.append(
@@ -192,32 +194,34 @@ class Executor:
                 arguments={
                     "option": option,
                 },
-                examples={
+                examples=[{
                     "html": self.get_scrape_html(),
                     "elem_id": elem_id,
-                },
+                }],
                 call_id=call_id,
             )
         )
-        logger.info(time.time())
         return True
 
     def fill_input(self, description, text, enter, window_id, call_id):
         """
         Fills an input text field, then presses an optional end key.
         """
-        logger.info(time.time())
         elem_id = self.get_elem_by_description("INPUT", description)
         elem = self._get_elem(elem_id)
-        try:
-            elem.clear()
-            elem.send_keys(text)
-            logger.debug(f'Typed "{text}" into element')
-            if enter:
-                elem.send_keys(Keys.RETURN)
-                logger.debug("Pressed enter")
-            self.wait(5)
-        except Exception as e:
+        for i in range(3):
+            try:
+                elem.clear()
+                elem.send_keys(text)
+                logger.debug(f'Typed "{text}" into element')
+                if enter:
+                    elem.send_keys(Keys.RETURN)
+                    logger.debug("Pressed enter")
+                self.wait(5)
+                break
+            except:
+                self.wait(5)
+        else:
             return False
         self.mark_html()
         self.custom_functions.append(
@@ -234,14 +238,12 @@ class Executor:
                 call_id=call_id,
             )
         )
-        logger.info(time.time())
         return True
 
     def scrape_data(self, schema, window_id, call_id):
         """
         Scrapes data from the current page.
         """
-        logger.info(time.time())
         logger.info("Scraping data...")
         html = self.get_scrape_html()
         logger.debug("Saving HTML...")
@@ -264,7 +266,6 @@ class Executor:
                 call_id=call_id,
             )
         )
-        logger.info(time.time())
         return result["data"]
 
     def execute(self, code):

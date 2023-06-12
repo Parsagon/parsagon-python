@@ -4,6 +4,7 @@ import time
 
 import lxml.html
 from selenium import webdriver
+import seleniumwire.undetected_chromedriver as uc
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -22,9 +23,10 @@ class Executor:
     """
 
     def __init__(self):
-        chrome_options = Options()
+        chrome_options = uc.ChromeOptions()
         chrome_options.add_argument("--start-maximized")
-        self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+        # ChromeDriverManager().install(),
+        self.driver = uc.Chrome(options=chrome_options)
         self.max_elem_id = 0
         self.execution_context = {
             "goto": self.goto,

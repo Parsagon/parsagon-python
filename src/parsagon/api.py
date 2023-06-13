@@ -101,7 +101,7 @@ def create_transformers(pipeline_id, custom_function):
     """
     _api_call(
         httpx.post,
-        "/transformers/",
+        "/transformers/custom-function/",
         json={"pipeline": pipeline_id, **custom_function.to_json()},
     )
 

@@ -22,6 +22,6 @@ class CustomFunction:
         return {
             "name": self.name,
             "arguments": self.arguments,
-            "examples": self.examples,
+            "examples_data": self.examples,
             "call_id": self.call_id,
         }

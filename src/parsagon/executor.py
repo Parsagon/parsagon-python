@@ -161,10 +161,12 @@ class Executor:
             CustomFunction(
                 "click_elem",
                 arguments={},
-                examples=[{
-                    "html": self.get_scrape_html(),
-                    "elem_id": elem_id,
-                }],
+                examples=[
+                    {
+                        "html": self.get_scrape_html(),
+                        "elem_id": elem_id,
+                    }
+                ],
                 call_id=call_id,
             )
         )
@@ -194,10 +196,12 @@ class Executor:
                 arguments={
                     "option": option,
                 },
-                examples=[{
-                    "html": self.get_scrape_html(),
-                    "elem_id": elem_id,
-                }],
+                examples=[
+                    {
+                        "html": self.get_scrape_html(),
+                        "elem_id": elem_id,
+                    }
+                ],
                 call_id=call_id,
             )
         )
@@ -231,10 +235,12 @@ class Executor:
                     "text": text,
                     "enter": enter,
                 },
-                examples=[{
-                    "html": self.get_scrape_html(),
-                    "elem_id": elem_id,
-                }],
+                examples=[
+                    {
+                        "html": self.get_scrape_html(),
+                        "elem_id": elem_id,
+                    }
+                ],
                 call_id=call_id,
             )
         )
@@ -246,7 +252,6 @@ class Executor:
         """
         logger.info("Scraping data...")
         html = self.get_scrape_html()
-        logger.debug("Saving HTML...")
         result = scrape_page(html, schema)
         scraped_data = result["data"]
         nodes = result["nodes"]
@@ -257,12 +262,14 @@ class Executor:
                 arguments={
                     "schema": schema,
                 },
-                examples=[{
-                    "html": self.get_scrape_html(),
-                    "url": self.driver.current_url,
-                    "nodes": nodes,
-                    "scraped_data": scraped_data,
-                }],
+                examples=[
+                    {
+                        "html": self.get_scrape_html(),
+                        "url": self.driver.current_url,
+                        "nodes": nodes,
+                        "scraped_data": scraped_data,
+                    }
+                ],
                 call_id=call_id,
             )
         )

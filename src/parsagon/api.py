@@ -1,5 +1,4 @@
 import json
-from json import JSONDecodeError
 
 import httpx
 
@@ -8,25 +7,16 @@ from parsagon import settings
 environment = "PANDAS_1.x"
 
 
-class APIException(Exception):
-    @property
-    def value(self):
-        return self.args[0]
-
-
 def _request_to_exception(response):
     if response.status_code == 500:
-        raise APIException("A server error occurred. Please notify Parsagon.")
+        raise Exception("A server error occurred. Please notify Parsagon.")
     if response.status_code in (502, 503, 504):
-        raise APIException("Lost connection to server.")
-    try:
-        errors = response.json()
-        if "non_field_errors" in errors:
-            raise APIException(errors["non_field_errors"])
-        else:
-            raise APIException(errors)
-    except JSONDecodeError:
-        raise APIException("Could not parse response.")
+        raise Exception("Lost connection to server.")
+    errors = response.json()
+    if "non_field_errors" in errors:
+        raise Exception(errors["non_field_errors"])
+    else:
+        raise Exception(errors)
 
 
 def _api_call(httpx_func, endpoint, **kwargs):

@@ -10,7 +10,7 @@ from parsagon.api import (
     get_pipeline_code,
     APIException,
 )
-from parsagon.executor import Executor
+from parsagon.executor import Executor, custom_functions_to_descriptions
 from parsagon.settings import get_logging_config
 
 logger = logging.getLogger(__name__)
@@ -79,7 +79,12 @@ def parsagon_autogpt(task, pipeline_name=None, verbose=False):
             pipeline_id = pipeline["id"]
             try:
                 for custom_function in executor.custom_functions:
-                    logger.info(f"  Saving {custom_function.name}...")
+                    debug_suffix = f" ({custom_function.name})"
+                    description = custom_functions_to_descriptions.get(custom_function.name)
+                    description = " to " + description if description else ""
+                    if verbose:
+                        description += debug_suffix
+                    logger.info(f"  Saving function{description}...")
                     create_transformers(pipeline_id, custom_function)
                 logger.info(f"Saved.")
             except:

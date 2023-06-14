@@ -2,7 +2,14 @@ import argparse
 import logging
 import logging.config
 
-from parsagon.api import get_program_sketches, create_pipeline, delete_pipeline, create_transformers, get_pipeline_code
+from parsagon.api import (
+    get_program_sketches,
+    create_pipeline,
+    delete_pipeline,
+    create_transformers,
+    get_pipeline_code,
+    APIException,
+)
 from parsagon.executor import Executor
 from parsagon.settings import get_logging_config
 
@@ -48,28 +55,41 @@ def parsagon_autogpt(task, pipeline_name=None, verbose=False):
     full_program = program_sketches["full"]
     abridged_program = program_sketches["abridged"]
     logger.debug("Program:\n%s", abridged_program)
-    abridged_program += "\n\noutput = func()\nprint(f'Program finished and returned a value of:\\n{output}')\n"  # Make the program runnable
+    abridged_program += "\n\noutput = get_product_data()\nprint(f'Program finished and returned a value of:\\n{output}')\n"  # Make the program runnable
 
     # Execute the abridged program to gather examples
     executor = Executor()
     executor.execute(abridged_program)
 
-    if not pipeline_name:
-        pipeline_name = input("Name this program, or press enter without typing a name to DISCARD: ")
-    if pipeline_name:
-        logger.info(f"Saving program as {pipeline_name}")
-        pipeline = create_pipeline(pipeline_name, full_program)
-        pipeline_id = pipeline["id"]
-        try:
-            for custom_function in executor.custom_functions:
-                logger.info(f"  Saving {custom_function.name}...")
-                create_transformers(pipeline_id, custom_function)
-            logger.info(f"Saved.")
-        except:
-            delete_pipeline(pipeline_id)
-            logger.info(f"An error occurred while saving the program. The program has been discarded.")
-    else:
-        logger.info("Discarded program.")
+    # The user must select a name
+    while True:
+        if not pipeline_name:
+            pipeline_name = input("Name this program, or press enter without typing a name to DISCARD: ")
+        if pipeline_name:
+            logger.info(f"Saving program as {pipeline_name}")
+            try:
+                pipeline = create_pipeline(pipeline_name, full_program)
+            except APIException as e:
+                if isinstance(e.value, list) and "Pipeline with name already exists" in e.value:
+                    logger.info("A program with this name already exists. Please choose another name.")
+                    pipeline_name = None
+                    continue
+                else:
+                    raise e
+            pipeline_id = pipeline["id"]
+            try:
+                for custom_function in executor.custom_functions:
+                    logger.info(f"  Saving {custom_function.name}...")
+                    create_transformers(pipeline_id, custom_function)
+                logger.info(f"Saved.")
+            except:
+                delete_pipeline(pipeline_id)
+                logger.info(f"An error occurred while saving the program. The program has been discarded.")
+            finally:
+                break
+        else:
+            logger.info("Discarded program.")
+            break
 
     logger.info("Done.")
 

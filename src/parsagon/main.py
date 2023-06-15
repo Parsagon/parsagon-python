@@ -9,9 +9,9 @@ from parsagon.settings import get_logging_config
 logger = logging.getLogger(__name__)
 
 
-def parsagon_autogpt_cli():
+def create_cli():
     parser = argparse.ArgumentParser(
-        prog="parsagon-autogpt",
+        prog="parsagon-create",
         description="Scrapes and interacts with web pages based on natural language.",
     )
 
@@ -23,21 +23,21 @@ def parsagon_autogpt_cli():
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="run the task in verbose mode")
     parser.add_argument(
-        "-p", "--pipeline", type=str, help="the name of the pipeline to create (otherwise user input is required)"
+        "-p", "--program", type=str, help="the name of the program to create (otherwise user input is required)"
     )
 
     args = parser.parse_args()
     task = args.task
     verbose = args.verbose
-    pipeline_name = args.pipeline
-    parsagon_autogpt(task, pipeline_name, verbose=verbose)
+    pipeline_name = args.program
+    create(task, pipeline_name, verbose=verbose)
 
 
 def configure_logging(verbose):
     logging.config.dictConfig(get_logging_config("DEBUG" if verbose else "INFO"))
 
 
-def parsagon_autogpt(task, pipeline_name=None, verbose=False):
+def create(task, pipeline_name=None, verbose=False):
     configure_logging(verbose)
 
     logger.info("Launched with task description:\n%s", task)
@@ -74,33 +74,33 @@ def parsagon_autogpt(task, pipeline_name=None, verbose=False):
     logger.info("Done.")
 
 
-def execute_cli():
+def run_cli():
     parser = argparse.ArgumentParser(
-        prog="parsagon-exec",
-        description="Runs a created scraping pipeline.",
+        prog="parsagon-run",
+        description="Runs a created program.",
     )
 
     parser.add_argument(
-        "pipeline",
-        metavar="pipeline",
+        "program",
         type=str,
-        help="the pipeline name to run",
+        help="the name of the program to run",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="run the task in verbose mode")
     args = parser.parse_args()
-    pipeline_name = args.pipeline
+    pipeline_name = args.program
     verbose = args.verbose
-    return execute(pipeline_name, verbose=verbose)
+    return run(pipeline_name, "PANDAS_1.x", verbose=verbose)
 
 
-def execute(pipeline_name, verbose=False):
+def run(pipeline_name, environment, verbose=False):
     """
     Executes pipeline code
     """
     configure_logging(verbose)
-    logger.info("Preparing to run pipeline %s", pipeline_name)
-    code = get_pipeline_code(pipeline_name, init_vars={})["code"]
-    logger.info("Running pipeline...")
+    logger.info("Preparing to run program %s", pipeline_name)
+    code = get_pipeline_code(pipeline_name, environment)["code"]
+    logger.info("Running program...")
     globals_locals = {}
     exec(code, globals_locals, globals_locals)
     logger.info("Done.")
+    return globals_locals["output"]

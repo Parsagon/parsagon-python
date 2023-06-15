@@ -56,7 +56,7 @@ def get_interaction_element_id(marked_html, elem_type, description):
         "/transformers/get-nav-elem/",
         json={"html": marked_html, "elem_type": elem_type, "description": description},
     )["id"]
-    return int(result)
+    return result
 
 
 def scrape_page(html, schema):
@@ -106,14 +106,12 @@ def create_transformers(pipeline_id, custom_function):
     )
 
 
-def get_pipeline_code(pipeline_name, init_vars=None):
-    if init_vars is None:
-        init_vars = {}
+def get_pipeline_code(pipeline_name, environment):
     return _api_call(
         httpx.post,
         f"/pipelines/get-code-by-name/",
         json={
             "pipeline_name": pipeline_name,
-            "init_vars": init_vars,
+            "environment": environment,
         },
     )

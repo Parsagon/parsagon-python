@@ -26,7 +26,8 @@ class Executor:
         chrome_options = uc.ChromeOptions()
         chrome_options.add_argument("--start-maximized")
         # ChromeDriverManager().install(),
-        self.driver = uc.Chrome(options=chrome_options)
+        seleniumwire_options = {"disable_capture": True}
+        self.driver = uc.Chrome(options=chrome_options, seleniumwire_options=seleniumwire_options)
         self.max_elem_id = 0
         self.execution_context = {
             "goto": self.goto,
@@ -120,7 +121,7 @@ class Executor:
         result = self.driver.find_element(By.XPATH, f'//*[@data-psgn-id="{elem_id}"]')
         elem_text = result.text
         log_suffix = f' with text "{elem_text}"' if elem_text else ""
-        logger.info(f"Found element {elem_id}" + log_suffix)
+        logger.info(f"Found element" + log_suffix)
         return result
 
     def goto(self, url, window_id=None):
@@ -230,7 +231,7 @@ class Executor:
         self.mark_html()
         self.custom_functions.append(
             CustomFunction(
-                "select_option",
+                "fill_input",
                 arguments={
                     "text": text,
                     "enter": enter,

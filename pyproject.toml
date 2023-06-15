@@ -49,5 +49,5 @@ dependencies = [
 "Homepage" = "https://parsagon.io"
 
 [project.scripts]
-parsagon-autogpt = "parsagon.main:parsagon_autogpt_cli"
-parsagon-exec = "parsagon.main:execute_cli"
+parsagon-create = "parsagon.main:create_cli"
+parsagon-run = "parsagon.main:run_cli"

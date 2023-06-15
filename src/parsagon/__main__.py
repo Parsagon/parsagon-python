@@ -1,4 +1,4 @@
-from parsagon.main import parsagon_autogpt_cli, execute_cli
+from parsagon.main import create_cli, run_cli
 
 if __name__ == "__main__":
     main()

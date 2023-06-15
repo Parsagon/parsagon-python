@@ -154,6 +154,7 @@ class Executor:
         """
         Clicks a button.
         """
+        html = self.get_scrape_html()
         elem_id = self.get_elem_by_description("BUTTON", description)
         self.driver.switch_to.window(window_id)
         elem = self._get_elem(elem_id)
@@ -174,7 +175,7 @@ class Executor:
                 arguments={},
                 examples=[
                     {
-                        "html": self.get_scrape_html(),
+                        "html": html,
                         "elem_id": elem_id,
                     }
                 ],
@@ -187,6 +188,7 @@ class Executor:
         """
         Selects an option by name from a dropdown.
         """
+        html = self.get_scrape_html()
         elem_id = self.get_elem_by_description("SELECT", description)
         elem = self._get_elem(elem_id)
         for i in range(3):
@@ -209,7 +211,7 @@ class Executor:
                 },
                 examples=[
                     {
-                        "html": self.get_scrape_html(),
+                        "html": html,
                         "elem_id": elem_id,
                     }
                 ],
@@ -222,6 +224,7 @@ class Executor:
         """
         Fills an input text field, then presses an optional end key.
         """
+        html = self.get_scrape_html()
         elem_id = self.get_elem_by_description("INPUT", description)
         elem = self._get_elem(elem_id)
         for i in range(3):
@@ -248,7 +251,7 @@ class Executor:
                 },
                 examples=[
                     {
-                        "html": self.get_scrape_html(),
+                        "html": html,
                         "elem_id": elem_id,
                     }
                 ],

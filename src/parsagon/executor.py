@@ -17,6 +17,16 @@ from parsagon.custom_function import CustomFunction
 logger = logging.getLogger(__name__)
 
 
+# A dictionary of custom function names to their descriptions for the user
+custom_functions_to_descriptions = {
+    "scrape_data": "scrape data from the page",
+    "goto": "go to a page",
+    "click_elem": "click an element",
+    "fill_input": "fill an input",
+    "select_option": "select an option",
+}
+
+
 class Executor:
     """
     Executes code produced by GPT with the proper context.  Records custom_function usage along the way.
@@ -36,7 +46,7 @@ class Executor:
             "select_option": self.select_option,
             "scrape_data": self.scrape_data,
         }
-        logger.debug("Available functions: %s", ",".join(self.execution_context.keys()))
+        logger.debug("Available functions: %s", ", ".join(self.execution_context.keys()))
         self.custom_functions = []
 
     def mark_html(self):
@@ -251,6 +261,7 @@ class Executor:
         """
         Scrapes data from the current page.
         """
+        self.driver.switch_to.window(window_id)
         logger.info("Scraping data...")
         html = self.get_scrape_html()
         result = scrape_page(html, schema)

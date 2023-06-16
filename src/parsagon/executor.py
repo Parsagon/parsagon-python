@@ -59,7 +59,10 @@ class Executor:
         # self.max_elem_id = new_max_elem_id
         logger.debug("  Marking HTML...")
         self.driver.execute_script(
-            "let elemIdx = 0; for (const node of document.all) {{ node.setAttribute('data-psgn-id', elemIdx); elemIdx++; }}"
+            "let elemIdx = 0; for (const node of document.all) { node.setAttribute('data-psgn-id', elemIdx); elemIdx++; }"
+        )
+        self.driver.execute_script(
+            "for (const image of document.images) { image.setAttribute('data-psgn-width', image.width ?? -1); image.setAttribute('data-psgn-height', image.height ?? -1); }"
         )
 
     def _get_cleaned_lxml_root(self):

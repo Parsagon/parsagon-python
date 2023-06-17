@@ -44,6 +44,7 @@ class Executor:
             "click_elem": self.click_elem,
             "fill_input": self.fill_input,
             "select_option": self.select_option,
+            "wait": self.wait,
             "scrape_data": self.scrape_data,
         }
         logger.debug("Available functions: %s", ", ".join(self.execution_context.keys()))
@@ -116,9 +117,9 @@ class Executor:
         return lxml.html.tostring(root).decode()
 
     def wait(self, seconds):
-        logger.debug(f"  Waiting {seconds} seconds...")
+        logger.info(f"  Waiting {seconds} seconds...")
         time.sleep(seconds)
-        logger.debug("  Done waiting.")
+        self.mark_html()
 
     def get_elem_by_description(self, elem_type, description):
         logger.info(f'Looking for {elem_type.lower()}: "{description}"')
@@ -148,7 +149,7 @@ class Executor:
         self.driver.get(url)
 
         # Wait for website to load
-        self.wait(5)
+        time.sleep(5)
         self.mark_html()
 
         return self.driver.current_window_handle
@@ -165,10 +166,10 @@ class Executor:
             try:
                 elem.click()
                 logger.info("Clicked element")
-                self.wait(5)
+                time.sleep(5)
                 break
             except Exception as e:
-                self.wait(5)
+                time.sleep(5)
         else:
             return False
         self.mark_html()
@@ -199,10 +200,10 @@ class Executor:
                 select_obj = Select(elem)
                 select_obj.select_by_visible_text(option)
                 logger.info(f'Selected option "{option}"')
-                self.wait(5)
+                time.sleep(5)
                 break
             except:
-                self.wait(5)
+                time.sleep(5)
         else:
             return False
         self.mark_html()
@@ -238,10 +239,10 @@ class Executor:
                 if enter:
                     elem.send_keys(Keys.RETURN)
                     logger.debug("Pressed enter")
-                self.wait(5)
+                time.sleep(5)
                 break
             except:
-                self.wait(5)
+                time.sleep(5)
         else:
             return False
         self.mark_html()

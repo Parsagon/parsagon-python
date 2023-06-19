@@ -44,11 +44,18 @@ class Executor:
             "click_elem": self.click_elem,
             "fill_input": self.fill_input,
             "select_option": self.select_option,
+            "scroll": self.scroll,
             "wait": self.wait,
             "scrape_data": self.scrape_data,
         }
         logger.debug("Available functions: %s", ", ".join(self.execution_context.keys()))
-        self.custom_functions = []
+        self.custom_functions = {}
+
+    def add_custom_function(self, call_id, custom_function):
+        if call_id in self.custom_functions:
+            self.custom_functions[call_id].examples.extend(custom_function.examples)
+        else:
+            self.custom_functions[call_id] = custom_function
 
     def mark_html(self):
         """
@@ -116,11 +123,6 @@ class Executor:
 
         return lxml.html.tostring(root).decode()
 
-    def wait(self, seconds):
-        logger.info(f"  Waiting {seconds} seconds...")
-        time.sleep(seconds)
-        self.mark_html()
-
     def get_elem_by_description(self, elem_type, description):
         logger.info(f'Looking for {elem_type.lower()}: "{description}"')
         visible_html = self.get_visible_html()
@@ -173,19 +175,17 @@ class Executor:
         else:
             return False
         self.mark_html()
-        self.custom_functions.append(
-            CustomFunction(
-                "click_elem",
-                arguments={},
-                examples=[
-                    {
-                        "html": html,
-                        "elem_id": elem_id,
-                    }
-                ],
-                call_id=call_id,
-            )
+        custom_function = CustomFunction(
+            "click_elem",
+            arguments={},
+            examples=[
+                {
+                    "html": html,
+                    "elem_id": elem_id,
+                }
+            ],
         )
+        self.add_custom_function(call_id, custom_function)
         return True
 
     def select_option(self, description, option, window_id, call_id):
@@ -207,21 +207,19 @@ class Executor:
         else:
             return False
         self.mark_html()
-        self.custom_functions.append(
-            CustomFunction(
-                "select_option",
-                arguments={
-                    "option": option,
-                },
-                examples=[
-                    {
-                        "html": html,
-                        "elem_id": elem_id,
-                    }
-                ],
-                call_id=call_id,
-            )
+        custom_function = CustomFunction(
+            "select_option",
+            arguments={
+                "option": option,
+            },
+            examples=[
+                {
+                    "html": html,
+                    "elem_id": elem_id,
+                }
+            ],
         )
+        self.add_custom_function(call_id, custom_function)
         return True
 
     def fill_input(self, description, text, enter, window_id, call_id):
@@ -235,7 +233,7 @@ class Executor:
             try:
                 elem.clear()
                 elem.send_keys(text)
-                logger.debug(f'Typed "{text}" into element')
+                logger.info(f'Typed "{text}" into element')
                 if enter:
                     elem.send_keys(Keys.RETURN)
                     logger.debug("Pressed enter")
@@ -246,23 +244,32 @@ class Executor:
         else:
             return False
         self.mark_html()
-        self.custom_functions.append(
-            CustomFunction(
-                "fill_input",
-                arguments={
-                    "text": text,
-                    "enter": enter,
-                },
-                examples=[
-                    {
-                        "html": html,
-                        "elem_id": elem_id,
-                    }
-                ],
-                call_id=call_id,
-            )
+        custom_function = CustomFunction(
+            "fill_input",
+            arguments={
+                "text": text,
+                "enter": enter,
+            },
+            examples=[
+                {
+                    "html": html,
+                    "elem_id": elem_id,
+                }
+            ],
         )
+        self.add_custom_function(call_id, custom_function)
         return True
+
+    def scroll(self, x, y, window_id):
+        self.driver.switch_to.window(window_id)
+        logger.info(f"Scrolling {x * 100}% to the left and {y * 100}% down")
+        self.driver.execute_script(f"window.scrollTo({{top: document.documentElement.scrollHeight * {y}, left: document.documentElement.scrollWidth * {x}, behavior: 'smooth'}});")
+        time.sleep(1)
+
+    def wait(self, seconds):
+        logger.info(f"Waiting {seconds} seconds...")
+        time.sleep(seconds)
+        self.mark_html()
 
     def scrape_data(self, schema, window_id, call_id):
         """
@@ -275,23 +282,21 @@ class Executor:
         scraped_data = result["data"]
         nodes = result["nodes"]
         logger.info(f"Scraped data:\n{scraped_data}")
-        self.custom_functions.append(
-            CustomFunction(
-                "scrape_data",
-                arguments={
-                    "schema": schema,
-                },
-                examples=[
-                    {
-                        "html": self.get_scrape_html(),
-                        "url": self.driver.current_url,
-                        "nodes": nodes,
-                        "scraped_data": scraped_data,
-                    }
-                ],
-                call_id=call_id,
-            )
+        custom_function = CustomFunction(
+            "scrape_data",
+            arguments={
+                "schema": schema,
+            },
+            examples=[
+                {
+                    "html": self.get_scrape_html(),
+                    "url": self.driver.current_url,
+                    "nodes": nodes,
+                    "scraped_data": scraped_data,
+                }
+            ],
         )
+        self.add_custom_function(call_id, custom_function)
         return result["data"]
 
     def execute(self, code):

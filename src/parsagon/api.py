@@ -102,26 +102,21 @@ def _examples_of_page_to_elem(html, elem_id):
     }
 
 
-def create_transformers(pipeline_id, custom_function):
-    """
-    Creates transformers associated with a custom function
-    :param pipeline_id:
-    :param custom_function:
-    :return:
-    """
+def create_custom_function(pipeline_id, call_id, custom_function):
     _api_call(
         httpx.post,
         "/transformers/custom-function/",
-        json={"pipeline": pipeline_id, **custom_function.to_json()},
+        json={"pipeline": pipeline_id, "call_id": call_id, **custom_function.to_json()},
     )
 
 
-def get_pipeline_code(pipeline_name, environment):
+def get_pipeline_code(pipeline_name, arguments, environment):
     return _api_call(
         httpx.post,
         f"/pipelines/get-code-by-name/",
         json={
             "pipeline_name": pipeline_name,
+            "arguments": arguments,
             "environment": environment,
         },
     )

@@ -6,7 +6,7 @@ from parsagon.api import (
     get_program_sketches,
     create_pipeline,
     delete_pipeline,
-    create_transformers,
+    create_custom_function,
     get_pipeline_code,
     APIException,
 )
@@ -78,14 +78,14 @@ def create(task, pipeline_name=None, verbose=False):
                     raise e
             pipeline_id = pipeline["id"]
             try:
-                for custom_function in executor.custom_functions:
+                for call_id, custom_function in executor.custom_functions.items():
                     debug_suffix = f" ({custom_function.name})"
                     description = custom_functions_to_descriptions.get(custom_function.name)
                     description = " to " + description if description else ""
                     if verbose:
                         description += debug_suffix
                     logger.info(f"  Saving function{description}...")
-                    create_transformers(pipeline_id, custom_function)
+                    create_custom_function(pipeline_id, call_id, custom_function)
                 logger.info(f"Saved.")
             except:
                 delete_pipeline(pipeline_id)
@@ -114,18 +114,22 @@ def run_cli():
     args = parser.parse_args()
     pipeline_name = args.program
     verbose = args.verbose
-    return run(pipeline_name, "PANDAS_1.x", verbose=verbose)
+    return run(pipeline_name, arguments={}, environment="LOCAL", verbose=verbose)
 
 
-def run(pipeline_name, environment, verbose=False):
+def run(pipeline_name, arguments={}, environment="LOCAL", verbose=False):
     """
     Executes pipeline code
     """
     configure_logging(verbose)
     logger.info("Preparing to run program %s", pipeline_name)
-    code = get_pipeline_code(pipeline_name, environment)["code"]
+    code = get_pipeline_code(pipeline_name, arguments, environment)["code"]
     logger.info("Running program...")
     globals_locals = {}
-    exec(code, globals_locals, globals_locals)
+    try:
+        exec(code, globals_locals, globals_locals)
+    finally:
+        if "driver" in globals_locals:
+            globals_locals["driver"].quit()
     logger.info("Done.")
     return globals_locals["output"]

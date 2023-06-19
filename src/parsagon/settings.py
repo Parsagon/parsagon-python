@@ -3,9 +3,9 @@ from os import environ
 API_BASE = environ.get("API_BASE", "https://parsagon.io").rstrip("/")
 
 try:
-    API_KEY = environ["API_KEY"]
+    API_KEY = environ["PARSAGON_API_KEY"]
 except KeyError:
-    raise Exception("Please set the API_KEY environment variable, e.g. by running: export API_KEY=...")
+    raise Exception("Please set the PARSAGON_API_KEY environment variable, e.g. by running: export PARSAGON_API_KEY=...")
 
 
 def get_logging_config(log_level="INFO"):

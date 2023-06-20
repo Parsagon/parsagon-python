@@ -1,18 +1,36 @@
-# parsagon-autogpt
+# parsagon
 
-## Setup
-- Create a new venv
-- Activate the environment
-- `pip3 install -r requirements.txt`
+Parsagon allows you to create browser automations with natural language. You can create automations that fill out forms, scrape web pages, and much more, all without writing code. Here's a brief overview of how to get started:
 
-## Running
-- Set environment variables:
-  - `API_BASE` - should be set to the API endpoint without trailing slash, excluding the `/api` suffix.
-  - `API_KEY` - the API key
-- `python3 -m parsagon <task>`
-- Actions example: `python3 -m parsagon "1. Go to https://assessment.cot.tn.gov/TPAD/ 2. Select 'Bedford' from the county dropdown 3. Type '001' in the Search Term box. 4. Click on the Search button."`
-- Scraping example: `python3 -m parsagon "1. Go to https://www.hannaford.com/product/cedar-s-whole-wheat-wraps/736543?refineByCategoryId=50061 2. Scrape the product title, weight, and price (as a float)."`
-- Add the `-v` flag to see more debugging information.
+## Requirements
 
-## Testing
-`python3 -m pytest .`
+To use Parsagon, you must have an up-to-date version of Google Chrome and Python >= 3.8
+
+## Installation
+
+To get started, install the Parsagon python package:
+
+`pip install parsagon`
+
+and set your API key as an environment variable:
+
+`export PARSAGON_API_KEY=<YOUR API KEY>`
+
+Please contact us to get your API key if you don't have it already.
+
+## Usage
+
+```
+import parsagon
+
+# Create a program
+parsagon.create('Go to https://www.google.com/. Type "the meaning of life" into the search bar and hit enter. Scroll down and click the "More results" button 3 times. Scrape data in the format [{"title": "str", "link": "link"}].')
+
+# Run a program
+parsagon.run("My program")
+
+# List your programs
+parsagon.detail()
+```
+
+See [the docs](https://parsagon.io/docs/pipelines/overview) for more information.

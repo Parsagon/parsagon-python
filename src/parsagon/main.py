@@ -123,7 +123,9 @@ def detail(pipeline_name=None):
     else:
         data = get_pipelines()
     for pipeline in data:
-        print(f"Program: {pipeline['name']}\nDescription: {pipeline['description']}\nVariables: {pipeline['variables']}\n")
+        print(
+            f"Program: {pipeline['name']}\nDescription: {pipeline['description']}\nVariables: {pipeline['variables']}\n"
+        )
 
 
 def run_cli():
@@ -156,7 +158,14 @@ def run(pipeline_name, variables={}, environment="LOCAL", verbose=False):
     """
     configure_logging(verbose)
     logger.info("Preparing to run program %s", pipeline_name)
-    code = get_pipeline_code(pipeline_name, variables, environment)["code"]
+    try:
+        code = get_pipeline_code(pipeline_name, variables, environment)["code"]
+    except APIException as e:
+        if isinstance(e.value, dict) and e.value.get("detail") == "Not found.":
+            logger.error("Error: A program with this name does not exist.")
+            return
+        else:
+            raise e
     logger.info("Running program...")
     globals_locals = {}
     try:

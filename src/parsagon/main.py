@@ -19,37 +19,93 @@ from parsagon.settings import get_logging_config
 logger = logging.getLogger(__name__)
 
 
-def create_cli():
-    parser = argparse.ArgumentParser(
-        prog="parsagon-create",
-        description="Scrapes and interacts with web pages based on natural language.",
-    )
+def configure_logging(verbose):
+    logging.config.dictConfig(get_logging_config("DEBUG" if verbose else "INFO"))
 
-    parser.add_argument(
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="parsagon", description="Scrapes and interacts with web pages based on natural language."
+    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="run the task in verbose mode")
+    subparsers = parser.add_subparsers()
+
+    # Create
+    parser_create = subparsers.add_parser("create", description="Creates a program.")
+    parser_create.add_argument(
         "task",
         metavar="task",
         type=str,
         help="natural language description of the task to run, optionally with numbered steps.",
     )
-    parser.add_argument("-v", "--verbose", action="store_true", help="run the task in verbose mode")
-    parser.add_argument(
-        "-p", "--program", type=str, help="the name of the program to create (otherwise user input is required)"
+    parser_create.add_argument(
+        "-p",
+        "--program",
+        dest="program_name",
+        type=str,
+        help="the name of the program to create (otherwise user input is required)",
     )
+    parser_create.set_defaults(func=create)
+
+    # Detail
+    parser_detail = subparsers.add_parser(
+        "detail",
+        description="Outputs details of a created program.",
+    )
+    parser_detail.add_argument(
+        "-p",
+        "--program",
+        dest="program_name",
+        type=str,
+        help="the name of the program",
+    )
+    parser_detail.set_defaults(func=detail)
+
+    # Run
+    parser_run = subparsers.add_parser(
+        "run",
+        description="Runs a created program.",
+    )
+    parser_run.add_argument(
+        "program",
+        dest="program_name",
+        type=str,
+        help="the name of the program to run",
+    )
+    parser_run.add_argument(
+        "--variables",
+        type=json.loads,
+        default="{}",
+        help="a JSON object mapping variables to values",
+    )
+    parser_detail.set_defaults(func=run)
+
+    # Delete
+    parser_delete = subparsers.add_parser(
+        "delete",
+        description="Deletes a program.",
+    )
+    parser_delete.add_argument(
+        "program",
+        dest="program_name",
+        type=str,
+        help="the name of the program to run",
+    )
+    parser_detail.set_defaults(func=delete)
 
     args = parser.parse_args()
-    task = args.task
-    verbose = args.verbose
-    pipeline_name = args.program
-    create(task, pipeline_name, verbose=verbose)
-
-
-def configure_logging(verbose):
-    logging.config.dictConfig(get_logging_config("DEBUG" if verbose else "INFO"))
-
-
-def create(task, pipeline_name=None, verbose=False):
+    kwargs = vars(args)
+    func = kwargs.pop("func")
+    verbose = kwargs.pop("func")
     configure_logging(verbose)
 
+    if func:
+        func(**kwargs)
+    else:
+        parser.print_help()
+
+
+def create(task, program_name=None):
     logger.info("Launched with task description:\n%s", task)
 
     logger.info("Analyzing task description...")
@@ -66,16 +122,16 @@ def create(task, pipeline_name=None, verbose=False):
 
     # The user must select a name
     while True:
-        if not pipeline_name:
-            pipeline_name = input("Name this program, or press enter without typing a name to DISCARD: ")
-        if pipeline_name:
-            logger.info(f"Saving program as {pipeline_name}")
+        if not program_name:
+            program_name = input("Name this program, or press enter without typing a name to DISCARD: ")
+        if program_name:
+            logger.info(f"Saving program as {program_name}")
             try:
-                pipeline = create_pipeline(pipeline_name, task, full_program)
+                pipeline = create_pipeline(program_name, task, full_program)
             except APIException as e:
-                if isinstance(e.value, list) and "Pipeline with name already exists" in e.value:
+                if isinstance(e.value, list) and "Program with name already exists" in e.value:
                     logger.info("A program with this name already exists. Please choose another name.")
-                    pipeline_name = None
+                    program_name = None
                     continue
                 else:
                     raise e
@@ -85,8 +141,8 @@ def create(task, pipeline_name=None, verbose=False):
                     debug_suffix = f" ({custom_function.name})"
                     description = custom_functions_to_descriptions.get(custom_function.name)
                     description = " to " + description if description else ""
-                    if verbose:
-                        description += debug_suffix
+                    # if verbose:
+                    #    description += debug_suffix
                     logger.info(f"  Saving function{description}...")
                     create_custom_function(pipeline_id, call_id, custom_function)
                 logger.info(f"Saved.")
@@ -102,61 +158,32 @@ def create(task, pipeline_name=None, verbose=False):
     logger.info("Done.")
 
 
-def detail_cli():
-    parser = argparse.ArgumentParser(
-        prog="parsagon-detail",
-        description="Outputs details of a created program.",
-    )
-    parser.add_argument(
-        "--program",
-        type=str,
-        help="the name of the program",
-    )
-    args = parser.parse_args()
-    pipeline_name = args.program
-    return detail(pipeline_name)
-
-
-def detail(pipeline_name=None):
-    if pipeline_name:
-        data = [get_pipeline(pipeline_name)]
+def detail(program_name=None):
+    if program_name:
+        data = [get_pipeline(program_name)]
     else:
         data = get_pipelines()
     for pipeline in data:
-        print(f"Program: {pipeline['name']}\nDescription: {pipeline['description']}\nVariables: {pipeline['variables']}\n")
+        print(
+            f"Program: {pipeline['name']}\nDescription: {pipeline['description']}\nVariables: {pipeline['variables']}\n"
+        )
 
 
-def run_cli():
-    parser = argparse.ArgumentParser(
-        prog="parsagon-run",
-        description="Runs a created program.",
-    )
-    parser.add_argument(
-        "program",
-        type=str,
-        help="the name of the program to run",
-    )
-    parser.add_argument(
-        "--variables",
-        type=json.loads,
-        default="{}",
-        help="a JSON object mapping variables to values",
-    )
-    parser.add_argument("-v", "--verbose", action="store_true", help="run the task in verbose mode")
-    args = parser.parse_args()
-    pipeline_name = args.program
-    variables = args.variables
-    verbose = args.verbose
-    return run(pipeline_name, variables=variables, environment="LOCAL", verbose=verbose)
-
-
-def run(pipeline_name, variables={}, environment="LOCAL", verbose=False):
+def run(program_name, variables={}, environment="LOCAL", verbose=False):
     """
     Executes pipeline code
     """
     configure_logging(verbose)
-    logger.info("Preparing to run program %s", pipeline_name)
-    code = get_pipeline_code(pipeline_name, variables, environment)["code"]
+    logger.info("Preparing to run program %s", program_name)
+    try:
+        code = get_pipeline_code(program_name, variables, environment)["code"]
+    except APIException as e:
+        if isinstance(e.value, dict) and e.value.get("detail") == "Not found.":
+            logger.error("Error: A program with this name does not exist.")
+            return
+        else:
+            raise e
+
     logger.info("Running program...")
     globals_locals = {}
     try:
@@ -166,3 +193,18 @@ def run(pipeline_name, variables={}, environment="LOCAL", verbose=False):
             globals_locals["driver"].quit()
     logger.info("Done.")
     return globals_locals["output"]
+
+
+def delete(program_name):
+    logger.info("Preparing to delete program %s", program_name)
+    try:
+        pipeline_id = get_pipeline(program_name)["id"]
+    except APIException as e:
+        if isinstance(e.value, dict) and e.value.get("detail") == "Not found.":
+            logger.error("Error: A program with this name does not exist.")
+            return
+        else:
+            raise e
+    logger.info("Deleting program...")
+    delete_pipeline(pipeline_id)
+    logger.info("Done.")

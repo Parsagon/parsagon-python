@@ -25,7 +25,7 @@ def configure_logging(verbose):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="parsagon", description="Scrapes and interacts with web pages based on natural language."
+        prog="parsagon", description="Scrapes and interacts with web pages based on natural language.", add_help=False
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="run the task in verbose mode")
     subparsers = parser.add_subparsers()
@@ -67,8 +67,7 @@ def main():
         description="Runs a created program.",
     )
     parser_run.add_argument(
-        "program",
-        dest="program_name",
+        "program_name",
         type=str,
         help="the name of the program to run",
     )
@@ -78,7 +77,7 @@ def main():
         default="{}",
         help="a JSON object mapping variables to values",
     )
-    parser_detail.set_defaults(func=run)
+    parser_run.set_defaults(func=run)
 
     # Delete
     parser_delete = subparsers.add_parser(
@@ -86,17 +85,16 @@ def main():
         description="Deletes a program.",
     )
     parser_delete.add_argument(
-        "program",
-        dest="program_name",
+        "program_name",
         type=str,
         help="the name of the program to run",
     )
-    parser_detail.set_defaults(func=delete)
+    parser_delete.set_defaults(func=delete)
 
     args = parser.parse_args()
     kwargs = vars(args)
     func = kwargs.pop("func")
-    verbose = kwargs.pop("func")
+    verbose = kwargs.pop("verbose")
     configure_logging(verbose)
 
     if func:
@@ -173,7 +171,6 @@ def run(program_name, variables={}, environment="LOCAL", verbose=False):
     """
     Executes pipeline code
     """
-    configure_logging(verbose)
     logger.info("Preparing to run program %s", program_name)
     try:
         code = get_pipeline_code(program_name, variables, environment)["code"]

@@ -79,27 +79,12 @@ def scrape_page(html, schema):
     return _api_call(httpx.post, "/transformers/get-custom-data/", json={"html": html, "schema": schema})
 
 
-def create_pipeline(name, program_sketch):
-    return _api_call(httpx.post, "/pipelines/", json={"name": name, "program_sketch": program_sketch})
+def create_pipeline(name, description, program_sketch):
+    return _api_call(httpx.post, "/pipelines/", json={"name": name, "description": description, "program_sketch": program_sketch})
 
 
 def delete_pipeline(pipeline_id):
     return _api_call(httpx.delete, f"/pipelines/{pipeline_id}/")
-
-
-def _examples_of_page_to_elem(html, elem_id):
-    """
-    Returns scraper search examples for a page going to an element
-    """
-    return {
-        "inputs": [
-            {
-                "format": "WEB",
-                "dataStr": json.dumps({"html": html}),
-            }
-        ],
-        "output": [str(elem_id)],
-    }
 
 
 def create_custom_function(pipeline_id, call_id, custom_function):
@@ -110,13 +95,23 @@ def create_custom_function(pipeline_id, call_id, custom_function):
     )
 
 
-def get_pipeline_code(pipeline_name, arguments, environment):
+def get_pipeline(pipeline_name):
+    return _api_call(
+        httpx.get,
+        f"/pipelines/name/{pipeline_name}/",
+    )
+
+
+def get_pipelines():
+    return _api_call(httpx.get, f"/pipelines/")
+
+
+def get_pipeline_code(pipeline_name, variables, environment):
     return _api_call(
         httpx.post,
-        f"/pipelines/get-code-by-name/",
+        f"/pipelines/name/{pipeline_name}/code/",
         json={
-            "pipeline_name": pipeline_name,
-            "arguments": arguments,
+            "variables": variables,
             "environment": environment,
         },
     )

@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import logging.config
 
@@ -7,6 +8,8 @@ from parsagon.api import (
     create_pipeline,
     delete_pipeline,
     create_custom_function,
+    get_pipeline,
+    get_pipelines,
     get_pipeline_code,
     APIException,
 )
@@ -68,7 +71,7 @@ def create(task, pipeline_name=None, verbose=False):
         if pipeline_name:
             logger.info(f"Saving program as {pipeline_name}")
             try:
-                pipeline = create_pipeline(pipeline_name, full_program)
+                pipeline = create_pipeline(pipeline_name, task, full_program)
             except APIException as e:
                 if isinstance(e.value, list) and "Pipeline with name already exists" in e.value:
                     logger.info("A program with this name already exists. Please choose another name.")
@@ -99,31 +102,61 @@ def create(task, pipeline_name=None, verbose=False):
     logger.info("Done.")
 
 
+def detail_cli():
+    parser = argparse.ArgumentParser(
+        prog="parsagon-detail",
+        description="Outputs details of a created program.",
+    )
+    parser.add_argument(
+        "--program",
+        type=str,
+        help="the name of the program",
+    )
+    args = parser.parse_args()
+    pipeline_name = args.program
+    return detail(pipeline_name)
+
+
+def detail(pipeline_name=None):
+    if pipeline_name:
+        data = [get_pipeline(pipeline_name)]
+    else:
+        data = get_pipelines()
+    for pipeline in data:
+        print(f"Program: {pipeline['name']}\nDescription: {pipeline['description']}\nVariables: {pipeline['variables']}\n")
+
+
 def run_cli():
     parser = argparse.ArgumentParser(
         prog="parsagon-run",
         description="Runs a created program.",
     )
-
     parser.add_argument(
         "program",
         type=str,
         help="the name of the program to run",
     )
+    parser.add_argument(
+        "--variables",
+        type=json.loads,
+        default="{}",
+        help="a JSON object mapping variables to values",
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="run the task in verbose mode")
     args = parser.parse_args()
     pipeline_name = args.program
+    variables = args.variables
     verbose = args.verbose
-    return run(pipeline_name, arguments={}, environment="LOCAL", verbose=verbose)
+    return run(pipeline_name, variables=variables, environment="LOCAL", verbose=verbose)
 
 
-def run(pipeline_name, arguments={}, environment="LOCAL", verbose=False):
+def run(pipeline_name, variables={}, environment="LOCAL", verbose=False):
     """
     Executes pipeline code
     """
     configure_logging(verbose)
     logger.info("Preparing to run program %s", pipeline_name)
-    code = get_pipeline_code(pipeline_name, arguments, environment)["code"]
+    code = get_pipeline_code(pipeline_name, variables, environment)["code"]
     logger.info("Running program...")
     globals_locals = {}
     try:

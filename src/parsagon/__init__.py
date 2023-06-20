@@ -1,1 +1,1 @@
-from parsagon.main import create, run
+from parsagon.main import create, detail, run

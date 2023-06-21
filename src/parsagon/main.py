@@ -94,16 +94,16 @@ def main():
     args = parser.parse_args()
     kwargs = vars(args)
     func = kwargs.pop("func")
-    verbose = kwargs.pop("verbose")
+    verbose = kwargs["verbose"]
     configure_logging(verbose)
 
     if func:
-        func(**kwargs)
+        return func(**kwargs)
     else:
         parser.print_help()
 
 
-def create(task, program_name=None):
+def create(task, program_name=None, verbose=False):
     logger.info("Launched with task description:\n%s", task)
 
     logger.info("Analyzing task description...")
@@ -139,8 +139,8 @@ def create(task, program_name=None):
                     debug_suffix = f" ({custom_function.name})"
                     description = custom_functions_to_descriptions.get(custom_function.name)
                     description = " to " + description if description else ""
-                    # if verbose:
-                    #    description += debug_suffix
+                    if verbose:
+                        description += debug_suffix
                     logger.info(f"  Saving function{description}...")
                     create_custom_function(pipeline_id, call_id, custom_function)
                 logger.info(f"Saved.")
@@ -156,7 +156,7 @@ def create(task, program_name=None):
     logger.info("Done.")
 
 
-def detail(program_name=None):
+def detail(program_name=None, verbose=False):
     if program_name:
         data = [get_pipeline(program_name)]
     else:
@@ -192,7 +192,7 @@ def run(program_name, variables={}, environment="LOCAL", verbose=False):
     return globals_locals["output"]
 
 
-def delete(program_name):
+def delete(program_name, verbose=False):
     logger.info("Preparing to delete program %s", program_name)
     try:
         pipeline_id = get_pipeline(program_name)["id"]

@@ -3,6 +3,7 @@ import json
 import logging
 import logging.config
 
+from parsagon import settings
 from parsagon.api import (
     get_program_sketches,
     create_pipeline,
@@ -14,13 +15,12 @@ from parsagon.api import (
     APIException,
 )
 from parsagon.executor import Executor, custom_functions_to_descriptions
-from parsagon.settings import get_logging_config
 
 logger = logging.getLogger(__name__)
 
 
 def configure_logging(verbose):
-    logging.config.dictConfig(get_logging_config("DEBUG" if verbose else "INFO"))
+    logging.config.dictConfig(settings.get_logging_config("DEBUG" if verbose else "INFO"))
 
 
 def main():
@@ -98,7 +98,7 @@ def main():
     configure_logging(verbose)
 
     if func:
-        func(**kwargs)
+        return func(**kwargs)
     else:
         parser.print_help()
 
@@ -182,7 +182,7 @@ def run(program_name, variables={}, environment="LOCAL", verbose=False):
             raise e
 
     logger.info("Running program...")
-    globals_locals = {}
+    globals_locals = {"PARSAGON_API_KEY": settings.API_KEY}
     try:
         exec(code, globals_locals, globals_locals)
     finally:

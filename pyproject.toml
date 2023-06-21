@@ -23,7 +23,6 @@ classifiers = [
 ]
 
 dependencies = [
-    # Also change requirements.in
     'selenium == 4.9.1',
     'lxml == 4.9.2',
     'webdriver-manager == 3.8.6',
@@ -49,6 +48,4 @@ dependencies = [
 "Homepage" = "https://parsagon.io"
 
 [project.scripts]
-parsagon-create = "parsagon.main:create_cli"
-parsagon-detail = "parsagon.main:detail_cli"
-parsagon-run = "parsagon.main:run_cli"
+parsagon = "parsagon.main:main"

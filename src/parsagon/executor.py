@@ -9,7 +9,6 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
-from webdriver_manager.chrome import ChromeDriverManager
 
 from parsagon.api import get_interaction_element_id, scrape_page
 from parsagon.custom_function import CustomFunction
@@ -35,7 +34,6 @@ class Executor:
     def __init__(self):
         chrome_options = uc.ChromeOptions()
         chrome_options.add_argument("--start-maximized")
-        # ChromeDriverManager().install(),
         seleniumwire_options = {"disable_capture": True}
         self.driver = uc.Chrome(options=chrome_options, seleniumwire_options=seleniumwire_options)
         self.max_elem_id = 0

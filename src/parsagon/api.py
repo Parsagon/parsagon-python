@@ -44,6 +44,7 @@ def _api_call(httpx_func, endpoint, **kwargs):
     api_key = settings.API_KEY
     api_endpoint = f"{settings.API_BASE}/api{endpoint}"
     headers = {"Authorization": f"Token {api_key}"}
+    r = httpx_func(api_endpoint, headers=headers, timeout=None, **kwargs)
     if not r.is_success:
         _request_to_exception(r)
     else:

@@ -1,17 +1,28 @@
+import contextlib
 import json
 from json import JSONDecodeError
 
 import httpx
 
 from parsagon import settings
+from parsagon.exceptions import ParsagonException, APIException, ProgramNotFoundException
 
 environment = "PANDAS_1.x"
 
 
-class APIException(Exception):
-    @property
-    def value(self):
-        return self.args[0]
+class RaiseProgramNotFound:
+    def __init__(self, program_name):
+        self.program_name = program_name
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if issubclass(exc_type, APIException):
+            error_value = exc_value.value
+            if isinstance(error_value, dict) and error_value.get("detail") == "Not found.":
+                raise ProgramNotFoundException(self.program_name)
+        return False
 
 
 def _request_to_exception(response):
@@ -33,7 +44,6 @@ def _api_call(httpx_func, endpoint, **kwargs):
     api_key = settings.API_KEY
     api_endpoint = f"{settings.API_BASE}/api{endpoint}"
     headers = {"Authorization": f"Token {api_key}"}
-    r = httpx_func(api_endpoint, headers=headers, timeout=None, **kwargs)
     if not r.is_success:
         _request_to_exception(r)
     else:
@@ -80,7 +90,9 @@ def scrape_page(html, schema):
 
 
 def create_pipeline(name, description, program_sketch):
-    return _api_call(httpx.post, "/pipelines/", json={"name": name, "description": description, "program_sketch": program_sketch})
+    return _api_call(
+        httpx.post, "/pipelines/", json={"name": name, "description": description, "program_sketch": program_sketch}
+    )
 
 
 def delete_pipeline(pipeline_id):
@@ -96,10 +108,11 @@ def create_custom_function(pipeline_id, call_id, custom_function):
 
 
 def get_pipeline(pipeline_name):
-    return _api_call(
-        httpx.get,
-        f"/pipelines/name/{pipeline_name}/",
-    )
+    with RaiseProgramNotFound(pipeline_name):
+        return _api_call(
+            httpx.get,
+            f"/pipelines/name/{pipeline_name}/",
+        )
 
 
 def get_pipelines():
@@ -107,12 +120,13 @@ def get_pipelines():
 
 
 def get_pipeline_code(pipeline_name, variables, environment, headless):
-    return _api_call(
-        httpx.post,
-        f"/pipelines/name/{pipeline_name}/code/",
-        json={
-            "variables": variables,
-            "environment": environment,
-            "headless": headless,
-        },
+    with RaiseProgramNotFound(pipeline_name):
+        return _api_call(
+            httpx.post,
+            f"/pipelines/name/{pipeline_name}/code/",
+            json={
+                "variables": variables,
+                "environment": environment,
+                "headless": headless,
+            },
     )

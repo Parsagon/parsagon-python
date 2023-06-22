@@ -44,6 +44,12 @@ dependencies = [
     'simplejson==3.19.1',
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest==7.3.2",
+    "pytest-mock==3.11.1",
+]
+
 [project.urls]
 "Homepage" = "https://parsagon.io"
 

@@ -13,6 +13,7 @@ from parsagon.api import (
     get_pipeline_code,
     APIException,
 )
+from parsagon.exceptions import ParsagonException
 from parsagon.executor import Executor, custom_functions_to_descriptions
 from parsagon.settings import get_logging_config
 
@@ -23,7 +24,7 @@ def configure_logging(verbose):
     logging.config.dictConfig(get_logging_config("DEBUG" if verbose else "INFO"))
 
 
-def main():
+def get_args():
     parser = argparse.ArgumentParser(
         prog="parsagon", description="Scrapes and interacts with web pages based on natural language.", add_help=False
     )
@@ -90,15 +91,23 @@ def main():
         help="the name of the program to run",
     )
     parser_delete.set_defaults(func=delete)
-
     args = parser.parse_args()
     kwargs = vars(args)
+    return kwargs, parser
+
+
+def main():
+    kwargs, parser = get_args()
     func = kwargs.pop("func")
     verbose = kwargs["verbose"]
     configure_logging(verbose)
 
     if func:
-        return func(**kwargs)
+        try:
+            return func(**kwargs)
+        except ParsagonException as e:
+            error_message = "Error:\n" + e.to_string(verbose)
+            logger.error(error_message)
     else:
         parser.print_help()
 
@@ -172,14 +181,7 @@ def run(program_name, variables={}, environment="LOCAL", verbose=False):
     Executes pipeline code
     """
     logger.info("Preparing to run program %s", program_name)
-    try:
-        code = get_pipeline_code(program_name, variables, environment)["code"]
-    except APIException as e:
-        if isinstance(e.value, dict) and e.value.get("detail") == "Not found.":
-            logger.error("Error: A program with this name does not exist.")
-            return
-        else:
-            raise e
+    code = get_pipeline_code(program_name, variables, environment)["code"]
 
     logger.info("Running program...")
     globals_locals = {}
@@ -194,14 +196,7 @@ def run(program_name, variables={}, environment="LOCAL", verbose=False):
 
 def delete(program_name, verbose=False):
     logger.info("Preparing to delete program %s", program_name)
-    try:
-        pipeline_id = get_pipeline(program_name)["id"]
-    except APIException as e:
-        if isinstance(e.value, dict) and e.value.get("detail") == "Not found.":
-            logger.error("Error: A program with this name does not exist.")
-            return
-        else:
-            raise e
+    pipeline_id = get_pipeline(program_name)["id"]
     logger.info("Deleting program...")
     delete_pipeline(pipeline_id)
     logger.info("Done.")

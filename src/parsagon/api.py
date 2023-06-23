@@ -18,26 +18,26 @@ class RaiseProgramNotFound:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if issubclass(exc_type, APIException):
-            error_value = exc_value.value
-            if isinstance(error_value, dict) and error_value.get("detail") == "Not found.":
+        if exc_type is not None and issubclass(exc_type, APIException):
+            if exc_value.status_code == 404:
                 raise ProgramNotFoundException(self.program_name)
         return False
 
 
 def _request_to_exception(response):
-    if response.status_code == 500:
-        raise APIException("A server error occurred. Please notify Parsagon.")
-    if response.status_code in (502, 503, 504):
-        raise APIException("Lost connection to server.")
+    status_code = response.status_code
+    if status_code == 500:
+        raise APIException("A server error occurred. Please notify Parsagon.", status_code)
+    if status_code in (502, 503, 504):
+        raise APIException("Lost connection to server.", status_code)
     try:
         errors = response.json()
         if "non_field_errors" in errors:
-            raise APIException(errors["non_field_errors"])
+            raise APIException(errors["non_field_errors"], status_code)
         else:
-            raise APIException(errors)
+            raise APIException(errors, status_code)
     except JSONDecodeError:
-        raise APIException("Could not parse response.")
+        raise APIException("Could not parse response.", status_code)
 
 
 def _api_call(httpx_func, endpoint, **kwargs):

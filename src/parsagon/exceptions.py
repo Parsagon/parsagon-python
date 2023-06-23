@@ -9,12 +9,13 @@ class ParsagonException(Exception):
 
 
 class APIException(ParsagonException):
-    def __init__(self, value):
+    def __init__(self, value, status_code):
         super().__init__(value)
         self.value = value
+        self.status_code = status_code
 
     def to_string(self, verbose):
-        return self.value
+        return f"{self.status_code} - {self.value}"
 
 
 class ProgramNotFoundException(ParsagonException):

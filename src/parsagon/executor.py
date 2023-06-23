@@ -59,13 +59,9 @@ class Executor:
         """
         Adds node IDs to elements on the current page that don't already have IDs.
         """
-        # new_max_elem_id = self.driver.execute_script(
-        # f"let elemIdx = {self.max_elem_id}; for (const node of document.querySelectorAll(':not([data-psgn-id]):not(style)')) {{ node.setAttribute('data-psgn-id', elemIdx); elemIdx++; }} return elemIdx;"
-        # )
-        # self.max_elem_id = new_max_elem_id
         logger.debug("  Marking HTML...")
-        self.driver.execute_script(
-            "let elemIdx = 0; for (const node of document.all) { node.setAttribute('data-psgn-id', elemIdx); elemIdx++; }"
+        self.max_elem_id = self.driver.execute_script(
+            "let elemIdx = 0; for (const node of document.all) { node.setAttribute('data-psgn-id', elemIdx); elemIdx++; } return elemIdx;"
         )
         self.driver.execute_script(
             "for (const image of document.images) { image.setAttribute('data-psgn-width', image.width ?? -1); image.setAttribute('data-psgn-height', image.height ?? -1); }"

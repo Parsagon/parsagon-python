@@ -15,7 +15,7 @@ class RaiseProgramNotFound:
         self.program_name = program_name
 
     def __enter__(self):
-        return self
+        pass
 
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is not None and issubclass(exc_type, APIException):

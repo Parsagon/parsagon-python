@@ -106,12 +106,13 @@ def get_pipelines():
     return _api_call(httpx.get, f"/pipelines/")
 
 
-def get_pipeline_code(pipeline_name, variables, environment):
+def get_pipeline_code(pipeline_name, variables, environment, headless):
     return _api_call(
         httpx.post,
         f"/pipelines/name/{pipeline_name}/code/",
         json={
             "variables": variables,
             "environment": environment,
+            "headless": headless,
         },
     )

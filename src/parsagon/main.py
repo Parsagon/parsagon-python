@@ -45,6 +45,11 @@ def main():
         type=str,
         help="the name of the program to create (otherwise user input is required)",
     )
+    parser_create.add_argument(
+        "--headless",
+        action="store_true",
+        help="run the browser in headless mode",
+    )
     parser_create.set_defaults(func=create)
 
     # Detail
@@ -77,6 +82,11 @@ def main():
         default="{}",
         help="a JSON object mapping variables to values",
     )
+    parser_run.add_argument(
+        "--headless",
+        action="store_true",
+        help="run the browser in headless mode",
+    )
     parser_run.set_defaults(func=run)
 
     # Delete
@@ -103,7 +113,7 @@ def main():
         parser.print_help()
 
 
-def create(task, program_name=None, verbose=False):
+def create(task, program_name=None, headless=False, verbose=False):
     logger.info("Launched with task description:\n%s", task)
 
     logger.info("Analyzing task description...")
@@ -115,7 +125,7 @@ def create(task, program_name=None, verbose=False):
     abridged_program += "\n\noutput = func()\nprint(f'Program finished and returned a value of:\\n{output}')\n"  # Make the program runnable
 
     # Execute the abridged program to gather examples
-    executor = Executor()
+    executor = Executor(headless=headless)
     executor.execute(abridged_program)
 
     # The user must select a name
@@ -167,13 +177,13 @@ def detail(program_name=None, verbose=False):
         )
 
 
-def run(program_name, variables={}, environment="LOCAL", verbose=False):
+def run(program_name, variables={}, environment="LOCAL", headless=False, verbose=False):
     """
     Executes pipeline code
     """
     logger.info("Preparing to run program %s", program_name)
     try:
-        code = get_pipeline_code(program_name, variables, environment)["code"]
+        code = get_pipeline_code(program_name, variables, environment, headless)["code"]
     except APIException as e:
         if isinstance(e.value, dict) and e.value.get("detail") == "Not found.":
             logger.error("Error: A program with this name does not exist.")
@@ -188,6 +198,8 @@ def run(program_name, variables={}, environment="LOCAL", verbose=False):
     finally:
         if "driver" in globals_locals:
             globals_locals["driver"].quit()
+        if "display" in globals_locals:
+            globals_locals["display"].stop()
     logger.info("Done.")
     return globals_locals["output"]
 

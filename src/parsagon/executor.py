@@ -3,6 +3,7 @@ import logging
 import time
 
 import lxml.html
+from pyvirtualdisplay import Display
 from selenium import webdriver
 import seleniumwire.undetected_chromedriver as uc
 from selenium.webdriver.chrome.options import Options
@@ -31,7 +32,10 @@ class Executor:
     Executes code produced by GPT with the proper context.  Records custom_function usage along the way.
     """
 
-    def __init__(self):
+    def __init__(self, headless=False):
+        self.headless = headless
+        if self.headless:
+            self.display = Display(visible=False, size=(1280, 1050)).start()
         chrome_options = uc.ChromeOptions()
         chrome_options.add_argument("--start-maximized")
         seleniumwire_options = {"disable_capture": True}
@@ -294,5 +298,9 @@ class Executor:
         return result["data"]
 
     def execute(self, code):
-        exec(code, self.execution_context)
-        self.driver.quit()
+        try:
+            exec(code, self.execution_context)
+        finally:
+            self.driver.quit()
+            if self.headless:
+                self.display.stop()

@@ -33,7 +33,9 @@ not_found_response = MockResponse(404, json_body={"detail": "Not found."})
 
 def mock_httpx_method_func(*args, **kwargs):
     """
-    Simulates the backend if
+    A mock that is used for httpx post, get, put, patch, and delete methods.  The "method" kwarg differentiates which mock is being called, and the "mock_options" kwarg provides further options pertaining to the desired behavior of the mock. The following keys are supported:
+
+    - code_to_return: For operations that require code to be returned, this will be used.
     """
     method = kwargs["method"].lower()
     mock_options = kwargs["mock_options"]
@@ -75,6 +77,9 @@ def mock_httpx_method_func(*args, **kwargs):
 
 
 def install_api_mocks(mocker, mock_options=None):
+    """
+    Installs mocks for the backend. The "mock_options" kwarg can be used to customize responses. See mock_httpx_method_func for details.
+    """
 
     if mock_options is None:
         mock_options = {}

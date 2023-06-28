@@ -1,11 +1,38 @@
+import sys
 from os import environ
 
-API_BASE = environ.get("API_BASE", "https://parsagon.io").rstrip("/")
+__API_BASE = environ.get("API_BASE", "https://parsagon.io").rstrip("/")
 
 try:
-    API_KEY = environ["PARSAGON_API_KEY"]
+    __API_KEY = environ["PARSAGON_API_KEY"]
 except KeyError:
-    raise Exception("Please set the PARSAGON_API_KEY environment variable, e.g. by running: export PARSAGON_API_KEY=...")
+    raise Exception(
+        "Please set the PARSAGON_API_KEY environment variable, e.g. by running: export PARSAGON_API_KEY=..."
+    )
+
+
+def pytest_is_running():
+    return "pytest" in sys.modules
+
+
+def get_api_key():
+    """
+    Return API key, preventing tests from talking to the real backend
+    """
+    if pytest_is_running():
+        return "test"
+    else:
+        return __API_KEY
+
+
+def get_api_base():
+    """
+    Return API base, preventing tests from talking to the real backend
+    """
+    if pytest_is_running():
+        return "http://test"
+    else:
+        return __API_BASE
 
 
 def get_logging_config(log_level="INFO"):

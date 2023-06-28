@@ -84,6 +84,7 @@ def install_api_mocks(mocker, mock_options=None):
     if mock_options is None:
         mock_options = {}
 
+    # NOTE: Remember to update this if we add code that introduces other calling points to the backend, or if we change the way these httpx method functions are imported.
     for method in ["get", "post", "put", "patch", "delete"]:
         mocker.patch(
             "parsagon.api.httpx.%s" % method,

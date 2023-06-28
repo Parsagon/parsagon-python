@@ -194,7 +194,7 @@ def run(program_name, variables={}, environment="LOCAL", headless=False, verbose
     code = get_pipeline_code(program_name, variables, environment, headless)["code"]
 
     logger.info("Running program...")
-    globals_locals = {"PARSAGON_API_KEY": settings.API_KEY}
+    globals_locals = {"PARSAGON_API_KEY": settings.get_api_key()}
     try:
         exec(code, globals_locals, globals_locals)
     finally:

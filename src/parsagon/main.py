@@ -34,17 +34,16 @@ def get_args():
     # Create
     parser_create = subparsers.add_parser("create", description="Creates a program.")
     parser_create.add_argument(
-        "task",
-        metavar="task",
+        "--task",
+        dest="task",
         type=str,
-        help="natural language description of the task to run, optionally with numbered steps.",
+        help="natural language description of the task to run",
     )
     parser_create.add_argument(
-        "-p",
         "--program",
         dest="program_name",
         type=str,
-        help="the name of the program to create (otherwise user input is required)",
+        help="the name of the program to create",
     )
     parser_create.add_argument(
         "--headless",
@@ -122,8 +121,11 @@ def main():
         parser.print_help()
 
 
-def create(task, program_name=None, headless=False, verbose=False):
-    logger.info("Launched with task description:\n%s", task)
+def create(task=None, program_name=None, headless=False, verbose=False):
+    if task:
+        logger.info("Launched with task description:\n%s", task)
+    else:
+        task = input("Type what you want to do: ")
 
     logger.info("Analyzing task description...")
     program_sketches = get_program_sketches(task)

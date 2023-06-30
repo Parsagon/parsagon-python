@@ -131,3 +131,31 @@ def get_pipeline_code(pipeline_name, variables, environment, headless):
                 "headless": headless,
             },
         )
+
+
+def create_pipeline_run(pipeline_id, variables):
+    return _api_call(
+        httpx.post,
+        f"/pipelines/runs/",
+        json={"variables": variables, "environment": environment, "pipeline_id": pipeline_id},
+    )
+
+
+def list_pipeline_runs():
+    """
+    List all runs of pipelines
+    """
+    return _api_call(
+        httpx.get,
+        f"/pipelines/runs/",
+    )
+
+
+def get_run(run_id):
+    """
+    Gets details about a run
+    """
+    return _api_call(
+        httpx.get,
+        f"/pipelines/runs/{run_id}/",
+    )

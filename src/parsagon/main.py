@@ -2,6 +2,8 @@ import argparse
 import json
 import logging
 import logging.config
+import time
+from spinners import Spinners
 
 from parsagon import settings
 from parsagon.api import (
@@ -13,6 +15,8 @@ from parsagon.api import (
     get_pipelines,
     get_pipeline_code,
     APIException,
+    create_pipeline_run,
+    get_run,
 )
 from parsagon.exceptions import ParsagonException
 from parsagon.executor import Executor, custom_functions_to_descriptions
@@ -85,7 +89,22 @@ def get_args():
     parser_run.add_argument(
         "--headless",
         action="store_true",
-        help="run the browser in headless mode",
+        help="run the browser in headless mode (for running locally)",
+    )
+    parser.add_argument(
+        "--remote",
+        action="store_const",
+        const="REMOTE",
+        default="LOCAL",
+        dest="environment",
+        help="runs the program remotely on Parsagon's servers",
+    )
+    parser.add_argument(
+        "--proxy",
+        dest="proxy_type",
+        type=str,
+        choices=["none", "datacenter", "residential"],
+        help="type of the proxy to use, if running the program remotely",
     )
     parser_run.set_defaults(func=run)
 
@@ -189,24 +208,47 @@ def detail(program_name=None, verbose=False):
         )
 
 
-def run(program_name, variables={}, environment="LOCAL", headless=False, verbose=False):
+def run(program_name, variables={}, environment="LOCAL", headless=False, proxy_type="none", verbose=False):
     """
     Executes pipeline code
     """
+    assert proxy_type in [
+        "none",
+        "datacenter",
+        "residential",
+    ], "Proxy type should be one of 'none', 'datacenter', or 'residential'"
+    if environment == "REMOTE" and headless:
+        raise ParsagonException("Cannot run a program remotely in headless mode")
     logger.info("Preparing to run program %s", program_name)
     code = get_pipeline_code(program_name, variables, environment, headless)["code"]
 
     logger.info("Running program...")
     globals_locals = {"PARSAGON_API_KEY": settings.get_api_key()}
-    try:
-        exec(code, globals_locals, globals_locals)
-    finally:
-        if "driver" in globals_locals:
-            globals_locals["driver"].quit()
-        if "display" in globals_locals:
-            globals_locals["display"].stop()
+    if environment == "LOCAL":
+        try:
+            exec(code, globals_locals, globals_locals)
+            result = globals_locals["output"]
+        finally:
+            if "driver" in globals_locals:
+                globals_locals["driver"].quit()
+            if "display" in globals_locals:
+                globals_locals["display"].stop()
+    elif environment == "REMOTE":
+        pipeline_id = get_pipeline(program_name)["id"]
+        result = create_pipeline_run(pipeline_id, variables)
+        logger.info("Waiting for program to finish running...")
+        while True:
+            logger.info(Spinners.line.value)
+            # Poll run
+            run = get_run(result["id"])
+            if run.status in ("FINISHED", "ERROR", "CANCELED"):
+                break
+            time.sleep(4)
+
+    else:
+        raise ParsagonException(f"Unknown environment: {environment}")
     logger.info("Done.")
-    return globals_locals["output"]
+    return result
 
 
 def delete(program_name, verbose=False):

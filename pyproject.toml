@@ -26,6 +26,7 @@ dependencies = [
     'selenium == 4.9.1',
     'lxml == 4.9.2',
     'httpx == 0.24.1',
+    'spinners == 0.0.24',
 
     # Used only in pipeline code execution
     'pandas==1.4.2',

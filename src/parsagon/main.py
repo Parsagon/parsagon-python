@@ -3,7 +3,8 @@ import json
 import logging
 import logging.config
 import time
-from spinners import Spinners
+
+from halo import Halo
 
 from parsagon import settings
 from parsagon.api import (
@@ -91,7 +92,7 @@ def get_args():
         action="store_true",
         help="run the browser in headless mode (for running locally)",
     )
-    parser.add_argument(
+    parser_run.add_argument(
         "--remote",
         action="store_const",
         const="REMOTE",
@@ -99,11 +100,12 @@ def get_args():
         dest="environment",
         help="runs the program remotely on Parsagon's servers",
     )
-    parser.add_argument(
+    parser_run.add_argument(
         "--proxy",
         dest="proxy_type",
         type=str,
         choices=["none", "datacenter", "residential"],
+        default="none",
         help="type of the proxy to use, if running the program remotely",
     )
     parser_run.set_defaults(func=run)
@@ -237,13 +239,20 @@ def run(program_name, variables={}, environment="LOCAL", headless=False, proxy_t
         pipeline_id = get_pipeline(program_name)["id"]
         result = create_pipeline_run(pipeline_id, variables)
         logger.info("Waiting for program to finish running...")
-        while True:
-            logger.info(Spinners.line.value)
-            # Poll run
-            run = get_run(result["id"])
-            if run.status in ("FINISHED", "ERROR", "CANCELED"):
-                break
-            time.sleep(4)
+        with Halo(text="Loading", spinner="dots"):
+            while True:
+                # Poll run
+                run = get_run(result["id"])
+                if run.status == "FINISHED":
+                    logger.info("Program finished running")
+                    break
+                elif run.status == "ERROR":
+                    logger.error("Program failed to run: %s", run.error)
+                    break
+                elif run.status == "CANCELED":
+                    logger.error("Program execution was canceled")
+                    break
+                time.sleep(3)
 
     else:
         raise ParsagonException(f"Unknown environment: {environment}")

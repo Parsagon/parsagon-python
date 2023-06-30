@@ -129,11 +129,12 @@ def create(task=None, program_name=None, headless=False, verbose=False):
 
     logger.info("Analyzing task description...")
     program_sketches = get_program_sketches(task)
+    logger.info("Created a program based on task description. Now demonstrating what the program does:\n")
 
     full_program = program_sketches["full"]
     abridged_program = program_sketches["abridged"]
     logger.debug("Program:\n%s", abridged_program)
-    abridged_program += "\n\noutput = func()\nprint(f'Program finished and returned a value of:\\n{output}')\n"  # Make the program runnable
+    abridged_program += "\n\noutput = func()\nprint(f'Program finished and returned a value of:\\n{output}\\n')\n"  # Make the program runnable
 
     # Execute the abridged program to gather examples
     executor = Executor(headless=headless)
@@ -142,7 +143,7 @@ def create(task=None, program_name=None, headless=False, verbose=False):
     # The user must select a name
     while True:
         if not program_name:
-            program_name = input("Name this program, or press enter without typing a name to DISCARD: ")
+            program_name = input("Name this program to save, or press enter without typing a name to DISCARD: ")
         if program_name:
             logger.info(f"Saving program as {program_name}")
             try:

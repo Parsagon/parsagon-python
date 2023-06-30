@@ -4,9 +4,6 @@ class ParsagonException(Exception):
     def to_string(self, verbose):
         return str(self)
 
-    def __str__(self):
-        return self.to_string(True)
-
 
 class APIException(ParsagonException):
     def __init__(self, value, status_code):

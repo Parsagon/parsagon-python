@@ -133,11 +133,11 @@ def get_pipeline_code(pipeline_name, variables, environment, headless):
         )
 
 
-def create_pipeline_run(pipeline_id, variables):
+def create_pipeline_run(pipeline_id, arguments):
     return _api_call(
         httpx.post,
         f"/pipelines/runs/",
-        json={"variables": variables, "environment": environment, "pipeline_id": pipeline_id},
+        json={"arguments": arguments, "environment": environment, "pipeline": pipeline_id},
     )
 
 

@@ -238,18 +238,19 @@ def run(program_name, variables={}, environment="LOCAL", headless=False, proxy_t
     elif environment == "REMOTE":
         pipeline_id = get_pipeline(program_name)["id"]
         result = create_pipeline_run(pipeline_id, variables)
-        logger.info("Waiting for program to finish running...")
-        with Halo(text="Loading", spinner="dots"):
+        with Halo(text="Program running remotely...", spinner="dots"):
             while True:
                 # Poll run
                 run = get_run(result["id"])
-                if run.status == "FINISHED":
-                    logger.info("Program finished running")
+                status = run["status"]
+                if status == "FINISHED":
+                    logger.info("Program finished running.")
+                    # TODO: Get result
                     break
-                elif run.status == "ERROR":
-                    logger.error("Program failed to run: %s", run.error)
+                elif status == "ERROR":
+                    logger.error("Program failed to run: %s", run["error"])
                     break
-                elif run.status == "CANCELED":
+                elif status == "CANCELED":
                     logger.error("Program execution was canceled")
                     break
                 time.sleep(3)

@@ -99,6 +99,9 @@ def get_args():
         type=str,
         help="the name of the program to run",
     )
+    parser_delete.add_argument(
+        "-y", "--yes", dest="confirm_with_user", action="store_false", help="auto-confirm option"
+    )
     parser_delete.set_defaults(func=delete)
     args = parser.parse_args()
     kwargs = vars(args)
@@ -209,7 +212,13 @@ def run(program_name, variables={}, environment="LOCAL", headless=False, verbose
     return globals_locals["output"]
 
 
-def delete(program_name, verbose=False):
+def delete(program_name, verbose=False, confirm_with_user=False):
+    if (
+        confirm_with_user
+        and input(f"Are you sure you want to delete program with name {program_name}? (y/N) ").lower().strip() != "y"
+    ):
+        logger.error("Cancelled operation.")
+        return
     logger.info("Preparing to delete program %s", program_name)
     pipeline_id = get_pipeline(program_name)["id"]
     logger.info("Deleting program...")

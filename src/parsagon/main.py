@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import logging.config
+import sys
 
 from parsagon import settings
 from parsagon.api import (
@@ -16,6 +17,7 @@ from parsagon.api import (
 )
 from parsagon.exceptions import ParsagonException
 from parsagon.executor import Executor, custom_functions_to_descriptions
+from parsagon.settings import get_api_key, get_settings, clear_settings, save_setting
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +105,14 @@ def get_args():
         "-y", "--yes", dest="confirm_with_user", action="store_false", help="auto-confirm option"
     )
     parser_delete.set_defaults(func=delete)
+
+    # Setup
+    parser_setup = subparsers.add_parser(
+        "setup",
+        description="Interactively sets up Parsagon with an API key.",
+    )
+    parser_setup.set_defaults(func=setup)
+
     args = parser.parse_args()
     kwargs = vars(args)
     return kwargs, parser
@@ -224,3 +234,15 @@ def delete(program_name, verbose=False, confirm_with_user=False):
     logger.info("Deleting program...")
     delete_pipeline(pipeline_id)
     logger.info("Done.")
+
+
+def setup(verbose=False):
+    old_api_key = settings.get_api_key()
+    try:
+        save_setting("api_key", None)
+        get_api_key()
+    except KeyboardInterrupt:
+        save_setting("api_key", old_api_key)
+        logger.error("\nCancelled operation.")
+        return
+    logger.info("Setup complete.")

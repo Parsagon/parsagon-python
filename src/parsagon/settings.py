@@ -4,6 +4,8 @@ import sys
 from os import environ
 from pathlib import Path
 
+from parsagon.exceptions import ParsagonException
+
 __API_BASE = environ.get("API_BASE", "https://parsagon.io").rstrip("/")
 
 
@@ -14,7 +16,7 @@ def pytest_is_running():
     return "pytest" in sys.modules
 
 
-def get_api_key(interactive=True):
+def get_api_key(interactive=False):
     """
     Return API key, preventing tests from talking to the real backend
     """
@@ -35,7 +37,7 @@ def get_api_key(interactive=True):
         save_setting("api_key", api_key)
         return api_key
     else:
-        raise Exception("No API key found. Please run `parsagon setup`.")
+        raise ParsagonException("No API key found. Please run `parsagon setup`.")
 
 
 def save_settings(settings):

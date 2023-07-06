@@ -4,7 +4,6 @@ import logging
 import logging.config
 import sys
 
-from parsagon import settings
 from parsagon.api import (
     get_program_sketches,
     create_pipeline,
@@ -17,13 +16,13 @@ from parsagon.api import (
 )
 from parsagon.exceptions import ParsagonException
 from parsagon.executor import Executor, custom_functions_to_descriptions
-from parsagon.settings import get_api_key, get_settings, clear_settings, save_setting
+from parsagon.settings import get_api_key, get_settings, clear_settings, save_setting, get_logging_config
 
 logger = logging.getLogger(__name__)
 
 
 def configure_logging(verbose):
-    logging.config.dictConfig(settings.get_logging_config("DEBUG" if verbose else "INFO"))
+    logging.config.dictConfig(get_logging_config("DEBUG" if verbose else "INFO"))
 
 
 def get_args():
@@ -210,7 +209,7 @@ def run(program_name, variables={}, environment="LOCAL", headless=False, verbose
     code = get_pipeline_code(program_name, variables, environment, headless)["code"]
 
     logger.info("Running program...")
-    globals_locals = {"PARSAGON_API_KEY": settings.get_api_key()}
+    globals_locals = {"PARSAGON_API_KEY": get_api_key()}
     try:
         exec(code, globals_locals, globals_locals)
     finally:
@@ -237,10 +236,13 @@ def delete(program_name, verbose=False, confirm_with_user=False):
 
 
 def setup(verbose=False):
-    old_api_key = settings.get_api_key()
+    try:
+        old_api_key = get_api_key()
+    except ParsagonException:
+        old_api_key = None
     try:
         save_setting("api_key", None)
-        get_api_key()
+        get_api_key(interactive=True)
     except KeyboardInterrupt:
         save_setting("api_key", old_api_key)
         logger.error("\nCancelled operation.")

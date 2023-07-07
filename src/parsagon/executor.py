@@ -13,6 +13,7 @@ from selenium.webdriver.support.select import Select
 
 from parsagon.api import get_interaction_element_id, scrape_page
 from parsagon.custom_function import CustomFunction
+from parsagon.exceptions import ParsagonException
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +126,8 @@ class Executor:
         logger.info(f'Looking for {elem_type.lower()}: "{description}"')
         visible_html = self.get_visible_html()
         elem_id = get_interaction_element_id(visible_html, elem_type, description)
+        if elem_id is None:
+            raise ParsagonException(f'Could not find an element matching "{description}". Perhaps try rephrasing your prompt.')
         return elem_id
 
     def _get_elem(self, elem_id):
@@ -279,6 +282,10 @@ class Executor:
         result = scrape_page(html, schema)
         scraped_data = result["data"]
         nodes = result["nodes"]
+        if not scraped_data and not nodes:
+            raise ParsagonException(f"Parsagon could not find any data on the page that would fit the format {schema}. Perhaps try rephrasing your prompt.")
+        elif not nodes:
+            raise ParsagonException(f"Parsagon found the following data on the page for the format {schema}:\n\n{scraped_data}\n\nHowever, it could not find a plausible program to scrape this data. If the data above is incorrect, perhaps try rephrasing your prompt.")
         logger.info(f"Scraped data:\n{scraped_data}")
         custom_function = CustomFunction(
             "scrape_data",

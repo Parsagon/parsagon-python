@@ -1,37 +1,48 @@
+import contextlib
 import json
 from json import JSONDecodeError
 
 import httpx
 
 from parsagon import settings
+from parsagon.exceptions import ParsagonException, APIException, ProgramNotFoundException
 
 environment = "PANDAS_1.x"
 
 
-class APIException(Exception):
-    @property
-    def value(self):
-        return self.args[0]
+class RaiseProgramNotFound:
+    def __init__(self, program_name):
+        self.program_name = program_name
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is not None and issubclass(exc_type, APIException):
+            if exc_value.status_code == 404:
+                raise ProgramNotFoundException(self.program_name)
+        return False
 
 
 def _request_to_exception(response):
-    if response.status_code == 500:
-        raise APIException("A server error occurred. Please notify Parsagon.")
-    if response.status_code in (502, 503, 504):
-        raise APIException("Lost connection to server.")
+    status_code = response.status_code
+    if status_code == 500:
+        raise APIException("A server error occurred. Please notify Parsagon.", status_code)
+    if status_code in (502, 503, 504):
+        raise APIException("Lost connection to server.", status_code)
     try:
         errors = response.json()
         if "non_field_errors" in errors:
-            raise APIException(errors["non_field_errors"])
+            raise APIException(errors["non_field_errors"], status_code)
         else:
-            raise APIException(errors)
+            raise APIException(errors, status_code)
     except JSONDecodeError:
-        raise APIException("Could not parse response.")
+        raise APIException("Could not parse response.", status_code)
 
 
 def _api_call(httpx_func, endpoint, **kwargs):
-    api_key = settings.API_KEY
-    api_endpoint = f"{settings.API_BASE}/api{endpoint}"
+    api_key = settings.get_api_key()
+    api_endpoint = f"{settings.get_api_base()}/api{endpoint}"
     headers = {"Authorization": f"Token {api_key}"}
     r = httpx_func(api_endpoint, headers=headers, timeout=None, **kwargs)
     if not r.is_success:
@@ -80,7 +91,9 @@ def scrape_page(html, schema):
 
 
 def create_pipeline(name, description, program_sketch):
-    return _api_call(httpx.post, "/pipelines/", json={"name": name, "description": description, "program_sketch": program_sketch})
+    return _api_call(
+        httpx.post, "/pipelines/", json={"name": name, "description": description, "program_sketch": program_sketch}
+    )
 
 
 def delete_pipeline(pipeline_id):
@@ -96,23 +109,42 @@ def create_custom_function(pipeline_id, call_id, custom_function):
 
 
 def get_pipeline(pipeline_name):
-    return _api_call(
-        httpx.get,
-        f"/pipelines/name/{pipeline_name}/",
-    )
+    with RaiseProgramNotFound(pipeline_name):
+        return _api_call(
+            httpx.get,
+            f"/pipelines/name/{pipeline_name}/",
+        )
 
 
 def get_pipelines():
     return _api_call(httpx.get, f"/pipelines/")
 
 
-def get_pipeline_code(pipeline_name, variables, environment, headless):
+def get_pipeline_code(pipeline_name, variables, headless):
+    with RaiseProgramNotFound(pipeline_name):
+        return _api_call(
+            httpx.post,
+            f"/pipelines/name/{pipeline_name}/code/",
+            json={
+                "variables": variables,
+                "headless": headless,
+            },
+        )
+
+
+def create_pipeline_run(pipeline_id, variables):
     return _api_call(
         httpx.post,
-        f"/pipelines/name/{pipeline_name}/code/",
-        json={
-            "variables": variables,
-            "environment": environment,
-            "headless": headless,
-        },
+        f"/pipelines/{pipeline_id}/runs/",
+        json={"variables": variables},
+    )
+
+
+def get_run(run_id):
+    """
+    Gets details about a run
+    """
+    return _api_call(
+        httpx.get,
+        f"/pipelines/runs/{run_id}/",
     )

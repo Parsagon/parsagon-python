@@ -12,25 +12,47 @@ To get started, install the Parsagon python package:
 
 `pip install parsagon`
 
-and set your API key as an environment variable:
+Then run
 
-`export PARSAGON_API_KEY=<YOUR API KEY>`
+`parsagon setup`
 
-Please contact us to get your API key if you don't have it already.
+and copy-paste your API key when prompted.
+
+You can view your API key by logging in and going to <https://parsagon.io/settings>
 
 ## Usage
 
+From command line:
+
+```
+# Create a program
+parsagon create
+
+# Run a program
+parsagon run 'My program'
+
+# List your programs
+parsagon detail
+
+# Delete a program
+parsagon delete 'My program'
+```
+
+From Python:
 ```
 import parsagon
 
 # Create a program
-parsagon.create('Go to https://www.google.com/. Type "the meaning of life" into the search bar and hit enter. Scroll down and click the "More results" button 3 times. Scrape data in the format [{"title": "str", "link": "link"}].')
+parsagon.create('Go to https://www.google.com/. Type "the meaning of life" into the search bar and hit enter. Scroll down and click the "More results" button 3 times. Scrape data in the format [{"search result title": "str", "link": "link"}].')
 
 # Run a program
 parsagon.run("My program")
 
 # List your programs
 parsagon.detail()
+
+# Delete a program
+parsagon.delete("My program")
 ```
 
 See [the docs](https://parsagon.io/docs/pipelines/overview) for more information.

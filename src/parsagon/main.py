@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import logging.config
+import os
 import sys
 
 from parsagon.api import (
@@ -50,6 +51,12 @@ def get_args():
         "--headless",
         action="store_true",
         help="run the browser in headless mode",
+    )
+    parser_create.add_argument(
+        "--secret",
+        action="append",
+        dest="secrets",
+        help="provide a string to be substituted with a secret that will not be sent to OpenAI e.g. MYPASSWORD to use a bash variable $MYPASSWORD or else specify the real password as in MYPASSWORD:realpassword.",
     )
     parser_create.set_defaults(func=create)
 
@@ -133,14 +140,36 @@ def main():
         parser.print_help()
 
 
-def create(task=None, program_name=None, headless=False, verbose=False):
+def create(task=None, program_name=None, headless=False, secrets=None, verbose=False):
     if task:
         logger.info("Launched with task description:\n%s", task)
     else:
         task = input("Type what you want to do: ")
 
+    if secrets is None:
+        secrets = {}
+    if isinstance(secrets, list):
+        secrets_dict = {}
+        for secret in secrets:
+            if ":" in secret:
+                secret, real_value = secret.split(":", 1)
+            else:
+                real_value = os.environ.get(secret)
+                if real_value is None:
+                    raise ParsagonException(
+                        f"Environment variable named {secret} not found.  Please provide secrets in the form of SECRET_NAME:real_value or else set an environment variable called SECRET_NAME."
+                    )
+            if secret not in task:
+                raise ParsagonException(
+                    f'You have passed a secret named "{secret}", yet this string does not appear in the task given.'
+                )
+            secrets_dict[secret] = real_value
+        secrets = secrets_dict
+    if not isinstance(secrets, dict):
+        raise TypeError(f"Secrets must be a dict, not {type(secrets)}")
+
     logger.info("Analyzing task description...")
-    program_sketches = get_program_sketches(task)
+    program_sketches = get_program_sketches(task, secrets=secrets)
     logger.info("Created a program based on task description. Now demonstrating what the program does:\n")
 
     full_program = program_sketches["full"]

@@ -54,13 +54,17 @@ def _api_call(httpx_func, endpoint, **kwargs):
             return None
 
 
-def get_program_sketches(description):
+def get_program_sketches(description, secrets=None):
     """
     Gets a program sketches (full and abridged) from a description.
     :param description: Description in natural language that will be used to generate the scraping program.
+    :param secrets: Dict of secrets to hide from OpenAI.
     :return: A dict with keys "full" and "abridged" for the respective program ASTs.
     """
-    return _api_call(httpx.post, "/transformers/get-program-sketch/", json={"description": description})
+    secrets = secrets or {}
+    return _api_call(
+        httpx.post, "/transformers/get-program-sketch/", json={"description": description, "secrets": secrets}
+    )
 
 
 def get_interaction_element_id(marked_html, elem_type, description):

@@ -120,14 +120,31 @@ def get_pipelines():
     return _api_call(httpx.get, f"/pipelines/")
 
 
-def get_pipeline_code(pipeline_name, variables, environment, headless):
+def get_pipeline_code(pipeline_name, variables, headless):
     with RaiseProgramNotFound(pipeline_name):
         return _api_call(
             httpx.post,
             f"/pipelines/name/{pipeline_name}/code/",
             json={
                 "variables": variables,
-                "environment": environment,
                 "headless": headless,
             },
         )
+
+
+def create_pipeline_run(pipeline_id, variables):
+    return _api_call(
+        httpx.post,
+        f"/pipelines/{pipeline_id}/runs/",
+        json={"variables": variables},
+    )
+
+
+def get_run(run_id):
+    """
+    Gets details about a run
+    """
+    return _api_call(
+        httpx.get,
+        f"/pipelines/runs/{run_id}/",
+    )

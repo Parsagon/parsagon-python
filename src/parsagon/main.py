@@ -2,16 +2,20 @@ import argparse
 import json
 import logging
 import logging.config
-import sys
+import time
+
+from halo import Halo
 
 from parsagon.api import (
     get_program_sketches,
     create_pipeline,
     delete_pipeline,
     create_custom_function,
+    create_pipeline_run,
     get_pipeline,
     get_pipelines,
     get_pipeline_code,
+    get_run,
     APIException,
 )
 from parsagon.exceptions import ParsagonException
@@ -87,6 +91,11 @@ def get_args():
         "--headless",
         action="store_true",
         help="run the browser in headless mode",
+    )
+    parser_run.add_argument(
+        "--remote",
+        action="store_true",
+        help="run the program in the cloud",
     )
     parser_run.set_defaults(func=run)
 
@@ -201,12 +210,31 @@ def detail(program_name=None, verbose=False):
         )
 
 
-def run(program_name, variables={}, environment="LOCAL", headless=False, verbose=False):
+def run(program_name, variables={}, headless=False, remote=False, verbose=False):
     """
     Executes pipeline code
     """
+    if headless and remote:
+        raise ParsagonException("Cannot run a program remotely in headless mode")
+
+    if remote:
+        pipeline_id = get_pipeline(program_name)["id"]
+        result = create_pipeline_run(pipeline_id, variables)
+        with Halo(text="Program running remotely...", spinner="dots"):
+            while True:
+                run = get_run(result["id"])
+                status = run["status"]
+                if status == "FINISHED":
+                    logger.info("Program finished running.")
+                    return run["output"]
+                elif status == "ERROR":
+                    raise ParsagonException(f"Program failed to run: {run['error']}")
+                elif status == "CANCELED":
+                    raise ParsagonException("Program execution was canceled")
+                time.sleep(5)
+
     logger.info("Preparing to run program %s", program_name)
-    code = get_pipeline_code(program_name, variables, environment, headless)["code"]
+    code = get_pipeline_code(program_name, variables, headless)["code"]
 
     logger.info("Running program...")
     globals_locals = {"PARSAGON_API_KEY": get_api_key()}

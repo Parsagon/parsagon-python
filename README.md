@@ -22,6 +22,23 @@ You can view your API key by logging in and going to <https://parsagon.io/settin
 
 ## Usage
 
+From command line:
+
+```
+# Create a program
+parsagon create
+
+# Run a program
+parsagon run 'My program'
+
+# List your programs
+parsagon detail
+
+# Delete a program
+parsagon delete 'My program'
+```
+
+From Python:
 ```
 import parsagon
 
@@ -33,6 +50,9 @@ parsagon.run("My program")
 
 # List your programs
 parsagon.detail()
+
+# Delete a program
+parsagon.delete("My program")
 ```
 
 See [the docs](https://parsagon.io/docs/pipelines/overview) for more information.

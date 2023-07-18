@@ -7,6 +7,7 @@ from pathlib import Path
 from parsagon.exceptions import ParsagonException
 
 __API_BASE = environ.get("API_BASE", "https://parsagon.io").rstrip("/")
+__SETTINGS_FILE = environ.get("SETTINGS_FILE", ".parsagon_profile")
 
 
 logger = logging.getLogger(__name__)
@@ -72,7 +73,7 @@ def get_settings_file_path():
     """
     Return settings file path, which is a hidden file in the user's home directory
     """
-    return Path().home() / ".parsagon_profile"
+    return Path().home() / __SETTINGS_FILE
 
 
 def get_api_base():

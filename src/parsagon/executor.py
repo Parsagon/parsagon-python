@@ -43,6 +43,7 @@ class Executor:
         self.driver = uc.Chrome(options=chrome_options, seleniumwire_options=seleniumwire_options)
         self.max_elem_id = 0
         self.execution_context = {
+            "custom_assert": self.custom_assert,
             "goto": self.goto,
             "click_elem": self.click_elem,
             "fill_input": self.fill_input,
@@ -127,7 +128,9 @@ class Executor:
         visible_html = self.get_visible_html()
         elem_id = get_interaction_element_id(visible_html, elem_type, description)
         if elem_id is None:
-            raise ParsagonException(f'Could not find an element matching "{description}". Perhaps try rephrasing your prompt.')
+            raise ParsagonException(
+                f'Could not find an element matching "{description}". Perhaps try rephrasing your prompt.'
+            )
         return elem_id
 
     def _get_elem(self, elem_id):
@@ -140,6 +143,9 @@ class Executor:
         log_suffix = f' with text "{elem_text}"' if elem_text else ""
         logger.info(f"Found element" + log_suffix)
         return result
+
+    def custom_assert(self, v):
+        assert v, "Web page interaction failed."
 
     def goto(self, url, window_id=None):
         if window_id in self.driver.window_handles:
@@ -264,7 +270,9 @@ class Executor:
     def scroll(self, x, y, window_id):
         self.driver.switch_to.window(window_id)
         logger.info(f"Scrolling {x * 100}% to the left and {y * 100}% down")
-        self.driver.execute_script(f"window.scrollTo({{top: document.documentElement.scrollHeight * {y}, left: document.documentElement.scrollWidth * {x}, behavior: 'smooth'}});")
+        self.driver.execute_script(
+            f"window.scrollTo({{top: document.documentElement.scrollHeight * {y}, left: document.documentElement.scrollWidth * {x}, behavior: 'smooth'}});"
+        )
         time.sleep(1)
 
     def wait(self, seconds):
@@ -283,9 +291,13 @@ class Executor:
         scraped_data = result["data"]
         nodes = result["nodes"]
         if not scraped_data and not nodes:
-            raise ParsagonException(f"Parsagon could not find any data on the page that would fit the format {schema}. Perhaps try rephrasing your prompt.")
+            raise ParsagonException(
+                f"Parsagon could not find any data on the page that would fit the format {schema}. Perhaps try rephrasing your prompt."
+            )
         elif not nodes:
-            raise ParsagonException(f"Parsagon found the following data on the page for the format {schema}:\n\n{scraped_data}\n\nHowever, it could not find a plausible program to scrape this data. If the data above is incorrect, perhaps try rephrasing your prompt.")
+            raise ParsagonException(
+                f"Parsagon found the following data on the page for the format {schema}:\n\n{scraped_data}\n\nHowever, it could not find a plausible program to scrape this data. If the data above is incorrect, perhaps try rephrasing your prompt."
+            )
         logger.info(f"Scraped data:\n{scraped_data}")
         custom_function = CustomFunction(
             "scrape_data",

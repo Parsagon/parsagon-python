@@ -287,7 +287,7 @@ class Executor:
         self.driver.switch_to.window(window_id)
         logger.info("Scraping data...")
         html = self.get_scrape_html()
-        result = scrape_page(html, schema)
+        result = scrape_page(self.driver.current_url, html, schema)
         scraped_data = result["data"]
         nodes = result["nodes"]
         if not scraped_data and not nodes:

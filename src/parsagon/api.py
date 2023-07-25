@@ -80,14 +80,15 @@ def get_interaction_element_id(marked_html, elem_type, description):
     return result
 
 
-def scrape_page(html, schema):
+def scrape_page(url, html, schema):
     """
     Scrapes data from the provided page HTML - data will be returned in the schema provided.
+    :param url: url of the page to scrape.
     :param html: HTML of the page to scrape.
-    :param schema: Schema of the data to scrape, in the format
+    :param schema: Schema of the data to scrape
     :return: Scraped data, with lists truncated.
     """
-    return _api_call(httpx.post, "/transformers/get-custom-data/", json={"html": html, "schema": schema})
+    return _api_call(httpx.post, "/transformers/get-custom-data/", json={"url": url, "html": html, "schema": schema})
 
 
 def create_pipeline(name, description, program_sketch):

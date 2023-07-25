@@ -199,6 +199,34 @@ def create(task=None, program_name=None, headless=False, verbose=False):
     logger.info("Done.")
 
 
+def update(program_name, variables={}, headless=False):
+    pipeline = get_pipeline(program_name)
+    abridged_program = pipeline["abridged_sketch"]
+    args_str = ", ".join(f"{k}={v}" for k, v in variables.items())
+    abridged_program += f"\n\noutput = func({args_str})\nprint(f'Program finished and returned a value of:\\n{output}\\n')\n"  # Make the program runnable
+
+    # Execute the abridged program to gather examples
+    executor = Executor(headless=headless)
+    executor.execute(abridged_program)
+
+    confirmation = input(f"Do you want to update {program_name} with the example above? (Y/n)")
+    if confirmation != "Y":
+        logger.info("Update canceled.")
+        return
+
+    logger.info(f"Updating {program_name}")
+    for call_id, custom_function in executor.custom_functions.items():
+        debug_suffix = f" ({custom_function.name})"
+        description = custom_functions_to_descriptions.get(custom_function.name)
+        description = " to " + description if description else ""
+        if verbose:
+            description += debug_suffix
+        logger.info(f"  Saving function{description}...")
+        update_custom_function(pipeline_id, call_id, custom_function)
+
+    logger.info("Done.")
+
+
 def detail(program_name=None, verbose=False):
     if program_name:
         data = [get_pipeline(program_name)]

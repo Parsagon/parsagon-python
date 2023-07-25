@@ -298,6 +298,7 @@ class Executor:
                     "url": self.driver.current_url,
                     "nodes": nodes,
                     "scraped_data": scraped_data,
+                    "schema": schema,
                 }
             ],
         )

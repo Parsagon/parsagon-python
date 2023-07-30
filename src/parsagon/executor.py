@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+from urllib.parse import urljoin
 
 import lxml.html
 from pyvirtualdisplay import Display
@@ -74,11 +75,22 @@ class Executor:
         )
 
     def _get_cleaned_lxml_root(self):
-        driver = self.driver
-        html = driver.page_source
-
         parser = lxml.html.HTMLParser(remove_comments=True, remove_pis=True)
-        root = lxml.html.fromstring(html, parser=parser)
+        root = lxml.html.fromstring(self.driver.page_source.replace('&nbsp;', ' '), parser=parser)
+
+        # make links absolute
+        root.make_links_absolute(self.driver.current_url)
+        for elem in root.xpath('//img[@srcset]'):
+            srcset_list = []
+            for s in elem.get('srcset').split(','):
+                parts = s.strip().split()
+                if not parts:
+                    continue
+                parts[0] = urljoin(self.driver.current_url, parts[0])
+                srcset_list.append(' '.join(parts))
+            elem.set('srcset', ', '.join(srcset_list))
+
+        # remove unnecessary and bulky elements
         for elem in root.iterfind(".//script"):
             elem.text = ""
         for elem in root.iterfind(".//noscript"):
@@ -188,6 +200,7 @@ class Executor:
             examples=[
                 {
                     "html": html,
+                    "url": self.driver.current_url,
                     "elem_id": elem_id,
                 }
             ],
@@ -222,6 +235,7 @@ class Executor:
             examples=[
                 {
                     "html": html,
+                    "url": self.driver.current_url,
                     "elem_id": elem_id,
                 }
             ],
@@ -260,6 +274,7 @@ class Executor:
             examples=[
                 {
                     "html": html,
+                    "url": self.driver.current_url,
                     "elem_id": elem_id,
                 }
             ],
@@ -287,7 +302,7 @@ class Executor:
         self.driver.switch_to.window(window_id)
         logger.info("Scraping data...")
         html = self.get_scrape_html()
-        result = scrape_page(self.driver.current_url, html, schema)
+        result = scrape_page(html, schema)
         scraped_data = result["data"]
         nodes = result["nodes"]
         if not scraped_data and not nodes:

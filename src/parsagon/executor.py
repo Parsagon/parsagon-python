@@ -60,13 +60,15 @@ class Executor:
     Executes code produced by GPT with the proper context.  Records custom_function usage along the way.
     """
 
-    def __init__(self, headless=False, infer=False):
+    def __init__(self, headless=False, infer=False, user_data_dir=None):
         self.headless = headless
         if self.headless:
             self.display = Display(visible=False, size=(1280, 1050)).start()
         chrome_options = uc.ChromeOptions()
         chrome_options.add_argument("--start-maximized")
         driver_exec_path = ChromeDriverManager().install()
+        if user_data_dir is not None:
+            chrome_options.add_argument("user-data-dir=path_to_chrome_profile")
         self.driver = uc.Chrome(driver_executable_path=driver_exec_path, options=chrome_options)
         self.max_elem_ids = defaultdict(int)
         self.execution_context = {

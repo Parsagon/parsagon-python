@@ -80,15 +80,44 @@ def get_interaction_element_id(marked_html, elem_type, description):
     return result
 
 
+def get_schema_fields(schema):
+    """
+    Gets fields and their types from a given schema
+    :param schema:
+    :return: A dict mapping fields to thir types
+    """
+    return _api_call(httpx.post, "/transformers/get-schema-fields/", json={"schema": schema})
+
+
+def get_cleaned_data(html, schema, nodes):
+    """
+    Gets cleaned data from the nodes to be scraped.
+    :param html: HTML of the page to scrape
+    :param schema: Schema of the data to scrape
+    :param nodes: Nodes to scrape
+    :return: Cleaned data
+    """
+    return _api_call(httpx.post, "/transformers/get-cleaned-data/", json={"html": html, "schema": schema, "nodes": nodes})
+
+
 def scrape_page(html, schema):
     """
     Scrapes data from the provided page HTML - data will be returned in the schema provided.
     :param url: url of the page to scrape.
     :param html: HTML of the page to scrape.
     :param schema: Schema of the data to scrape
-    :return: Scraped data, with lists truncated.
+    :return: Scraped data
     """
     return _api_call(httpx.post, "/transformers/get-custom-data/", json={"html": html, "schema": schema})
+
+
+def ask_about_data(data, question):
+    """
+    Asks GPT a question about the given data.
+    :param data: the data to give GPT
+    :param question: the question to ask about the data
+    """
+    return _api_call(httpx.post, "transformers/ask-about-data/", json={"data": data, "question": question})
 
 
 def create_pipeline(name, description, program_sketch):

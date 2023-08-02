@@ -55,6 +55,11 @@ def get_args():
         action="store_true",
         help="run the browser in headless mode",
     )
+    parser_create.add_argument(
+        "--infer",
+        action="store_true",
+        help="let Parsagon infer all elements to be scraped",
+    )
     parser_create.set_defaults(func=create)
 
     # Detail
@@ -142,7 +147,7 @@ def main():
         parser.print_help()
 
 
-def create(task=None, program_name=None, headless=False, verbose=False):
+def create(task=None, program_name=None, headless=False, infer=False, verbose=False):
     if task:
         logger.info("Launched with task description:\n%s", task)
     else:
@@ -158,7 +163,7 @@ def create(task=None, program_name=None, headless=False, verbose=False):
     abridged_program += "\n\noutput = func()\nprint(f'Program finished and returned a value of:\\n{output}\\n')\n"  # Make the program runnable
 
     # Execute the abridged program to gather examples
-    executor = Executor(headless=headless)
+    executor = Executor(headless=headless, infer=infer)
     executor.execute(abridged_program)
 
     # The user must select a name

@@ -6,8 +6,7 @@ from urllib.parse import urljoin
 
 import lxml.html
 from pyvirtualdisplay import Display
-from selenium import webdriver
-import seleniumwire.undetected_chromedriver as uc
+import undetected_chromedriver as uc
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -51,8 +50,7 @@ class Executor:
             self.display = Display(visible=False, size=(1280, 1050)).start()
         chrome_options = uc.ChromeOptions()
         chrome_options.add_argument("--start-maximized")
-        seleniumwire_options = {"disable_capture": True}
-        self.driver = uc.Chrome(options=chrome_options, seleniumwire_options=seleniumwire_options)
+        self.driver = uc.Chrome(options=chrome_options)
         self.max_elem_id = 0
         self.execution_context = {
             "custom_assert": self.custom_assert,

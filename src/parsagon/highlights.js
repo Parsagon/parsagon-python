@@ -137,7 +137,17 @@ function makeVisible(element) {
     }
 }
 
+const DUMMY_FRAGMENT = document.createDocumentFragment()
+
+function isValidSelector(selector) {
+    console.log(selector);
+    try { DUMMY_FRAGMENT.querySelector(selector) } catch { console.log("false"); return false }
+    console.log("true");
+    return true
+}
+
 function getSimilar(elements) {
+    console.log(0);
     let tag = '*';
     if (elements.every((elem) => elem.tagName === elements[0].tagName)) {
         tag = elements[0].tagName.toLowerCase();
@@ -150,10 +160,13 @@ function getSimilar(elements) {
         .filter(
             (className) =>
                 className !== TARGET_STORED_CLASSNAME &&
-                className !== MOUSE_VISITED_CLASSNAME
+                className !== MOUSE_VISITED_CLASSNAME &&
+                isValidSelector("." + className)
         )
-        .map((className) => className.replace(':', '\\:'));
+        .map((className) => className.replace(':', '\\:').replace('.', '\\.').replace('[', '\\[').replace(']', '\\]').replace('=', '\\='));
+    console.log(1);
     const classString = commonClasses.join('.');
+    console.log(2);
 
     const siblingIndexes = elements.map(
         (elem) =>
@@ -163,6 +176,7 @@ function getSimilar(elements) {
     if (siblingIndexes.every((index) => index === siblingIndexes[0])) {
         siblingIndex = siblingIndexes[0];
     }
+    console.log(3);
 
     let elemString = tag;
     if (classString) {
@@ -173,6 +187,7 @@ function getSimilar(elements) {
     }
 
     const parentElements = elements.map((elem) => elem.parentElement);
+    console.log(4);
     if (parentElements.some((elem) => elem === null)) {
         return elemString;
     } else {
@@ -344,7 +359,6 @@ function handleAutocomplete() {
 };
 
 function handleClick(e) {
-    console.log(window.currentFieldType)
     if (window.currentFieldType === null) {
         return;
     }
@@ -364,6 +378,7 @@ function handleClick(e) {
         try {
             addAutocompletes();
         } catch (e) {
+            console.log(e);
             // carry on even if autocomplete runs into invalid CSS classes/IDs
         }
     } else {
@@ -377,6 +392,7 @@ function handleClick(e) {
         try {
             addAutocompletes();
         } catch (e) {
+            console.log(e);
             // carry on even if autocomplete runs into invalid CSS classes/IDs
         }
     }
@@ -489,12 +505,9 @@ function handleMouseMove(e) {
 };
 
 function handleKeyDown(e) {
-    console.log(1);
     if (window.currentFieldType === null) {
-        console.log(2);
         return;
     }
-    console.log(window.currentFieldType);
 
     e.preventDefault();
     e.stopImmediatePropagation();

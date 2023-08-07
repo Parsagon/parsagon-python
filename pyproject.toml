@@ -5,12 +5,18 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+parsagon = ["highlights.js"]
+
 [tool.black]
 line-length = 120
 
 [project]
 name = "parsagon"
-version = "0.7.5"
+version = "0.9.4"
 description = "Allows you to create browser automations with natural language"
 readme = "README.md"
 requires-python = ">=3.8"

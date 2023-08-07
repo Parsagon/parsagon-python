@@ -11,6 +11,7 @@ from parsagon.api import (
     create_pipeline,
     delete_pipeline,
     create_custom_function,
+    add_examples_to_custom_function,
     create_pipeline_run,
     get_pipeline,
     get_pipelines,
@@ -75,6 +76,34 @@ def get_args():
         help="the name of the program",
     )
     parser_detail.set_defaults(func=detail)
+
+    # Update
+    parser_update = subparsers.add_parser(
+        "update",
+        description="Updates a created program.",
+    )
+    parser_update.add_argument(
+        "program_name",
+        type=str,
+        help="the name of the program to update",
+    )
+    parser_update.add_argument(
+        "--variables",
+        type=json.loads,
+        default="{}",
+        help="a JSON object mapping variables to values",
+    )
+    parser_update.add_argument(
+        "--headless",
+        action="store_true",
+        help="run the browser in headless mode",
+    )
+    parser_update.add_argument(
+        "--infer",
+        action="store_true",
+        help="let Parsagon infer all elements to be scraped",
+    )
+    parser_update.set_defaults(func=update)
 
     # Run
     parser_run = subparsers.add_parser(
@@ -202,6 +231,34 @@ def create(task=None, program_name=None, headless=False, infer=False, verbose=Fa
             break
 
     logger.info("Done.")
+
+
+def update(program_name, variables={}, headless=False, infer=False, verbose=False):
+    pipeline = get_pipeline(program_name)
+    abridged_program = pipeline["abridged_sketch"]
+    # Make the program runnable
+    variables_str = ", ".join(f"{k}={repr(v)}" for k, v in variables.items())
+    abridged_program += f"\n\noutput = func({variables_str})"
+    abridged_program += "\nprint(f'Program finished and returned a value of:\\n{output}\\n')\n"
+
+    # Execute the abridged program to gather examples
+    executor = Executor(headless=headless, infer=infer)
+    executor.execute(abridged_program)
+
+    pipeline_id = pipeline["id"]
+    try:
+        for call_id, custom_function in executor.custom_functions.items():
+            debug_suffix = f" ({custom_function.name})"
+            description = custom_functions_to_descriptions.get(custom_function.name)
+            description = " to " + description if description else ""
+            if verbose:
+                description += debug_suffix
+            logger.info(f"  Saving function{description}...")
+            add_examples_to_custom_function(pipeline_id, call_id, custom_function)
+        logger.info(f"Saved.")
+    except Exception as e:
+        print(e)
+        logger.info(f"An error occurred while saving the program. The program was not updated.")
 
 
 def detail(program_name=None, verbose=False):

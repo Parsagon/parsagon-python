@@ -138,6 +138,14 @@ def create_custom_function(pipeline_id, call_id, custom_function):
     )
 
 
+def add_examples_to_custom_function(pipeline_id, call_id, custom_function):
+    _api_call(
+        httpx.post,
+        "/transformers/custom-function/add-examples/",
+        json={"pipeline": pipeline_id, "call_id": call_id, **custom_function.to_json()},
+    )
+
+
 def get_pipeline(pipeline_name):
     with RaiseProgramNotFound(pipeline_name):
         return _api_call(

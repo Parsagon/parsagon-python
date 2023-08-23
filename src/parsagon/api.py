@@ -111,13 +111,24 @@ def scrape_page(html, schema):
     return _api_call(httpx.post, "/transformers/get-custom-data/", json={"html": html, "schema": schema})
 
 
-def ask_about_data(data, question):
+def get_str_about_data(data, question):
     """
     Asks GPT a question about the given data.
     :param data: the data to give GPT
     :param question: the question to ask about the data
     """
-    return _api_call(httpx.post, "transformers/ask-about-data/", json={"data": data, "question": question})
+    data = _api_call(httpx.post, "/transformers/get-str-about-data/", json={"data": data, "question": question})
+    return data["result"]
+
+
+def get_bool_about_data(data, question):
+    """
+    Asks GPT a question about the given data.
+    :param data: the data to give GPT
+    :param question: the question to ask about the data
+    """
+    data = _api_call(httpx.post, "/transformers/get-bool-about-data/", json={"data": data, "question": question})
+    return data["result"]
 
 
 def create_pipeline(name, description, program_sketch):

@@ -16,7 +16,7 @@ line-length = 120
 
 [project]
 name = "parsagon"
-version = "0.9.4"
+version = "0.9.5"
 description = "Allows you to create browser automations with natural language"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -39,7 +39,8 @@ dependencies = [
     'PyVirtualDisplay==3.0',
     'selenium-wire==5.1.0',
     'cssselect==1.1.0',
-    'undetected-chromedriver==3.1.5.post4',
+    'undetected-chromedriver==3.5.2',
+    'webdriver-manager==4.0.0',
     'jsonpath-ng==1.5.3',
     'usaddress==0.5.10',
     'simplejson==3.19.1',

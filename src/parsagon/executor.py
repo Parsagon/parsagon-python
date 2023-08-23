@@ -11,8 +11,9 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
+from webdriver_manager.chrome import ChromeDriverManager
 
-from parsagon.api import get_interaction_element_id, get_schema_fields, get_cleaned_data, scrape_page
+from parsagon.api import get_interaction_element_id, get_schema_fields, get_cleaned_data, scrape_page, get_str_about_data, get_bool_about_data
 from parsagon.custom_function import CustomFunction
 from parsagon.exceptions import ParsagonException
 
@@ -35,6 +36,7 @@ ELEMENT_TYPES = {
     "num": "TEXT",
     "link": "URL",
     "image": "IMAGE",
+    "html": "HTML",
     "element": "ACTION",
 }
 
@@ -50,7 +52,8 @@ class Executor:
             self.display = Display(visible=False, size=(1280, 1050)).start()
         chrome_options = uc.ChromeOptions()
         chrome_options.add_argument("--start-maximized")
-        self.driver = uc.Chrome(options=chrome_options)
+        driver_exec_path = ChromeDriverManager().install()
+        self.driver = uc.Chrome(driver_executable_path=driver_exec_path, options=chrome_options)
         self.max_elem_id = 0
         self.execution_context = {
             "custom_assert": self.custom_assert,
@@ -61,6 +64,8 @@ class Executor:
             "scroll": self.scroll,
             "wait": self.wait,
             "scrape_data": self.scrape_data,
+            "get_str_about_data": get_str_about_data,
+            "get_bool_about_data": get_bool_about_data,
         }
         logger.debug("Available functions: %s", ", ".join(self.execution_context.keys()))
         self.custom_functions = {}
@@ -97,7 +102,7 @@ class Executor:
             "let elemIdx = 0; for (const node of document.all) { node.setAttribute('data-psgn-id', elemIdx); elemIdx++; } return elemIdx;"
         )
         self.driver.execute_script(
-            "for (const image of document.images) { image.setAttribute('data-psgn-width', image.width ?? -1); image.setAttribute('data-psgn-height', image.height ?? -1); }"
+            "for (const image of document.images) { image.setAttribute('data-psgn-width', image.parentElement.offsetWidth ?? -1); image.setAttribute('data-psgn-height', image.parentElement.offsetHeight ?? -1); }"
         )
 
     def _get_cleaned_lxml_root(self):

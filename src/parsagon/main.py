@@ -103,6 +103,11 @@ def get_args():
         action="store_true",
         help="let Parsagon infer all elements to be scraped",
     )
+    parser_update.add_argument(
+        "--replace",
+        action="store_true",
+        help="remove old example data while updating the program",
+    )
     parser_update.set_defaults(func=update)
 
     # Run
@@ -233,7 +238,7 @@ def create(task=None, program_name=None, headless=False, infer=False, verbose=Fa
     logger.info("Done.")
 
 
-def update(program_name, variables={}, headless=False, infer=False, verbose=False):
+def update(program_name, variables={}, headless=False, infer=False, replace=False, verbose=False):
     pipeline = get_pipeline(program_name)
     abridged_program = pipeline["abridged_sketch"]
     # Make the program runnable
@@ -254,7 +259,7 @@ def update(program_name, variables={}, headless=False, infer=False, verbose=Fals
             if verbose:
                 description += debug_suffix
             logger.info(f"  Saving function{description}...")
-            add_examples_to_custom_function(pipeline_id, call_id, custom_function)
+            add_examples_to_custom_function(pipeline_id, call_id, custom_function, replace)
         logger.info(f"Saved.")
     except Exception as e:
         print(e)

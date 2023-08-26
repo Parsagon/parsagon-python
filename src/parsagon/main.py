@@ -250,6 +250,14 @@ def update(program_name, variables={}, headless=False, infer=False, replace=Fals
     executor = Executor(headless=headless, infer=infer)
     executor.execute(abridged_program)
 
+    while True:
+        program_name_input = input(f"Type \"{program_name}\" to update this program, or press enter without typing a name to CANCEL: ")
+        if not program_name_input:
+            logger.info("Canceled update.")
+            return
+        if program_name_input == program_name:
+            break
+
     pipeline_id = pipeline["id"]
     try:
         for call_id, custom_function in executor.custom_functions.items():

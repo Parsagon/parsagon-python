@@ -361,6 +361,6 @@ def get_product(url, timeout=300):
             result = poll_product(url)
             if result["done"]:
                 return result["result"]
-            time.sleep(5)
+            time.sleep(15)
     logger.info("No data found")
     return None

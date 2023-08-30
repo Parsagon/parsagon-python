@@ -17,6 +17,7 @@ from parsagon.api import (
     get_pipelines,
     get_pipeline_code,
     get_run,
+    poll_product,
     APIException,
 )
 from parsagon.exceptions import ParsagonException
@@ -351,3 +352,15 @@ def setup(verbose=False):
         logger.error("\nCancelled operation.")
         return
     logger.info("Setup complete.")
+
+
+def get_product(url, timeout=300):
+    start_time = time.time()
+    with Halo(text="Extracting data...", spinner="dots"):
+        while time.time() - start_time <= timeout:
+            result = poll_product(url)
+            if result["done"]:
+                return result["result"]
+            time.sleep(5)
+    logger.info("No data found")
+    return None

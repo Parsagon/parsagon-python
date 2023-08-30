@@ -197,3 +197,7 @@ def get_run(run_id):
         httpx.get,
         f"/pipelines/runs/{run_id}/",
     )
+
+
+def poll_product(url):
+    return _api_call(httpx.post, "/extract/product/", json={"url": url, "page_type": "PRODUCT_DETAIL"})

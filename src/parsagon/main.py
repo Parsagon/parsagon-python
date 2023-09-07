@@ -17,7 +17,7 @@ from parsagon.api import (
     get_pipelines,
     get_pipeline_code,
     get_run,
-    poll_product,
+    poll_data,
     APIException,
 )
 from parsagon.exceptions import ParsagonException
@@ -354,13 +354,25 @@ def setup(verbose=False):
     logger.info("Setup complete.")
 
 
-def get_product(url, timeout=300):
+def _get_data(url, page_type, timeout):
     start_time = time.time()
     with Halo(text="Extracting data...", spinner="dots"):
         while time.time() - start_time <= timeout:
-            result = poll_product(url)
+            result = poll_data(url, page_type)
             if result["done"]:
                 return result["result"]
             time.sleep(15)
     logger.info("No data found")
     return None
+
+
+def get_product(url, timeout=300):
+    return _get_data(url, "PRODUCT_DETAIL", timeout)
+
+
+def get_review_article(url, timeout=300):
+    return _get_data(url, "REVIEW_ARTICLE_DETAIL", timeout)
+
+
+def get_article_list(url, timeout=300):
+    return _get_data(url, "ARTICLE_LIST", timeout)

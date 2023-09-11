@@ -190,10 +190,11 @@ def create(task=None, program_name=None, headless=False, infer=False, verbose=Fa
 
     logger.info("Analyzing task description...")
     program_sketches = get_program_sketches(task)
-    logger.info("Created a program based on task description. Now demonstrating what the program does:\n")
 
     full_program = program_sketches["full"]
     abridged_program = program_sketches["abridged"]
+    pseudocode = program_sketches["pseudocode"]
+    logger.info(f"Created a program based on task description. Program does the following:\n\n{pseudocode}\n\nNow executing the program to identify web elements to be scraped:\n")
     logger.debug("Program:\n%s", abridged_program)
     abridged_program += "\n\noutput = func()\nprint(f'Program finished and returned a value of:\\n{output}\\n')\n"  # Make the program runnable
 

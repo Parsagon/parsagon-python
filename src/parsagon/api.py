@@ -58,7 +58,7 @@ def get_program_sketches(description):
     """
     Gets a program sketches (full and abridged) from a description.
     :param description: Description in natural language that will be used to generate the scraping program.
-    :return: A dict with keys "full" and "abridged" for the respective program ASTs.
+    :return: A dict with keys "full", "abridged", and "pseudocode" for the respective program ASTs and pseudocode.
     """
     return _api_call(httpx.post, "/transformers/get-program-sketch/", json={"description": description})
 

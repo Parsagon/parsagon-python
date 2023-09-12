@@ -209,7 +209,7 @@ def create(task=None, program_name=None, headless=False, infer=False, verbose=Fa
         if program_name:
             logger.info(f"Saving program as {program_name}")
             try:
-                pipeline = create_pipeline(program_name, task, full_program)
+                pipeline = create_pipeline(program_name, task, full_program, pseudocode)
             except APIException as e:
                 if isinstance(e.value, list) and "Program with name already exists" in e.value:
                     logger.info("A program with this name already exists. Please choose another name.")

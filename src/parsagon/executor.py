@@ -91,6 +91,7 @@ class Executor:
         self.driver.execute_script(f"window.currentFieldType = null; window.maxExamples = null; window.clearCSS();");
 
     def get_selected_node_ids(self):
+        self.mark_html()
         return self.driver.execute_script("return Array.from(document.getElementsByClassName('parsagon-io-example-stored')).map((elem) => elem.getAttribute('data-psgn-id'))");
 
     def mark_html(self):
@@ -98,8 +99,9 @@ class Executor:
         Adds node IDs to elements on the current page that don't already have IDs.
         """
         logger.debug("  Marking HTML...")
+        self.max_elem_id = self.driver.execute_script("let elemIdx = 0; for (const node of document.all) { elemIdx = Math.max(elemIdx, parseInt(node.getAttribute('data-psgn-id') ?? 0)); } return elemIdx");
         self.max_elem_id = self.driver.execute_script(
-            "let elemIdx = 0; for (const node of document.all) { node.setAttribute('data-psgn-id', elemIdx); elemIdx++; } return elemIdx;"
+            f"let elemIdx = {self.max_elem_id}; " + "for (const node of document.all) { if (node.hasAttribute('data-psgn-id')) { continue; } node.setAttribute('data-psgn-id', elemIdx); elemIdx++; } return elemIdx;"
         )
         self.driver.execute_script(
             "for (const image of document.images) { image.setAttribute('data-psgn-width', image.parentElement.offsetWidth ?? -1); image.setAttribute('data-psgn-height', image.parentElement.offsetHeight ?? -1); }"
@@ -228,7 +230,8 @@ class Executor:
         """
         Clicks a button.
         """
-        self.driver.switch_to.window(window_id)
+        if self.driver.current_window_handle != window_id:
+            self.driver.switch_to.window(window_id)
         elem, elem_id = self.get_elem(description, "BUTTON")
         html = self.get_scrape_html()
 
@@ -262,7 +265,8 @@ class Executor:
         """
         Selects an option by name from a dropdown.
         """
-        self.driver.switch_to.window(window_id)
+        if self.driver.current_window_handle != window_id:
+            self.driver.switch_to.window(window_id)
         elem, elem_id = self.get_elem(description, "SELECT")
         html = self.get_scrape_html()
 
@@ -299,7 +303,8 @@ class Executor:
         """
         Fills an input text field, then presses an optional end key.
         """
-        self.driver.switch_to.window(window_id)
+        if self.driver.current_window_handle != window_id:
+            self.driver.switch_to.window(window_id)
         elem, elem_id = self.get_elem(description, "INPUT")
         html = self.get_scrape_html()
 
@@ -337,7 +342,8 @@ class Executor:
         return True
 
     def scroll(self, x, y, window_id):
-        self.driver.switch_to.window(window_id)
+        if self.driver.current_window_handle != window_id:
+            self.driver.switch_to.window(window_id)
         logger.info(f"Scrolling {x * 100}% to the left and {y * 100}% down")
         self.driver.execute_script(
             f"window.scrollTo({{top: document.documentElement.scrollHeight * {y}, left: document.documentElement.scrollWidth * {x}, behavior: 'smooth'}});"
@@ -354,7 +360,8 @@ class Executor:
         """
         Scrapes data from the current page.
         """
-        self.driver.switch_to.window(window_id)
+        if self.driver.current_window_handle != window_id:
+            self.driver.switch_to.window(window_id)
         html = self.get_scrape_html()
 
         if self.infer:

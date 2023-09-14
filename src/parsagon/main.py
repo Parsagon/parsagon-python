@@ -211,7 +211,7 @@ def create(task=None, program_name=None, headless=False, infer=False, verbose=Fa
             try:
                 pipeline = create_pipeline(program_name, task, full_program, pseudocode)
             except APIException as e:
-                if isinstance(e.value, list) and "Program with name already exists" in e.value:
+                if isinstance(e.value, list) and "Pipeline with name already exists" in e.value:
                     logger.info("A program with this name already exists. Please choose another name.")
                     program_name = None
                     continue

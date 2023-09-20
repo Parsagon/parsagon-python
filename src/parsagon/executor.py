@@ -8,6 +8,7 @@ import lxml.html
 from pyvirtualdisplay import Display
 import undetected_chromedriver as uc
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
@@ -62,6 +63,7 @@ class Executor:
             "fill_input": self.fill_input,
             "select_option": self.select_option,
             "scroll": self.scroll,
+            "press_key": self.press_key,
             "wait": self.wait,
             "scrape_data": self.scrape_data,
             "get_str_about_data": get_str_about_data,
@@ -350,6 +352,13 @@ class Executor:
         )
         time.sleep(1)
 
+    def press_key(self, key, window_id):
+        if self.driver.current_window_handle != window_id:
+            self.driver.switch_to.window(window_id)
+        logger.info(f"Pressing {key}")
+        ActionChains(self.driver).send_keys(getattr(Keys, key)).perform()
+        time.sleep(1)
+
     def wait(self, seconds):
         logger.info(f"Waiting {seconds} seconds...")
         time.sleep(seconds)
@@ -374,6 +383,8 @@ class Executor:
             nodes = {}
             field_types = get_schema_fields(schema)
             for field, field_type in field_types.items():
+                if not isinstance(field_type, str):
+                    continue
                 self.highlights_setup(ELEMENT_TYPES[field_type])
                 field_repr = field.replace("dataset0|", "").replace("|", " / ")
                 input(f"Click elements containing data for the field `{field_repr}`. Hit TAB to autocomplete or DELETE/BACKSPACE to clear selections. Hit ENTER when done: ")

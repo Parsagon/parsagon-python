@@ -22,7 +22,7 @@ const DATA_TYPE_FILTERS = {
             'area, base, br, col, embed, hr, img, input, link, meta, param, source, track, wbr, template, script, style',
     },
     URL: { includes: 'a[href]', excludes: null },
-    IMAGE: { includes: 'img[src]', excludes: null },
+    IMAGE: { includes: 'img[src], img[srcset]', excludes: null },
     HTML: { includes: '*', excludes: null },
     ACTION: { includes: '*', excludes: ACTION_EXCLUDES },
 };
@@ -140,14 +140,11 @@ function makeVisible(element) {
 const DUMMY_FRAGMENT = document.createDocumentFragment()
 
 function isValidSelector(selector) {
-    console.log(selector);
-    try { DUMMY_FRAGMENT.querySelector(selector) } catch { console.log("false"); return false }
-    console.log("true");
+    try { DUMMY_FRAGMENT.querySelector(selector) } catch { return false }
     return true
 }
 
 function getSimilar(elements) {
-    console.log(0);
     let tag = '*';
     if (elements.every((elem) => elem.tagName === elements[0].tagName)) {
         tag = elements[0].tagName.toLowerCase();
@@ -164,9 +161,7 @@ function getSimilar(elements) {
                 isValidSelector("." + className)
         )
         .map((className) => className.replace(':', '\\:').replace('.', '\\.').replace('[', '\\[').replace(']', '\\]').replace('=', '\\='));
-    console.log(1);
     const classString = commonClasses.join('.');
-    console.log(2);
 
     const siblingIndexes = elements.map(
         (elem) =>
@@ -176,7 +171,6 @@ function getSimilar(elements) {
     if (siblingIndexes.every((index) => index === siblingIndexes[0])) {
         siblingIndex = siblingIndexes[0];
     }
-    console.log(3);
 
     let elemString = tag;
     if (classString) {
@@ -187,7 +181,6 @@ function getSimilar(elements) {
     }
 
     const parentElements = elements.map((elem) => elem.parentElement);
-    console.log(4);
     if (parentElements.some((elem) => elem === null)) {
         return elemString;
     } else {
@@ -504,6 +497,17 @@ function handleMouseMove(e) {
     window.prevDOM = srcElement;
 };
 
+function handleSelectionShift() {
+    if (window.currentFieldType === null) {
+        return;
+    }
+    if (window.prevDOM != null && window.prevDOM.parentElement) {
+        removeMouseVisitedCSS(window.prevDOM);
+        addMouseVisitedCSS(window.prevDOM.parentElement);
+        window.prevDOM = window.prevDOM.parentElement;
+    }
+}
+
 function handleKeyDown(e) {
     if (window.currentFieldType === null) {
         return;
@@ -518,6 +522,9 @@ function handleKeyDown(e) {
     }
     if (key === "Tab") {
         handleAutocomplete();
+    }
+    if (key === "Shift") {
+        handleSelectionShift();
     }
 }
 

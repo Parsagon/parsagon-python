@@ -311,27 +311,27 @@ function addAutocompletes() {
 
 function clearCSS() {
     const highlightedElems =
-        document.getElementsByClassName(
-            MOUSE_VISITED_CLASSNAME
+        document.querySelectorAll(
+            "." + MOUSE_VISITED_CLASSNAME
         );
-    while (highlightedElems.length) {
-        removeMouseVisitedCSS(highlightedElems[0]);
+    for (const elem of highlightedElems) {
+        removeMouseVisitedCSS(elem);
     }
 
     const autocompleteElems =
-        document.getElementsByClassName(
-            AUTOCOMPLETE_CLASSNAME
+        document.querySelectorAll(
+            "." + AUTOCOMPLETE_CLASSNAME
         );
-    while (autocompleteElems.length) {
-        removeAutocompleteCSS(autocompleteElems[0]);
+    for (const elem of autocompleteElems) {
+        removeAutocompleteCSS(elem);
     }
 
     const exampleElems =
-        document.getElementsByClassName(
-            TARGET_STORED_CLASSNAME
+        document.querySelectorAll(
+            "." + TARGET_STORED_CLASSNAME
         );
-    while (exampleElems.length) {
-        removeTargetStoredCSS(exampleElems[0]);
+    for (const elem of exampleElems) {
+        removeTargetStoredCSS(elem);
     }
 }
 

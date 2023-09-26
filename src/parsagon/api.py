@@ -100,15 +100,15 @@ def get_cleaned_data(html, schema, nodes):
     return _api_call(httpx.post, "/transformers/get-cleaned-data/", json={"html": html, "schema": schema, "nodes": nodes})
 
 
-def scrape_page(html, schema):
+def scrape_page(html, schema, relevant_elem_ids):
     """
     Scrapes data from the provided page HTML - data will be returned in the schema provided.
-    :param url: url of the page to scrape.
     :param html: HTML of the page to scrape.
     :param schema: Schema of the data to scrape
+    :param relevant_elem_ids: Ids of elements to be considered
     :return: Scraped data
     """
-    return _api_call(httpx.post, "/transformers/get-custom-data/", json={"html": html, "schema": schema})
+    return _api_call(httpx.post, "/transformers/get-custom-data/", json={"html": html, "schema": schema, "relevant_elem_ids": relevant_elem_ids})
 
 
 def get_str_about_data(data, question):

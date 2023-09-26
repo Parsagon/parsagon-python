@@ -39,6 +39,7 @@ ELEMENT_TYPES = {
     "image": "IMAGE",
     "html": "HTML",
     "element": "ACTION",
+    "markdown": "TEXT",
 }
 
 
@@ -95,6 +96,10 @@ class Executor:
     def get_selected_node_ids(self):
         self.mark_html()
         return self.driver.execute_script("return Array.from(document.getElementsByClassName('parsagon-io-example-stored')).map((elem) => elem.getAttribute('data-psgn-id'))");
+
+    def get_selected_node_and_descendant_ids(self):
+        self.mark_html()
+        return self.driver.execute_script("return Array.from(document.getElementsByClassName('parsagon-io-example-stored')).map((elem) => [elem, ...elem.querySelectorAll('*')]).flat().map((elem) => elem.getAttribute('data-psgn-id'))");
 
     def mark_html(self):
         """
@@ -174,14 +179,14 @@ class Executor:
         if self.infer:
             return self.get_elem_by_description(description, elem_type)
         self.highlights_setup("ACTION", max_examples=1)
-        user_input = input(f'Click the element referred to by "{description}". Hit ENTER to confirm your selection, or type "INFER" to let Parsagon infer the element: ')
+        user_input = input(f'Click the element referred to by "{description}". Hit ENTER to confirm your selection, or type "N/A" if the element does not exist: ')
         selected_node_ids = self.get_selected_node_ids()
-        while user_input != "INFER" and not selected_node_ids:
-            user_input = input('Please click an element or type "INFER": ')
+        while user_input != "N/A" and not selected_node_ids:
+            user_input = input('Please click an element or type "N/A": ')
             selected_node_ids = self.get_selected_node_ids()
         self.highlights_cleanup()
-        if user_input == "INFER":
-            return self.get_elem_by_description(description, elem_type)
+        if user_input == "N/A":
+            return None, None
         else:
             elem_id = selected_node_ids[0]
             elem = self._id_to_elem(elem_id)
@@ -235,6 +240,8 @@ class Executor:
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
         elem, elem_id = self.get_elem(description, "BUTTON")
+        if not elem:
+            return False
         html = self.get_scrape_html()
 
         for i in range(3):
@@ -270,6 +277,8 @@ class Executor:
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
         elem, elem_id = self.get_elem(description, "SELECT")
+        if not elem:
+            return False
         html = self.get_scrape_html()
 
         for i in range(3):
@@ -308,6 +317,8 @@ class Executor:
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
         elem, elem_id = self.get_elem(description, "INPUT")
+        if not elem:
+            return False
         html = self.get_scrape_html()
 
         for i in range(3):
@@ -394,8 +405,12 @@ class Executor:
             result = get_cleaned_data(html, schema, nodes)
             scraped_data = result["data"]
         else:
+            self.highlights_setup("ACTION")
+            input(f"Click on the element(s) from which data should be inferred. Hit ENTER when done: ")
+            relevant_elem_ids = self.get_selected_node_and_descendant_ids()
+            self.highlights_cleanup()
             logger.info("Scraping data...")
-            result = scrape_page(html, schema)
+            result = scrape_page(html, schema, relevant_elem_ids)
             scraped_data = result["data"]
             nodes = result["nodes"]
             if not scraped_data and not nodes:

@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 from pathlib import Path
@@ -433,7 +434,7 @@ class Executor:
                     "html": html,
                     "url": self.driver.current_url,
                     "nodes": nodes,
-                    "scraped_data": scraped_data,
+                    "scraped_data": copy.deepcopy(scraped_data),
                 }
             ],
         )

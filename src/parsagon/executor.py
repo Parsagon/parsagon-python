@@ -61,6 +61,7 @@ class Executor:
         self.execution_context = {
             "custom_assert": self.custom_assert,
             "goto": self.goto,
+            "close_window": self.close_window,
             "click_elem": self.click_elem,
             "fill_input": self.fill_input,
             "select_option": self.select_option,
@@ -86,21 +87,19 @@ class Executor:
             self.custom_functions[call_id] = custom_function
 
     def inject_highlights_script(self):
-        self.driver.execute_script(self.highlights_script);
+        self.driver.execute_script(self.highlights_script)
 
     def highlights_setup(self, field_type, max_examples="null"):
-        self.driver.execute_script(f"window.currentFieldType = '{field_type}'; window.maxExamples = {max_examples};");
+        self.driver.execute_script(f"window.currentFieldType = '{field_type}'; window.maxExamples = {max_examples};")
 
     def highlights_cleanup(self):
-        self.driver.execute_script(f"window.currentFieldType = null; window.maxExamples = null; window.clearCSS();");
+        self.driver.execute_script(f"window.currentFieldType = null; window.maxExamples = null; window.clearCSS();")
 
     def get_selected_node_ids(self):
-        self.mark_html()
-        return self.driver.execute_script("return Array.from(document.getElementsByClassName('parsagon-io-example-stored')).map((elem) => elem.getAttribute('data-psgn-id'))");
+        return self.driver.execute_script("return Array.from(document.getElementsByClassName('parsagon-io-example-stored')).map((elem) => elem.getAttribute('data-psgn-id'))")
 
     def get_selected_node_and_descendant_ids(self):
-        self.mark_html()
-        return self.driver.execute_script("return Array.from(document.getElementsByClassName('parsagon-io-example-stored')).map((elem) => [elem, ...elem.querySelectorAll('*')]).flat().map((elem) => elem.getAttribute('data-psgn-id'))");
+        return self.driver.execute_script("return Array.from(document.getElementsByClassName('parsagon-io-example-stored')).map((elem) => [elem, ...elem.querySelectorAll('*')]).flat().map((elem) => elem.getAttribute('data-psgn-id'))")
 
     def mark_html(self):
         """
@@ -181,6 +180,7 @@ class Executor:
             return self.get_elem_by_description(description, elem_type)
         self.highlights_setup("ACTION", max_examples=1)
         user_input = input(f'Click the element referred to by "{description}". Hit ENTER to confirm your selection, or type "N/A" if the element does not exist: ')
+        self.mark_html()
         selected_node_ids = self.get_selected_node_ids()
         while user_input != "N/A" and not selected_node_ids:
             user_input = input('Please click an element or type "N/A": ')
@@ -233,6 +233,12 @@ class Executor:
         self.inject_highlights_script()
 
         return self.driver.current_window_handle
+
+    def close_window(self, window_id):
+        if self.driver.current_window_handle != window_id:
+            self.driver.switch_to.window(window_id)
+        self.driver.close()
+        self.driver.switch_to.window(self.driver.window_handles[-1])
 
     def click_elem(self, description, window_id, call_id):
         """
@@ -383,7 +389,6 @@ class Executor:
         """
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
-        html = self.get_scrape_html()
 
         if self.infer:
             user_input = "INFER"
@@ -391,6 +396,9 @@ class Executor:
             user_input = input(f'Now determining what elements to scrape to collect data in the format {schema}. Hit ENTER to continue by clicking on the elements to scrape, or type "INFER" to let Parsagon infer the elements: ')
             while user_input not in ("", "INFER"):
                 user_input = input('Hit ENTER or type "INFER": ')
+
+        self.mark_html()
+        html = self.get_scrape_html()
         if user_input == "":
             nodes = {}
             field_types = get_schema_fields(schema)

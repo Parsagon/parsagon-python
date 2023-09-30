@@ -1,6 +1,7 @@
 window.prevDOM = null;
 window.currentFieldType = null;
 window.maxExamples = null;
+window.disableAutocomplete = false;
 
 const MOUSE_VISITED_CLASSNAME = 'parsagon-io-mouse-visited';
 const TARGET_STORED_CLASSNAME = 'parsagon-io-example-stored';
@@ -368,11 +369,13 @@ function handleClick(e) {
 
     if (srcElement.classList.contains(TARGET_STORED_CLASSNAME)) {
         removeTargetStoredCSS(srcElement);
-        try {
-            addAutocompletes();
-        } catch (e) {
-            console.log(e);
-            // carry on even if autocomplete runs into invalid CSS classes/IDs
+        if (!window.disableAutocomplete) {
+            try {
+                addAutocompletes();
+            } catch (e) {
+                console.log(e);
+                // carry on even if autocomplete runs into invalid CSS classes/IDs
+            }
         }
     } else {
         if (
@@ -382,11 +385,13 @@ function handleClick(e) {
             return;
         }
         addTargetStoredCSS(srcElement);
-        try {
-            addAutocompletes();
-        } catch (e) {
-            console.log(e);
-            // carry on even if autocomplete runs into invalid CSS classes/IDs
+        if (!window.disableAutocomplete) {
+            try {
+                addAutocompletes();
+            } catch (e) {
+                console.log(e);
+                // carry on even if autocomplete runs into invalid CSS classes/IDs
+            }
         }
     }
 };
@@ -523,8 +528,25 @@ function handleKeyDown(e) {
     if (key === "Tab") {
         handleAutocomplete();
     }
-    if (key === "Shift") {
+    if (key === "Control") {
         handleSelectionShift();
+    }
+    if (key === "Alt") {
+        window.disableAutocomplete = true;
+    }
+}
+
+function handleKeyUp(e) {
+    if (window.currentFieldType === null) {
+        return;
+    }
+
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    const key = e.key;
+    if (key === "Alt") {
+        window.disableAutocomplete = false;
     }
 }
 
@@ -557,6 +579,12 @@ if (!window.PSGN_INITIALIZED) {
     window.addEventListener(
         'keydown',
         handleKeyDown,
+        true
+    );
+
+    window.addEventListener(
+        'keyup',
+        handleKeyUp,
         true
     );
 

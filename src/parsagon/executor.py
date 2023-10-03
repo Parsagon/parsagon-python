@@ -71,8 +71,11 @@ class Executor:
             "goto": self.goto,
             "close_window": self.close_window,
             "click_elem": self.click_elem,
+            "click_elem_by_id": self.click_elem_by_id,
             "fill_input": self.fill_input,
+            "fill_input_by_id": self.fill_input_by_id,
             "select_option": self.select_option,
+            "select_option_by_id": self.select_option_by_id,
             "scroll": self.scroll,
             "press_key": self.press_key,
             "wait": self.wait,
@@ -257,11 +260,9 @@ class Executor:
         self.driver.close()
         self.driver.switch_to.window(self.driver.window_handles[-1])
 
-    def _click_elem(self, elem, elem_id, window_id, call_id):
+    def _click_elem(self, elem, window_id):
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
-
-        html = self.get_scrape_html()
 
         for i in range(3):
             try:
@@ -275,6 +276,18 @@ class Executor:
             return False
         self.mark_html()
         self.inject_highlights_script()
+        return True
+
+    def click_elem(self, description, window_id, call_id):
+        """
+        Clicks a button using its description.
+        """
+        elem, elem_id = self.get_elem(description, "BUTTON")
+        if not elem:
+            return False
+        html = self.get_scrape_html()
+        if not self._click_elem(elem, window_id):
+            return False
         custom_function = CustomFunction(
             "click_elem",
             arguments={},
@@ -289,11 +302,13 @@ class Executor:
         self.add_custom_function(call_id, custom_function)
         return True
 
-    def _select_option(self, elem, elem_id, option, window_id, call_id):
+    def click_elem_by_id(self, elem_id, window_id):
+        elem = self._id_to_elem(elem_id)
+        return self._click_elem(elem, window_id)
+
+    def _select_option(self, elem, option, window_id):
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
-
-        html = self.get_scrape_html()
 
         for i in range(3):
             try:
@@ -308,6 +323,18 @@ class Executor:
             return False
         self.mark_html()
         self.inject_highlights_script()
+        return True
+
+    def select_option(self, description, option, window_id, call_id):
+        """
+        Selects an option by name from a dropdown using its description.
+        """
+        elem, elem_id = self.get_elem(description, "SELECT")
+        if not elem:
+            return False
+        html = self.get_scrape_html()
+        if not self._select_option(elem, option, window_id):
+            return False
         custom_function = CustomFunction(
             "select_option",
             arguments={
@@ -324,11 +351,13 @@ class Executor:
         self.add_custom_function(call_id, custom_function)
         return True
 
-    def _fill_input(self, elem, elem_id, text, enter, window_id, call_id):
+    def select_option_by_id(self, elem_id, option, window_id):
+        elem = self._id_to_elem(elem_id)
+        return self._select_option(elem, option, window_id)
+
+    def _fill_input(self, elem, text, enter, window_id):
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
-
-        html = self.get_scrape_html()
 
         for i in range(3):
             try:
@@ -346,6 +375,18 @@ class Executor:
             return False
         self.mark_html()
         self.inject_highlights_script()
+        return True
+
+    def fill_input(self, description, text, enter, window_id, call_id):
+        """
+        Fills an input text field, then presses an optional end key using its description.
+        """
+        elem, elem_id = self.get_elem(description, "INPUT")
+        if not elem:
+            return False
+        html = self.get_scrape_html()
+        if not self._fill_input(elem, text, enter, window_id):
+            return False
         custom_function = CustomFunction(
             "fill_input",
             arguments={
@@ -363,44 +404,9 @@ class Executor:
         self.add_custom_function(call_id, custom_function)
         return True
 
-    def click_elem(self, description, window_id, call_id):
-        """
-        Clicks a button using its description.
-        """
-        elem, elem_id = self.get_elem(description, "BUTTON")
-        if not elem:
-            return False
-        return self._click_elem(elem, elem_id, window_id, call_id)
-
-    def select_option(self, description, option, window_id, call_id):
-        """
-        Selects an option by name from a dropdown using its description.
-        """
-        elem, elem_id = self.get_elem(description, "SELECT")
-        if not elem:
-            return False
-        return self._select_option(elem, elem_id, option, window_id, call_id)
-
-    def fill_input(self, description, text, enter, window_id, call_id):
-        """
-        Fills an input text field, then presses an optional end key using its description.
-        """
-        elem, elem_id = self.get_elem(description, "INPUT")
-        if not elem:
-            return False
-        return self._fill_input(elem, elem_id, text, enter, window_id, call_id)
-
-    def click_elem_by_id(self, elem_id, window_id, call_id):
+    def fill_input_by_id(self, elem_id, text, enter, window_id):
         elem = self._id_to_elem(elem_id)
-        return self._click_elem(elem, elem_id, window_id, call_id)
-
-    def select_option_by_id(self, elem_id, option, window_id, call_id):
-        elem = self._id_to_elem(elem_id)
-        return self._select_option(elem, elem_id, option, window_id, call_id)
-
-    def fill_input_by_id(self, elem_id, text, enter, window_id, call_id):
-        elem = self._id_to_elem(elem_id)
-        return self._fill_input(elem, elem_id, text, enter, window_id, call_id)
+        return self._fill_input(elem, text, enter, window_id)
 
     def scroll(self, x, y, window_id):
         if self.driver.current_window_handle != window_id:

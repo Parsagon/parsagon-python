@@ -15,7 +15,14 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
 from webdriver_manager.chrome import ChromeDriverManager
 
-from parsagon.api import get_interaction_element_id, get_schema_fields, get_cleaned_data, scrape_page, get_str_about_data, get_bool_about_data
+from parsagon.api import (
+    get_interaction_element_id,
+    get_schema_fields,
+    get_cleaned_data,
+    scrape_page,
+    get_str_about_data,
+    get_bool_about_data,
+)
 from parsagon.custom_function import CustomFunction
 from parsagon.exceptions import ParsagonException
 
@@ -41,6 +48,7 @@ ELEMENT_TYPES = {
     "html": "HTML",
     "element": "ACTION",
     "markdown": "TEXT",
+    "elem_id": "ACTION",
 }
 
 
@@ -96,19 +104,26 @@ class Executor:
         self.driver.execute_script(f"window.currentFieldType = null; window.maxExamples = null; window.clearCSS();")
 
     def get_selected_node_ids(self):
-        return self.driver.execute_script("return Array.from(document.getElementsByClassName('parsagon-io-example-stored')).map((elem) => elem.getAttribute('data-psgn-id'))")
+        return self.driver.execute_script(
+            "return Array.from(document.getElementsByClassName('parsagon-io-example-stored')).map((elem) => elem.getAttribute('data-psgn-id'))"
+        )
 
     def get_selected_node_and_descendant_ids(self):
-        return self.driver.execute_script("return Array.from(document.getElementsByClassName('parsagon-io-example-stored')).map((elem) => [elem, ...elem.querySelectorAll('*')]).flat().map((elem) => elem.getAttribute('data-psgn-id'))")
+        return self.driver.execute_script(
+            "return Array.from(document.getElementsByClassName('parsagon-io-example-stored')).map((elem) => [elem, ...elem.querySelectorAll('*')]).flat().map((elem) => elem.getAttribute('data-psgn-id'))"
+        )
 
     def mark_html(self):
         """
         Adds node IDs to elements on the current page that don't already have IDs.
         """
         logger.debug("  Marking HTML...")
-        self.max_elem_id = self.driver.execute_script("let elemIdx = 0; for (const node of document.all) { elemIdx = Math.max(elemIdx, parseInt(node.getAttribute('data-psgn-id') ?? 0)); } return elemIdx");
         self.max_elem_id = self.driver.execute_script(
-            f"let elemIdx = {self.max_elem_id}; " + "for (const node of document.all) { if (node.hasAttribute('data-psgn-id')) { continue; } node.setAttribute('data-psgn-id', elemIdx); elemIdx++; } return elemIdx;"
+            "let elemIdx = 0; for (const node of document.all) { elemIdx = Math.max(elemIdx, parseInt(node.getAttribute('data-psgn-id') ?? 0)); } return elemIdx"
+        )
+        self.max_elem_id = self.driver.execute_script(
+            f"let elemIdx = {self.max_elem_id}; "
+            + "for (const node of document.all) { if (node.hasAttribute('data-psgn-id')) { continue; } node.setAttribute('data-psgn-id', elemIdx); elemIdx++; } return elemIdx;"
         )
         self.driver.execute_script(
             "for (const image of document.images) { image.setAttribute('data-psgn-width', image.parentElement.offsetWidth ?? -1); image.setAttribute('data-psgn-height', image.parentElement.offsetHeight ?? -1); }"
@@ -116,19 +131,19 @@ class Executor:
 
     def _get_cleaned_lxml_root(self):
         parser = lxml.html.HTMLParser(remove_comments=True, remove_pis=True)
-        root = lxml.html.fromstring(self.driver.page_source.replace('&nbsp;', ' '), parser=parser)
+        root = lxml.html.fromstring(self.driver.page_source.replace("&nbsp;", " "), parser=parser)
 
         # make links absolute
         root.make_links_absolute(self.driver.current_url)
-        for elem in root.xpath('//img[@srcset]'):
+        for elem in root.xpath("//img[@srcset]"):
             srcset_list = []
-            for s in elem.get('srcset').split(','):
+            for s in elem.get("srcset").split(","):
                 parts = s.strip().split()
                 if not parts:
                     continue
                 parts[0] = urljoin(self.driver.current_url, parts[0])
-                srcset_list.append(' '.join(parts))
-            elem.set('srcset', ', '.join(srcset_list))
+                srcset_list.append(" ".join(parts))
+            elem.set("srcset", ", ".join(srcset_list))
 
         # remove unnecessary and bulky elements
         for elem in root.iterfind(".//script"):
@@ -179,7 +194,9 @@ class Executor:
         if self.infer:
             return self.get_elem_by_description(description, elem_type)
         self.highlights_setup("ACTION", max_examples=1)
-        user_input = input(f'Click the element referred to by "{description}". Hit ENTER to confirm your selection, or type "N/A" if the element does not exist: ')
+        user_input = input(
+            f'Click the element referred to by "{description}". Hit ENTER to confirm your selection, or type "N/A" if the element does not exist: '
+        )
         self.mark_html()
         selected_node_ids = self.get_selected_node_ids()
         while user_input != "N/A" and not selected_node_ids:
@@ -240,15 +257,10 @@ class Executor:
         self.driver.close()
         self.driver.switch_to.window(self.driver.window_handles[-1])
 
-    def click_elem(self, description, window_id, call_id):
-        """
-        Clicks a button.
-        """
+    def _click_elem(self, elem, elem_id, window_id, call_id):
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
-        elem, elem_id = self.get_elem(description, "BUTTON")
-        if not elem:
-            return False
+
         html = self.get_scrape_html()
 
         for i in range(3):
@@ -277,15 +289,10 @@ class Executor:
         self.add_custom_function(call_id, custom_function)
         return True
 
-    def select_option(self, description, option, window_id, call_id):
-        """
-        Selects an option by name from a dropdown.
-        """
+    def _select_option(self, elem, elem_id, option, window_id, call_id):
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
-        elem, elem_id = self.get_elem(description, "SELECT")
-        if not elem:
-            return False
+
         html = self.get_scrape_html()
 
         for i in range(3):
@@ -317,15 +324,10 @@ class Executor:
         self.add_custom_function(call_id, custom_function)
         return True
 
-    def fill_input(self, description, text, enter, window_id, call_id):
-        """
-        Fills an input text field, then presses an optional end key.
-        """
+    def _fill_input(self, elem, elem_id, text, enter, window_id, call_id):
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
-        elem, elem_id = self.get_elem(description, "INPUT")
-        if not elem:
-            return False
+
         html = self.get_scrape_html()
 
         for i in range(3):
@@ -361,6 +363,45 @@ class Executor:
         self.add_custom_function(call_id, custom_function)
         return True
 
+    def click_elem(self, description, window_id, call_id):
+        """
+        Clicks a button using its description.
+        """
+        elem, elem_id = self.get_elem(description, "BUTTON")
+        if not elem:
+            return False
+        return self._click_elem(elem, elem_id, window_id, call_id)
+
+    def select_option(self, description, option, window_id, call_id):
+        """
+        Selects an option by name from a dropdown using its description.
+        """
+        elem, elem_id = self.get_elem(description, "SELECT")
+        if not elem:
+            return False
+        return self._select_option(elem, elem_id, option, window_id, call_id)
+
+    def fill_input(self, description, text, enter, window_id, call_id):
+        """
+        Fills an input text field, then presses an optional end key using its description.
+        """
+        elem, elem_id = self.get_elem(description, "INPUT")
+        if not elem:
+            return False
+        return self._fill_input(elem, elem_id, text, enter, window_id, call_id)
+
+    def click_elem_by_id(self, elem_id, window_id, call_id):
+        elem = self._id_to_elem(elem_id)
+        return self._click_elem(elem, elem_id, window_id, call_id)
+
+    def select_option_by_id(self, elem_id, option, window_id, call_id):
+        elem = self._id_to_elem(elem_id)
+        return self._select_option(elem, elem_id, option, window_id, call_id)
+
+    def fill_input_by_id(self, elem_id, text, enter, window_id, call_id):
+        elem = self._id_to_elem(elem_id)
+        return self._fill_input(elem, elem_id, text, enter, window_id, call_id)
+
     def scroll(self, x, y, window_id):
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
@@ -393,7 +434,9 @@ class Executor:
         if self.infer:
             user_input = "INFER"
         else:
-            user_input = input(f'Now determining what elements to scrape to collect data in the format {schema}. Hit ENTER to continue by clicking on the elements to scrape, or type "INFER" to let Parsagon infer the elements: ')
+            user_input = input(
+                f'Now determining what elements to scrape to collect data in the format {schema}. Hit ENTER to continue by clicking on the elements to scrape, or type "INFER" to let Parsagon infer the elements: '
+            )
             while user_input not in ("", "INFER"):
                 user_input = input('Hit ENTER or type "INFER": ')
 
@@ -407,7 +450,9 @@ class Executor:
                     continue
                 self.highlights_setup(ELEMENT_TYPES[field_type])
                 field_repr = field.replace("dataset0|", "").replace("|", " / ")
-                input(f"Click elements containing data for the field `{field_repr}`. Hit TAB to autocomplete or DELETE/BACKSPACE to clear selections. Hit ENTER when done: ")
+                input(
+                    f"Click elements containing data for the field `{field_repr}`. Hit TAB to autocomplete or DELETE/BACKSPACE to clear selections. Hit ENTER when done: "
+                )
                 nodes[field] = [[node_id] for node_id in self.get_selected_node_ids()]
                 self.highlights_cleanup()
             logger.info("Scraping data...")

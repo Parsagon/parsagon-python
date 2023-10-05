@@ -47,6 +47,7 @@ ELEMENT_TYPES = {
     "image": "IMAGE",
     "html": "HTML",
     "element": "ACTION",
+    "textarea": "TEXT",
     "markdown": "TEXT",
     "elem_id": "ACTION",
 }

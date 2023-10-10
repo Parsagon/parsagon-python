@@ -265,15 +265,11 @@ class Executor:
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
 
-        for i in range(3):
-            try:
-                elem.click()
-                logger.info("Clicked element")
-                time.sleep(2)
-                break
-            except Exception as e:
-                time.sleep(2)
-        else:
+        try:
+            self.driver.execute_script("arguments[0].click();", elem)
+            logger.info("Clicked element")
+            time.sleep(2)
+        except Exception as e:
             return False
         self.mark_html()
         self.inject_highlights_script()
@@ -284,11 +280,8 @@ class Executor:
         Clicks a button using its description.
         """
         elem, elem_id = self.get_elem(description, "BUTTON")
-        if not elem:
-            return False
         html = self.get_scrape_html()
-        if not self._click_elem(elem, window_id):
-            return False
+        success = self._click_elem(elem, window_id) if elem else False
         custom_function = CustomFunction(
             "click_elem",
             arguments={},
@@ -301,7 +294,7 @@ class Executor:
             ],
         )
         self.add_custom_function(call_id, custom_function)
-        return True
+        return success
 
     def click_elem_by_id(self, elem_id, window_id):
         elem = self._id_to_elem(elem_id)
@@ -331,11 +324,8 @@ class Executor:
         Selects an option by name from a dropdown using its description.
         """
         elem, elem_id = self.get_elem(description, "SELECT")
-        if not elem:
-            return False
         html = self.get_scrape_html()
-        if not self._select_option(elem, option, window_id):
-            return False
+        success = self._select_option(elem, option, window_id) if elem else False
         custom_function = CustomFunction(
             "select_option",
             arguments={
@@ -350,7 +340,7 @@ class Executor:
             ],
         )
         self.add_custom_function(call_id, custom_function)
-        return True
+        return success
 
     def select_option_by_id(self, elem_id, option, window_id):
         elem = self._id_to_elem(elem_id)
@@ -383,11 +373,8 @@ class Executor:
         Fills an input text field, then presses an optional end key using its description.
         """
         elem, elem_id = self.get_elem(description, "INPUT")
-        if not elem:
-            return False
         html = self.get_scrape_html()
-        if not self._fill_input(elem, text, enter, window_id):
-            return False
+        success = self._fill_input(elem, text, enter, window_id) if elem else False
         custom_function = CustomFunction(
             "fill_input",
             arguments={
@@ -403,7 +390,7 @@ class Executor:
             ],
         )
         self.add_custom_function(call_id, custom_function)
-        return True
+        return success
 
     def fill_input_by_id(self, elem_id, text, enter, window_id):
         elem = self._id_to_elem(elem_id)
@@ -442,7 +429,7 @@ class Executor:
             user_input = "INFER"
         else:
             user_input = input(
-                f'Now determining what elements to scrape to collect data in the format {schema}. Hit ENTER to continue by clicking on the elements to scrape, or type "INFER" to let Parsagon infer the elements: '
+                f'Now determining what elements to scrape to collect data in the format {schema}. Hit ENTER to continue by clicking on the elements to scrape, or type a valid command: '
             )
             while user_input not in ("", "INFER"):
                 user_input = input('Hit ENTER or type "INFER": ')

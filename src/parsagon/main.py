@@ -5,6 +5,7 @@ import logging.config
 import time
 
 from halo import Halo
+from tqdm import tqdm
 
 from parsagon.api import (
     get_program_sketches,
@@ -324,6 +325,38 @@ def run(program_name, variables={}, headless=False, remote=False, verbose=False)
             globals_locals["display"].stop()
     logger.info("Done.")
     return globals_locals["output"]
+
+
+def batch_runs(batch_name, program_name, runs=[], headless=False, save_file=None):
+    if not save_file:
+        save_file = f"{batch_name}.json"
+    try:
+        with open(save_file) as f:
+            results = json.load(f)
+    except FileNotFoundError:
+        results = []
+    pbar = tqdm(runs)
+    default_desc = f'Running program "{program_name}"'
+    pbar.set_description(default_desc)
+    error = None
+    for variables in pbar:
+        for i in range(3):
+            try:
+                results.append(run(program_name, variables, headless))
+                break
+            except Exception as e:
+                error = e
+                pbar.set_description(f"An error occurred: {e} - Waiting 60s before trying again (Attempt {i}/3)")
+                time.sleep(60)
+                pbar.set_description(default_desc)
+                continue
+        else:
+            logger.info(f"Unresolvable error occurred: {error} - Data has been saved to {save_file}. Rerun your command to resume.")
+            with open(save_file, "w") as f:
+                json.dump(results, f)
+    with open(save_file, "w") as f:
+        json.dump(results, f)
+    return results
 
 
 def delete(program_name, verbose=False, confirm_with_user=False):

@@ -346,9 +346,10 @@ def batch_runs(batch_name, program_name, runs=[], headless=False, save_file=None
                 break
             except Exception as e:
                 error = e
-                pbar.set_description(f"An error occurred: {e} - Waiting 60s before trying again (Attempt {i}/3)")
-                time.sleep(60)
-                pbar.set_description(default_desc)
+                if i < 2:
+                    pbar.set_description(f"An error occurred: {e} - Waiting 60s before trying again (Attempt {i+2}/3)")
+                    time.sleep(60)
+                    pbar.set_description(default_desc)
                 continue
         else:
             logger.info(f"Unresolvable error occurred: {error} - Data has been saved to {save_file}. Rerun your command to resume.")

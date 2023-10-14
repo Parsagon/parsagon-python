@@ -108,13 +108,13 @@ class Executor:
     def highlights_cleanup(self):
         self.driver.execute_script(f"window.currentFieldType = null; window.maxExamples = null; window.clearCSS();")
 
-    def get_selected_node_ids(self, xpath_selector=None):
-        if xpath_selector:
+    def get_selected_node_ids(self, css_selector=None, xpath_selector=None):
+        if css_selector:
+            return [elem.get_attribute("data-psgn-id") for elem in self.driver.find_elements(By.CSS_SELECTOR, css_selector)]
+        elif xpath_selector:
             return [elem.get_attribute("data-psgn-id") for elem in self.driver.find_elements(By.XPATH, xpath_selector)]
         else:
-            return self.driver.execute_script(
-                "return Array.from(document.getElementsByClassName('parsagon-io-example-stored')).map((elem) => elem.getAttribute('data-psgn-id'))"
-            )
+            return [elem.get_attribute("data-psgn-id") for elem in self.driver.find_elements(By.CLASS_NAME, "parsagon-io-example-stored")]
 
     def get_selected_node_and_descendant_ids(self):
         return self.driver.execute_script(
@@ -207,21 +207,25 @@ class Executor:
         )
         self.mark_html()
         selected_node_ids = self.get_selected_node_ids()
-        while user_input != "N/A" and not selected_node_ids and not user_input.startswith("XPATH:"):
+        while user_input != "N/A" and not selected_node_ids and not user_input.startswith("XPATH:") and not user_input.startswith("CSS:"):
             user_input = input('Please click an element or type "N/A": ')
             selected_node_ids = self.get_selected_node_ids()
+        css_selector = None
         xpath_selector = None
-        if user_input.startswith("XPATH:"):
+        if user_input.startswith("CSS:"):
+            css_selector = user_input[4:].strip()
+            selected_node_ids = self.get_selected_node_ids(css_selector=css_selector)
+        elif user_input.startswith("XPATH:"):
             xpath_selector = user_input[6:].strip()
             selected_node_ids = self.get_selected_node_ids(xpath_selector=xpath_selector)
 
         self.highlights_cleanup()
         if user_input == "N/A":
-            return None, None, None
+            return None, None, None, None
         else:
             elem_id = selected_node_ids[0]
             elem = self._id_to_elem(elem_id)
-        return elem, elem_id, xpath_selector
+        return elem, elem_id, css_selector, xpath_selector
 
     def get_elem_by_description(self, description, elem_type):
         logger.info(f'Looking for {elem_type.lower()}: "{description}"')
@@ -288,7 +292,7 @@ class Executor:
         """
         Clicks a button using its description.
         """
-        elem, elem_id, xpath_selector = self.get_elem(description, "BUTTON")
+        elem, elem_id, css_selector, xpath_selector = self.get_elem(description, "BUTTON")
         html = self.get_scrape_html()
         success = self._click_elem(elem, window_id) if elem else False
         custom_function = CustomFunction(
@@ -299,6 +303,7 @@ class Executor:
                     "html": html,
                     "url": self.driver.current_url,
                     "elem_id": elem_id,
+                    "css_selector": css_selector,
                     "xpath_selector": xpath_selector,
                 }
             ],
@@ -333,7 +338,7 @@ class Executor:
         """
         Selects an option by name from a dropdown using its description.
         """
-        elem, elem_id, xpath_selector = self.get_elem(description, "SELECT")
+        elem, elem_id, css_selector, xpath_selector = self.get_elem(description, "SELECT")
         html = self.get_scrape_html()
         success = self._select_option(elem, option, window_id) if elem else False
         custom_function = CustomFunction(
@@ -346,6 +351,7 @@ class Executor:
                     "html": html,
                     "url": self.driver.current_url,
                     "elem_id": elem_id,
+                    "css_selector": css_selector,
                     "xpath_selector": xpath_selector,
                 }
             ],
@@ -383,7 +389,7 @@ class Executor:
         """
         Fills an input text field, then presses an optional end key using its description.
         """
-        elem, elem_id, xpath_selector = self.get_elem(description, "INPUT")
+        elem, elem_id, css_selector, xpath_selector = self.get_elem(description, "INPUT")
         html = self.get_scrape_html()
         success = self._fill_input(elem, text, enter, window_id) if elem else False
         custom_function = CustomFunction(
@@ -397,6 +403,7 @@ class Executor:
                     "html": html,
                     "url": self.driver.current_url,
                     "elem_id": elem_id,
+                    "css_selector": css_selector,
                     "xpath_selector": xpath_selector,
                 }
             ],
@@ -452,6 +459,7 @@ class Executor:
         self.mark_html()
         html = self.get_scrape_html()
         nodes = {}
+        css_selectors = {}
         xpath_selectors = {}
         if user_input == "":
             field_types = get_schema_fields(schema)
@@ -463,14 +471,17 @@ class Executor:
                 field_input = input(
                     f"Click elements containing data for the field `{field_repr}`. Hit TAB to autocomplete or DELETE/BACKSPACE to clear selections. Hit ENTER when done: "
                 )
-                if field_input.startswith("XPATH:"):
+                if field_input.startswith("CSS:"):
+                    css_selector = field_input[4:].strip()
+                    nodes[field] = [[node_id] for node_id in self.get_selected_node_ids(css_selector=css_selector)]
+                    css_selectors[field] = css_selector
+                elif field_input.startswith("XPATH:"):
                     xpath_selector = field_input[6:].strip()
                     nodes[field] = [[node_id] for node_id in self.get_selected_node_ids(xpath_selector=xpath_selector)]
                     xpath_selectors[field] = xpath_selector
-                    self.highlights_cleanup()
                 else:
                     nodes[field] = [[node_id] for node_id in self.get_selected_node_ids()]
-                    self.highlights_cleanup()
+                self.highlights_cleanup()
             logger.info("Scraping data...")
             result = get_cleaned_data(html, schema, nodes)
             scraped_data = result["data"]
@@ -503,6 +514,7 @@ class Executor:
                     "html": html,
                     "url": self.driver.current_url,
                     "nodes": nodes,
+                    "css_selectors": css_selectors,
                     "xpath_selectors": xpath_selectors,
                     "scraped_data": copy.deepcopy(scraped_data),
                 }

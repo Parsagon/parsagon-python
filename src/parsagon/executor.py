@@ -310,6 +310,25 @@ class Executor:
         elem = self._id_to_elem(elem_id)
         return self._click_elem(elem, window_id)
 
+    def click_next_page(self, description, window_id):
+        elem, elem_id, xpath_selector = self.get_elem(description, "BUTTON")
+        html = self.get_scrape_html()
+        success = self._click_elem(elem, window_id) if elem else False
+        custom_function = CustomFunction(
+            "click_next_page",
+            arguments={},
+            examples=[
+                {
+                    "html": html,
+                    "url": self.driver.current_url,
+                    "elem_id": elem_id,
+                    "xpath_selector": xpath_selector,
+                }
+            ],
+        )
+        self.add_custom_function(call_id, custom_function)
+        return success and self.get_scrape_html() == html
+
     def _select_option(self, elem, option, window_id):
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)

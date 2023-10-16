@@ -73,6 +73,7 @@ class Executor:
             "close_window": self.close_window,
             "click_elem": self.click_elem,
             "click_elem_by_id": self.click_elem_by_id,
+            "click_next_page": self.click_next_page,
             "fill_input": self.fill_input,
             "fill_input_by_id": self.fill_input_by_id,
             "select_option": self.select_option,
@@ -310,10 +311,12 @@ class Executor:
         elem = self._id_to_elem(elem_id)
         return self._click_elem(elem, window_id)
 
-    def click_next_page(self, description, window_id):
+    def click_next_page(self, description, window_id, call_id):
         elem, elem_id, xpath_selector = self.get_elem(description, "BUTTON")
         html = self.get_scrape_html()
+        prev_html = self.driver.page_source
         success = self._click_elem(elem, window_id) if elem else False
+        time.sleep(1)
         custom_function = CustomFunction(
             "click_next_page",
             arguments={},
@@ -327,7 +330,7 @@ class Executor:
             ],
         )
         self.add_custom_function(call_id, custom_function)
-        return success and self.get_scrape_html() == html
+        return success and prev_html != self.driver.page_source
 
     def _select_option(self, elem, option, window_id):
         if self.driver.current_window_handle != window_id:

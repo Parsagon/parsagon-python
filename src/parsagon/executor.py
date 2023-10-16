@@ -317,7 +317,7 @@ class Executor:
         return self._click_elem(elem, window_id)
 
     def click_next_page(self, description, window_id, call_id):
-        elem, elem_id, xpath_selector = self.get_elem(description, "BUTTON")
+        elem, elem_id, css_selector, xpath_selector = self.get_elem(description, "BUTTON")
         html = self.get_scrape_html()
         prev_html = self.driver.page_source
         success = self._click_elem(elem, window_id) if elem else False

@@ -339,6 +339,7 @@ def batch_runs(batch_name, program_name, runs=[], headless=False, save_file=None
     default_desc = f'Running program "{program_name}"'
     pbar.set_description(default_desc)
     error = None
+    error_variables = None
     try:
         for variables in pbar:
             for i in range(3):
@@ -347,6 +348,7 @@ def batch_runs(batch_name, program_name, runs=[], headless=False, save_file=None
                     break
                 except Exception as e:
                     error = e
+                    error_variables = variables
                     if i < 2:
                         pbar.set_description(f"An error occurred: {e} - Waiting 60s before trying again (Attempt {i+2}/3)")
                         time.sleep(60)
@@ -355,7 +357,7 @@ def batch_runs(batch_name, program_name, runs=[], headless=False, save_file=None
                     else:
                         raise
     except Exception as e:
-        logger.info(f"Unresolvable error occurred: {error} - Data has been saved to {save_file}. Rerun your command to resume.")
+        logger.info(f"Unresolvable error occurred on run with variables {error_variables}: {error} - Data has been saved to {save_file}. Rerun your command to resume.")
     finally:
         with open(save_file, "w") as f:
             json.dump(results, f)

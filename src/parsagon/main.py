@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import logging.config
+import psutil
 import time
 
 from halo import Halo
@@ -323,6 +324,9 @@ def run(program_name, variables={}, headless=False, remote=False, verbose=False)
             globals_locals["driver"].quit()
         if "display" in globals_locals:
             globals_locals["display"].stop()
+        for proc in psutil.process_iter():
+            if proc.name() == "chromedriver":
+                proc.kill()
     logger.info("Done.")
     return globals_locals["output"]
 

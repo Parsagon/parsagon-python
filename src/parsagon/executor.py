@@ -2,6 +2,7 @@ import copy
 import json
 import logging
 from pathlib import Path
+import psutil
 import time
 from urllib.parse import urljoin
 
@@ -550,5 +551,8 @@ class Executor:
             exec(code, self.execution_context)
         finally:
             self.driver.quit()
+            for proc in psutil.process_iter():
+                if proc.name() == "chromedriver":
+                    proc.kill()
             if self.headless:
                 self.display.stop()

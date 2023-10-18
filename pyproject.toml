@@ -16,7 +16,7 @@ line-length = 120
 
 [project]
 name = "parsagon"
-version = "0.10.15"
+version = "0.10.16"
 description = "Allows you to create browser automations with natural language"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -32,6 +32,7 @@ dependencies = [
     'selenium == 4.9.1',
     'lxml == 4.9.2',
     'httpx == 0.24.1',
+    'psutil == 5.9.6',
     'halo == 0.0.31',
     'tqdm == 4.66.1',
 

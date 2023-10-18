@@ -327,41 +327,49 @@ def run(program_name, variables={}, headless=False, remote=False, verbose=False)
     return globals_locals["output"]
 
 
-def batch_runs(batch_name, program_name, runs=[], headless=False, save_file=None):
-    if not save_file:
-        save_file = f"{batch_name}.json"
+def batch_runs(batch_name, program_name, runs=[], headless=False, ignore_errors=False, error_value=None):
+    save_file = f"{batch_name}.json"
     try:
         with open(save_file) as f:
             results = json.load(f)
     except FileNotFoundError:
         results = []
+    num_initial_results = len(results)
     pbar = tqdm(runs)
     default_desc = f'Running program "{program_name}"'
     pbar.set_description(default_desc)
     error = None
     error_variables = None
     try:
-        for variables in pbar:
-            for i in range(3):
+        for i, variables in enumerate(pbar):
+            if i < num_initial_results:
+                continue
+            for j in range(3):
                 try:
                     results.append(run(program_name, variables, headless))
                     break
                 except Exception as e:
                     error = e
                     error_variables = variables
-                    if i < 2:
-                        pbar.set_description(f"An error occurred: {e} - Waiting 60s before trying again (Attempt {i+2}/3)")
+                    if j < 2:
+                        pbar.set_description(f"An error occurred: {e} - Waiting 60s before retrying (Attempt {j+2}/3)")
                         time.sleep(60)
                         pbar.set_description(default_desc)
                         continue
                     else:
-                        raise
+                        if ignore_errors:
+                            error = None
+                            error_variables = None
+                            results.append(error_value)
+                            break
+                        else:
+                            raise
     except Exception as e:
-        logger.info(f"Unresolvable error occurred on run with variables {error_variables}: {error} - Data has been saved to {save_file}. Rerun your command to resume.")
+        logger.error(f"Unresolvable error occurred on run with variables {error_variables}: {error} - Data has been saved to {save_file}. Rerun your command to resume.")
     finally:
         with open(save_file, "w") as f:
             json.dump(results, f)
-    return results
+    return None if error else results
 
 
 def delete(program_name, verbose=False, confirm_with_user=False):

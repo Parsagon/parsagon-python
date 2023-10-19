@@ -130,7 +130,13 @@ function removeClass(element, className) {
     element.classList.remove(className);
 }
 
-function withDefer(fn) {
+/**
+ * Provide a callback to be immediately executed, which will be passed a "defer" function as an argument.
+ * Within the callback you may call `defer(fn, arg1, arg2, ...)` to defer the execution of `fn(arg1, arg2, ...)` until after the callback finishes running.
+ * This way, write operations to the DOM can be bulked together for performance.
+ * Note: the first argument to any deferred function must be an HTML element.
+ */
+function withDefer(callback) {
 
     // Collect deferred calls in a map of element -> [function, other args]. Assumes that the first argument to the "manipulationFn" is an HTML element.
     const deferredCalls = new Map();
@@ -147,7 +153,7 @@ function withDefer(fn) {
     }
 
     // Execute the function, registering deferred calls
-    fn(defer);
+    callback(defer);
 
     // Execute deferred calls
     for (const [element, calls] of deferredCalls) {

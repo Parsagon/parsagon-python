@@ -326,16 +326,19 @@ function getNumExamples() {
             TARGET_STORED_CLASSNAME
         );
     return exampleElems.length;
-};
+}
 
 function addAutocompletes() {
     const autocompleteElems =
         document.getElementsByClassName(
             AUTOCOMPLETE_CLASSNAME
         );
-    while (autocompleteElems.length) {
-        removeAutocompleteCSS(autocompleteElems[0]);
-    }
+    withDefer((defer) => {
+        while (autocompleteElems.length) {
+            removeAutocompleteCSS(autocompleteElems[0], defer);
+        }
+    });
+
 
     const exampleElems =
         document.getElementsByClassName(
@@ -347,13 +350,15 @@ function addAutocompletes() {
             document.querySelectorAll(
                 cssSelector
             );
-        for (const elem of similarElems) {
-            if (elem.classList.contains(TARGET_STORED_CLASSNAME)) {
-                continue;
+        withDefer((defer) => {
+            for (const elem of similarElems) {
+                if (elem.classList.contains(TARGET_STORED_CLASSNAME)) {
+                    continue;
+                }
+                makeVisible(elem, defer);
+                addAutocompleteCSS(elem, defer);
             }
-            makeVisible(elem);
-            addAutocompleteCSS(elem);
-        }
+        });
     }
 }
 

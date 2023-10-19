@@ -82,6 +82,84 @@ const CSS = `
 }
 `;
 
+function staticToRelativePositioning(element, defer=immediateDeferFn) {
+    if (
+        window.getComputedStyle(element)
+            .position === 'static'
+    ) {
+        defer(setPositionRelative, element);
+    }
+}
+
+function setDisplayBlock(element) {
+    element.style.display = 'block';
+}
+
+function setPositionRelative(element) {
+    element.style.setProperty('position', 'relative', 'important');
+}
+
+function addOutline(element, width, color) {
+    element.style.setProperty('outline', `${width} solid ${color}`, 'important');
+    element.style.setProperty('outline-offset', `-${width}`, 'important');
+}
+
+function addAutocompleteOutline(element) {
+    addOutline(element, '3px', 'rgb(255, 177, 255)');
+}
+
+function addMouseVisitedOutline(element) {
+    addOutline(element, '1px', 'rgb(51, 177, 255)');
+}
+
+function addTargetStoredOutline(element) {
+    addOutline(element, '3px', 'rgb(51, 177, 255)');
+}
+
+function removeOutline(element) {
+    element.style.removeProperty('outline');
+    element.style.removeProperty('outline-offset');
+    element.style.removeProperty('position');
+}
+
+function addClass(element, className) {
+    element.classList.add(className);
+}
+
+function removeClass(element, className) {
+    element.classList.remove(className);
+}
+
+function withDefer(fn) {
+
+    // Collect deferred calls in a map of element -> [function, other args]. Assumes that the first argument to the "manipulationFn" is an HTML element.
+    const deferredCalls = [];
+    const defer = (manipulationFn, element, ...otherArgs) => {
+        if (typeof manipulationFn !== 'function') {
+            throw new Error('First argument must be a function');
+        }
+        const newCall = [manipulationFn, element, otherArgs];
+        // if (deferredCalls.has(element)) {
+        //     deferredCalls.get(element).push(newCall);
+        // } else {
+        //     deferredCalls.set(element, [newCall]);
+        // }
+        deferredCalls.push(newCall);
+    }
+
+    // Execute the function, registering deferred calls
+    fn(defer);
+
+    // Execute deferred calls
+    for (const [manipulationFn, element, calls] of deferredCalls) {
+        manipulationFn(element, ...calls);
+    }
+}
+
+const immediateDeferFn = (manipulationFn, element, ...otherArgs) => {
+    manipulationFn(element, ...otherArgs);
+}
+
 function getRepresentative(element, dataType) {
     if (
         dataType === 'URL' ||
@@ -128,12 +206,12 @@ function hasValidData(element, dataType) {
     return true;
 }
 
-function makeVisible(element) {
+function makeVisible(element, defer=immediateDeferFn) {
     const rects = element.getClientRects();
     if (rects.length) {
         const rect = rects[0];
         if (rect.width * rect.height === 0) {
-            element.style.display = 'block';
+            defer(setDisplayBlock, element);
         }
     }
 }
@@ -189,89 +267,58 @@ function getSimilar(elements) {
     }
 }
 
-function addMouseVisitedCSS(element) {
+function addMouseVisitedCSS(element, defer=immediateDeferFn) {
     if (
         !element.classList.contains(TARGET_STORED_CLASSNAME) &&
         !element.classList.contains(AUTOCOMPLETE_CLASSNAME)
     ) {
-        element.style.setProperty(
-            'outline',
-            '1px solid rgb(51, 177, 255)',
-            'important'
-        );
-        element.style.setProperty('outline-offset', '-1px', 'important');
-        if (
-            window.getComputedStyle(element)
-                .position === 'static'
-        ) {
-            element.style.setProperty('position', 'relative', 'important');
-        }
+        defer(addMouseVisitedOutline, element);
+        staticToRelativePositioning(element, defer);
     }
-    element.classList.add(MOUSE_VISITED_CLASSNAME);
-};
-function removeMouseVisitedCSS(element) {
+    defer(addClass, element, MOUSE_VISITED_CLASSNAME);
+}
+
+function removeMouseVisitedCSS(element, defer=immediateDeferFn) {
     if (
         !element.classList.contains(TARGET_STORED_CLASSNAME) &&
         !element.classList.contains(AUTOCOMPLETE_CLASSNAME)
     ) {
-        element.style.removeProperty('outline');
-        element.style.removeProperty('outline-offset');
-        element.style.removeProperty('position');
+        defer(removeOutline, element);
     }
-    element.classList.remove(MOUSE_VISITED_CLASSNAME);
-};
-function addTargetStoredCSS(element) {
-    element.style.setProperty(
-        'outline',
-        '3px solid rgb(51, 177, 255)',
-        'important'
-    );
-    element.style.setProperty('outline-offset', '-3px', 'important');
-    if (
-        window.getComputedStyle(element).position ===
-        'static'
-    ) {
-        element.style.setProperty('position', 'relative', 'important');
-    }
-    element.classList.add(TARGET_STORED_CLASSNAME);
-};
-function removeTargetStoredCSS(element) {
-    element.style.removeProperty('outline');
-    element.style.removeProperty('outline-offset');
-    element.style.removeProperty('position');
-    element.classList.remove(TARGET_STORED_CLASSNAME);
+    defer(removeClass, element, MOUSE_VISITED_CLASSNAME);
+}
+
+function addTargetStoredCSS(element, defer=immediateDeferFn) {
+    defer(addTargetStoredOutline, element);
+    staticToRelativePositioning(element, defer);
+    defer(addClass, element, TARGET_STORED_CLASSNAME);
+}
+
+function removeTargetStoredCSS(element, defer=immediateDeferFn) {
+    defer(removeOutline, element);
+    defer(removeClass, element, TARGET_STORED_CLASSNAME);
     if (element.classList.contains(AUTOCOMPLETE_CLASSNAME)) {
-        addAutocompleteCSS(element);
+        addAutocompleteCSS(element, defer);
     } else if (element.classList.contains(MOUSE_VISITED_CLASSNAME)) {
-        addMouseVisitedCSS(element);
+        addMouseVisitedCSS(element, defer);
     }
-};
-function addAutocompleteCSS(element) {
+}
+
+function addAutocompleteCSS(element, defer=immediateDeferFn) {
     if (!element.classList.contains(TARGET_STORED_CLASSNAME)) {
-        element.style.setProperty(
-            'outline',
-            '3px solid rgb(255, 177, 255)',
-            'important'
-        );
-        element.style.setProperty('outline-offset', '-3px', 'important');
-        if (
-            window.getComputedStyle(element)
-                .position === 'static'
-        ) {
-            element.style.setProperty('position', 'relative', 'important');
-        }
+        defer(addAutocompleteOutline, element);
+        staticToRelativePositioning(element, defer);
     }
-    element.classList.add(AUTOCOMPLETE_CLASSNAME);
-};
-function removeAutocompleteCSS(element) {
-    element.style.removeProperty('outline');
-    element.style.removeProperty('outline-offset');
-    element.style.removeProperty('position');
-    element.classList.remove(AUTOCOMPLETE_CLASSNAME);
+    defer(addClass, element, AUTOCOMPLETE_CLASSNAME);
+}
+
+function removeAutocompleteCSS(element, defer=immediateDeferFn) {
+    defer(removeOutline, element);
+    defer(removeClass, element, AUTOCOMPLETE_CLASSNAME);
     if (element.classList.contains(MOUSE_VISITED_CLASSNAME)) {
-        addMouseVisitedCSS(element);
+        addMouseVisitedCSS(element, defer);
     }
-};
+}
 
 function getNumExamples() {
     const exampleElems =
@@ -308,7 +355,7 @@ function addAutocompletes() {
             addAutocompleteCSS(elem);
         }
     }
-};
+}
 
 function clearCSS() {
     const highlightedElems =
@@ -350,7 +397,7 @@ function handleAutocomplete() {
         removeAutocompleteCSS(elem);
         addTargetStoredCSS(elem);
     }
-};
+}
 
 function handleClick(e) {
     if (window.currentFieldType === null) {
@@ -394,7 +441,7 @@ function handleClick(e) {
             }
         }
     }
-};
+}
 
 function handleMouseDown(e) {
     if (window.currentFieldType === null) {
@@ -403,7 +450,7 @@ function handleMouseDown(e) {
 
     e.preventDefault();
     e.stopImmediatePropagation();
-};
+}
 
 function handleMouseMove(e) {
     if (window.currentFieldType === null) {
@@ -500,7 +547,7 @@ function handleMouseMove(e) {
 
     addMouseVisitedCSS(srcElement);
     window.prevDOM = srcElement;
-};
+}
 
 function handleSelectionShift() {
     if (window.currentFieldType === null) {

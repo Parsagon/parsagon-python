@@ -82,7 +82,7 @@ const CSS = `
 }
 `;
 
-function staticToRelativePositioning(element, defer=immediateDeferFn) {
+function staticToRelativePositioning(element, defer=defaultDefer) {
     if (
         window.getComputedStyle(element)
             .position === 'static'
@@ -156,7 +156,7 @@ function withDefer(fn) {
     }
 }
 
-const immediateDeferFn = (manipulationFn, element, ...otherArgs) => {
+const defaultDefer = (manipulationFn, element, ...otherArgs) => {
     manipulationFn(element, ...otherArgs);
 }
 
@@ -206,7 +206,7 @@ function hasValidData(element, dataType) {
     return true;
 }
 
-function makeVisible(element, defer=immediateDeferFn) {
+function makeVisible(element, defer=defaultDefer) {
     const rects = element.getClientRects();
     if (rects.length) {
         const rect = rects[0];
@@ -267,7 +267,7 @@ function getSimilar(elements) {
     }
 }
 
-function addMouseVisitedCSS(element, defer=immediateDeferFn) {
+function addMouseVisitedCSS(element, defer=defaultDefer) {
     if (
         !element.classList.contains(TARGET_STORED_CLASSNAME) &&
         !element.classList.contains(AUTOCOMPLETE_CLASSNAME)
@@ -278,7 +278,7 @@ function addMouseVisitedCSS(element, defer=immediateDeferFn) {
     defer(addClass, element, MOUSE_VISITED_CLASSNAME);
 }
 
-function removeMouseVisitedCSS(element, defer=immediateDeferFn) {
+function removeMouseVisitedCSS(element, defer=defaultDefer) {
     if (
         !element.classList.contains(TARGET_STORED_CLASSNAME) &&
         !element.classList.contains(AUTOCOMPLETE_CLASSNAME)
@@ -288,13 +288,13 @@ function removeMouseVisitedCSS(element, defer=immediateDeferFn) {
     defer(removeClass, element, MOUSE_VISITED_CLASSNAME);
 }
 
-function addTargetStoredCSS(element, defer=immediateDeferFn) {
+function addTargetStoredCSS(element, defer=defaultDefer) {
     defer(addTargetStoredOutline, element);
     staticToRelativePositioning(element, defer);
     defer(addClass, element, TARGET_STORED_CLASSNAME);
 }
 
-function removeTargetStoredCSS(element, defer=immediateDeferFn) {
+function removeTargetStoredCSS(element, defer=defaultDefer) {
     defer(removeOutline, element);
     defer(removeClass, element, TARGET_STORED_CLASSNAME);
     if (element.classList.contains(AUTOCOMPLETE_CLASSNAME)) {
@@ -304,7 +304,7 @@ function removeTargetStoredCSS(element, defer=immediateDeferFn) {
     }
 }
 
-function addAutocompleteCSS(element, defer=immediateDeferFn) {
+function addAutocompleteCSS(element, defer=defaultDefer) {
     if (!element.classList.contains(TARGET_STORED_CLASSNAME)) {
         defer(addAutocompleteOutline, element);
         staticToRelativePositioning(element, defer);
@@ -312,7 +312,7 @@ function addAutocompleteCSS(element, defer=immediateDeferFn) {
     defer(addClass, element, AUTOCOMPLETE_CLASSNAME);
 }
 
-function removeAutocompleteCSS(element, defer=immediateDeferFn) {
+function removeAutocompleteCSS(element, defer=defaultDefer) {
     defer(removeOutline, element);
     defer(removeClass, element, AUTOCOMPLETE_CLASSNAME);
     if (element.classList.contains(MOUSE_VISITED_CLASSNAME)) {

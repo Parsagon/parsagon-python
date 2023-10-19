@@ -133,26 +133,27 @@ function removeClass(element, className) {
 function withDefer(fn) {
 
     // Collect deferred calls in a map of element -> [function, other args]. Assumes that the first argument to the "manipulationFn" is an HTML element.
-    const deferredCalls = [];
+    const deferredCalls = new Map();
     const defer = (manipulationFn, element, ...otherArgs) => {
         if (typeof manipulationFn !== 'function') {
             throw new Error('First argument must be a function');
         }
-        const newCall = [manipulationFn, element, otherArgs];
-        // if (deferredCalls.has(element)) {
-        //     deferredCalls.get(element).push(newCall);
-        // } else {
-        //     deferredCalls.set(element, [newCall]);
-        // }
-        deferredCalls.push(newCall);
+        const newCall = [manipulationFn, otherArgs];
+        if (deferredCalls.has(element)) {
+            deferredCalls.get(element).push(newCall);
+        } else {
+            deferredCalls.set(element, [newCall]);
+        }
     }
 
     // Execute the function, registering deferred calls
     fn(defer);
 
     // Execute deferred calls
-    for (const [manipulationFn, element, calls] of deferredCalls) {
-        manipulationFn(element, ...calls);
+    for (const [element, calls] of deferredCalls) {
+        for (const [manipulationFn, otherArgs] of calls) {
+            manipulationFn(element, ...otherArgs);
+        }
     }
 }
 

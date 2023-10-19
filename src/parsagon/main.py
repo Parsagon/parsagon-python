@@ -325,8 +325,11 @@ def run(program_name, variables={}, headless=False, remote=False, verbose=False)
         if "display" in globals_locals:
             globals_locals["display"].stop()
         for proc in psutil.process_iter():
-            if proc.name() == "chromedriver":
-                proc.kill()
+            try:
+                if proc.name() == "chromedriver":
+                    proc.kill()
+            except psutil.NoSuchProcess:
+                continue
     logger.info("Done.")
     return globals_locals["output"]
 

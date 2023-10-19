@@ -1,3 +1,4 @@
+from collections import defaultdict
 import copy
 import json
 import logging
@@ -67,7 +68,7 @@ class Executor:
         chrome_options.add_argument("--start-maximized")
         driver_exec_path = ChromeDriverManager().install()
         self.driver = uc.Chrome(driver_executable_path=driver_exec_path, options=chrome_options)
-        self.max_elem_id = 0
+        self.max_elem_ids = defaultdict(int)
         self.execution_context = {
             "custom_assert": self.custom_assert,
             "goto": self.goto,
@@ -128,13 +129,12 @@ class Executor:
         Adds node IDs to elements on the current page that don't already have IDs.
         """
         logger.debug("  Marking HTML...")
-        self.max_elem_id = self.driver.execute_script(
-            "let elemIdx = 0; for (const node of document.all) { elemIdx = Math.max(elemIdx, parseInt(node.getAttribute('data-psgn-id') ?? 0)); } return elemIdx"
-        )
-        self.max_elem_id = self.driver.execute_script(
-            f"let elemIdx = {self.max_elem_id}; "
+        max_elem_id = self.max_elem_ids[self.driver.current_window_handle]
+        max_elem_id = self.driver.execute_script(
+            f"let elemIdx = {max_elem_id}; "
             + "for (const node of document.all) { if (node.hasAttribute('data-psgn-id')) { continue; } node.setAttribute('data-psgn-id', elemIdx); elemIdx++; } return elemIdx;"
         )
+        self.max_elem_ids[self.driver.current_window_handle] = max_elem_id
         self.driver.execute_script(
             "for (const image of document.images) { image.setAttribute('data-psgn-width', image.parentElement.offsetWidth ?? -1); image.setAttribute('data-psgn-height', image.parentElement.offsetHeight ?? -1); }"
         )
@@ -187,7 +187,8 @@ class Executor:
             elem.text = ""
 
         # Remove invisible elements
-        for elem_id in range(self.max_elem_id):
+        max_elem_id = self.max_elem_ids[self.driver.current_window_handle]
+        for elem_id in range(max_elem_id):
             try:
                 lxml_elem = root.xpath(f'//*[@data-psgn-id="{elem_id}"]')[0]
                 selenium_elem = driver.find_elements(By.XPATH, f'//*[@data-psgn-id="{elem_id}"]')[0]
@@ -212,6 +213,10 @@ class Executor:
         while user_input != "N/A" and not selected_node_ids and not user_input.startswith("XPATH:") and not user_input.startswith("CSS:"):
             user_input = input('Please click an element or type "N/A": ')
             selected_node_ids = self.get_selected_node_ids()
+        self.highlights_cleanup()
+        if user_input == "N/A":
+            return None, None, None, None
+
         css_selector = None
         xpath_selector = None
         if user_input.startswith("CSS:"):
@@ -221,12 +226,8 @@ class Executor:
             xpath_selector = user_input[6:].strip()
             selected_node_ids = self.get_selected_node_ids(xpath_selector=xpath_selector)
 
-        self.highlights_cleanup()
-        if user_input == "N/A":
-            return None, None, None, None
-        else:
-            elem_id = selected_node_ids[0]
-            elem = self._id_to_elem(elem_id)
+        elem_id = selected_node_ids[0] if selected_node_ids else None
+        elem = self._id_to_elem(elem_id) if selected_node_ids else None
         return elem, elem_id, css_selector, xpath_selector
 
     def get_elem_by_description(self, description, elem_type):
@@ -552,7 +553,10 @@ class Executor:
         finally:
             self.driver.quit()
             for proc in psutil.process_iter():
-                if proc.name() == "chromedriver":
-                    proc.kill()
+                try:
+                    if proc.name() == "chromedriver":
+                        proc.kill()
+                except psutil.NoSuchProcess:
+                    continue
             if self.headless:
                 self.display.stop()

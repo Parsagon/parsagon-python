@@ -69,6 +69,10 @@ class Executor:
         chrome_options.add_argument("--start-maximized")
         driver_exec_path = ChromeDriverManager().install()
         if profile_path is not None:
+            logger.warning(
+                "Warning: A profile path has been specified.  This command will fail if it is run with Chrome already open."
+            )
+            input("Please close any instance of Chrome now.  Press Enter to continue...")
             profile_path = Path(profile_path)
             user_data_dir = str(profile_path.parent)
             profile_directory = str(profile_path.name)

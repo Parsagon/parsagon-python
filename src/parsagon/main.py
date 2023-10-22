@@ -2,9 +2,11 @@ import argparse
 import json
 import logging
 import logging.config
+import psutil
 import time
 
 from halo import Halo
+from tqdm import tqdm
 
 from parsagon.api import (
     get_program_sketches,
@@ -17,6 +19,7 @@ from parsagon.api import (
     get_pipelines,
     get_pipeline_code,
     get_run,
+    poll_data,
     APIException,
 )
 from parsagon.exceptions import ParsagonException
@@ -103,6 +106,11 @@ def get_args():
         action="store_true",
         help="let Parsagon infer all elements to be scraped",
     )
+    parser_update.add_argument(
+        "--replace",
+        action="store_true",
+        help="remove old example data while updating the program",
+    )
     parser_update.set_defaults(func=update)
 
     # Run
@@ -184,10 +192,11 @@ def create(task=None, program_name=None, headless=False, infer=False, verbose=Fa
 
     logger.info("Analyzing task description...")
     program_sketches = get_program_sketches(task)
-    logger.info("Created a program based on task description. Now demonstrating what the program does:\n")
 
     full_program = program_sketches["full"]
     abridged_program = program_sketches["abridged"]
+    pseudocode = program_sketches["pseudocode"]
+    logger.info(f"Created a program based on task description. Program does the following:\n\n{pseudocode}\n\nNow executing the program to identify web elements to be scraped:\n")
     logger.debug("Program:\n%s", abridged_program)
     abridged_program += "\n\noutput = func()\nprint(f'Program finished and returned a value of:\\n{output}\\n')\n"  # Make the program runnable
 
@@ -202,9 +211,9 @@ def create(task=None, program_name=None, headless=False, infer=False, verbose=Fa
         if program_name:
             logger.info(f"Saving program as {program_name}")
             try:
-                pipeline = create_pipeline(program_name, task, full_program)
+                pipeline = create_pipeline(program_name, task, full_program, pseudocode)
             except APIException as e:
-                if isinstance(e.value, list) and "Program with name already exists" in e.value:
+                if isinstance(e.value, list) and "Pipeline with name already exists" in e.value:
                     logger.info("A program with this name already exists. Please choose another name.")
                     program_name = None
                     continue
@@ -233,7 +242,7 @@ def create(task=None, program_name=None, headless=False, infer=False, verbose=Fa
     logger.info("Done.")
 
 
-def update(program_name, variables={}, headless=False, infer=False, verbose=False):
+def update(program_name, variables={}, headless=False, infer=False, replace=False, verbose=False):
     pipeline = get_pipeline(program_name)
     abridged_program = pipeline["abridged_sketch"]
     # Make the program runnable
@@ -245,6 +254,14 @@ def update(program_name, variables={}, headless=False, infer=False, verbose=Fals
     executor = Executor(headless=headless, infer=infer)
     executor.execute(abridged_program)
 
+    while True:
+        program_name_input = input(f"Type \"{program_name}\" to update this program, or press enter without typing a name to CANCEL: ")
+        if not program_name_input:
+            logger.info("Canceled update.")
+            return
+        if program_name_input == program_name:
+            break
+
     pipeline_id = pipeline["id"]
     try:
         for call_id, custom_function in executor.custom_functions.items():
@@ -254,7 +271,7 @@ def update(program_name, variables={}, headless=False, infer=False, verbose=Fals
             if verbose:
                 description += debug_suffix
             logger.info(f"  Saving function{description}...")
-            add_examples_to_custom_function(pipeline_id, call_id, custom_function)
+            add_examples_to_custom_function(pipeline_id, call_id, custom_function, replace)
         logger.info(f"Saved.")
     except Exception as e:
         print(e)
@@ -307,8 +324,61 @@ def run(program_name, variables={}, headless=False, remote=False, verbose=False)
             globals_locals["driver"].quit()
         if "display" in globals_locals:
             globals_locals["display"].stop()
+        for proc in psutil.process_iter():
+            try:
+                if proc.name() == "chromedriver":
+                    proc.kill()
+            except psutil.NoSuchProcess:
+                continue
     logger.info("Done.")
     return globals_locals["output"]
+
+
+def batch_runs(batch_name, program_name, runs=[], headless=False, ignore_errors=False, error_value=None):
+    save_file = f"{batch_name}.json"
+    try:
+        with open(save_file) as f:
+            results = json.load(f)
+    except FileNotFoundError:
+        results = []
+    num_initial_results = len(results)
+    pbar = tqdm(runs)
+    default_desc = f'Running program "{program_name}"'
+    pbar.set_description(default_desc)
+    error = None
+    error_variables = None
+    try:
+        for i, variables in enumerate(pbar):
+            if i < num_initial_results:
+                continue
+            for j in range(3):
+                try:
+                    results.append(run(program_name, variables, headless))
+                    break
+                except Exception as e:
+                    error = e
+                    error_variables = variables
+                    if j < 2:
+                        pbar.set_description(f"An error occurred: {e} - Waiting 60s before retrying (Attempt {j+2}/3)")
+                        time.sleep(60)
+                        pbar.set_description(default_desc)
+                        error = None
+                        error_variables = None
+                        continue
+                    else:
+                        if ignore_errors:
+                            error = None
+                            error_variables = None
+                            results.append(error_value)
+                            break
+                        else:
+                            raise
+    except Exception as e:
+        logger.error(f"Unresolvable error occurred on run with variables {error_variables}: {error} - Data has been saved to {save_file}. Rerun your command to resume.")
+    finally:
+        with open(save_file, "w") as f:
+            json.dump(results, f)
+    return None if error else results
 
 
 def delete(program_name, verbose=False, confirm_with_user=False):
@@ -338,3 +408,27 @@ def setup(verbose=False):
         logger.error("\nCancelled operation.")
         return
     logger.info("Setup complete.")
+
+
+def _get_data(url, page_type, timeout):
+    start_time = time.time()
+    with Halo(text="Extracting data...", spinner="dots"):
+        while time.time() - start_time <= timeout:
+            result = poll_data(url, page_type)
+            if result["done"]:
+                return result["result"]
+            time.sleep(15)
+    logger.info("No data found")
+    return None
+
+
+def get_product(url, timeout=300):
+    return _get_data(url, "PRODUCT_DETAIL", timeout)
+
+
+def get_review_article(url, timeout=300):
+    return _get_data(url, "REVIEW_ARTICLE_DETAIL", timeout)
+
+
+def get_article_list(url, timeout=300):
+    return _get_data(url, "ARTICLE_LIST", timeout)

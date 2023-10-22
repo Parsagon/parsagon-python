@@ -1,6 +1,7 @@
 window.prevDOM = null;
 window.currentFieldType = null;
 window.maxExamples = null;
+window.disableAutocomplete = false;
 
 const MOUSE_VISITED_CLASSNAME = 'parsagon-io-mouse-visited';
 const TARGET_STORED_CLASSNAME = 'parsagon-io-example-stored';
@@ -22,7 +23,7 @@ const DATA_TYPE_FILTERS = {
             'area, base, br, col, embed, hr, img, input, link, meta, param, source, track, wbr, template, script, style',
     },
     URL: { includes: 'a[href]', excludes: null },
-    IMAGE: { includes: 'img[src]', excludes: null },
+    IMAGE: { includes: 'img[src], img[srcset]', excludes: null },
     HTML: { includes: '*', excludes: null },
     ACTION: { includes: '*', excludes: ACTION_EXCLUDES },
 };
@@ -140,14 +141,11 @@ function makeVisible(element) {
 const DUMMY_FRAGMENT = document.createDocumentFragment()
 
 function isValidSelector(selector) {
-    console.log(selector);
-    try { DUMMY_FRAGMENT.querySelector(selector) } catch { console.log("false"); return false }
-    console.log("true");
+    try { DUMMY_FRAGMENT.querySelector(selector) } catch { return false }
     return true
 }
 
 function getSimilar(elements) {
-    console.log(0);
     let tag = '*';
     if (elements.every((elem) => elem.tagName === elements[0].tagName)) {
         tag = elements[0].tagName.toLowerCase();
@@ -164,9 +162,7 @@ function getSimilar(elements) {
                 isValidSelector("." + className)
         )
         .map((className) => className.replace(':', '\\:').replace('.', '\\.').replace('[', '\\[').replace(']', '\\]').replace('=', '\\='));
-    console.log(1);
     const classString = commonClasses.join('.');
-    console.log(2);
 
     const siblingIndexes = elements.map(
         (elem) =>
@@ -176,7 +172,6 @@ function getSimilar(elements) {
     if (siblingIndexes.every((index) => index === siblingIndexes[0])) {
         siblingIndex = siblingIndexes[0];
     }
-    console.log(3);
 
     let elemString = tag;
     if (classString) {
@@ -187,7 +182,6 @@ function getSimilar(elements) {
     }
 
     const parentElements = elements.map((elem) => elem.parentElement);
-    console.log(4);
     if (parentElements.some((elem) => elem === null)) {
         return elemString;
     } else {
@@ -318,27 +312,27 @@ function addAutocompletes() {
 
 function clearCSS() {
     const highlightedElems =
-        document.getElementsByClassName(
-            MOUSE_VISITED_CLASSNAME
+        document.querySelectorAll(
+            "." + MOUSE_VISITED_CLASSNAME
         );
-    while (highlightedElems.length) {
-        removeMouseVisitedCSS(highlightedElems[0]);
+    for (const elem of highlightedElems) {
+        removeMouseVisitedCSS(elem);
     }
 
     const autocompleteElems =
-        document.getElementsByClassName(
-            AUTOCOMPLETE_CLASSNAME
+        document.querySelectorAll(
+            "." + AUTOCOMPLETE_CLASSNAME
         );
-    while (autocompleteElems.length) {
-        removeAutocompleteCSS(autocompleteElems[0]);
+    for (const elem of autocompleteElems) {
+        removeAutocompleteCSS(elem);
     }
 
     const exampleElems =
-        document.getElementsByClassName(
-            TARGET_STORED_CLASSNAME
+        document.querySelectorAll(
+            "." + TARGET_STORED_CLASSNAME
         );
-    while (exampleElems.length) {
-        removeTargetStoredCSS(exampleElems[0]);
+    for (const elem of exampleElems) {
+        removeTargetStoredCSS(elem);
     }
 }
 
@@ -375,11 +369,13 @@ function handleClick(e) {
 
     if (srcElement.classList.contains(TARGET_STORED_CLASSNAME)) {
         removeTargetStoredCSS(srcElement);
-        try {
-            addAutocompletes();
-        } catch (e) {
-            console.log(e);
-            // carry on even if autocomplete runs into invalid CSS classes/IDs
+        if (!window.disableAutocomplete) {
+            try {
+                addAutocompletes();
+            } catch (e) {
+                console.log(e);
+                // carry on even if autocomplete runs into invalid CSS classes/IDs
+            }
         }
     } else {
         if (
@@ -389,11 +385,13 @@ function handleClick(e) {
             return;
         }
         addTargetStoredCSS(srcElement);
-        try {
-            addAutocompletes();
-        } catch (e) {
-            console.log(e);
-            // carry on even if autocomplete runs into invalid CSS classes/IDs
+        if (!window.disableAutocomplete) {
+            try {
+                addAutocompletes();
+            } catch (e) {
+                console.log(e);
+                // carry on even if autocomplete runs into invalid CSS classes/IDs
+            }
         }
     }
 };
@@ -504,6 +502,17 @@ function handleMouseMove(e) {
     window.prevDOM = srcElement;
 };
 
+function handleSelectionShift() {
+    if (window.currentFieldType === null) {
+        return;
+    }
+    if (window.prevDOM != null && window.prevDOM.parentElement) {
+        removeMouseVisitedCSS(window.prevDOM);
+        addMouseVisitedCSS(window.prevDOM.parentElement);
+        window.prevDOM = window.prevDOM.parentElement;
+    }
+}
+
 function handleKeyDown(e) {
     if (window.currentFieldType === null) {
         return;
@@ -518,6 +527,26 @@ function handleKeyDown(e) {
     }
     if (key === "Tab") {
         handleAutocomplete();
+    }
+    if (key === "Control") {
+        handleSelectionShift();
+    }
+    if (key === "Alt") {
+        window.disableAutocomplete = true;
+    }
+}
+
+function handleKeyUp(e) {
+    if (window.currentFieldType === null) {
+        return;
+    }
+
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    const key = e.key;
+    if (key === "Alt") {
+        window.disableAutocomplete = false;
     }
 }
 
@@ -550,6 +579,12 @@ if (!window.PSGN_INITIALIZED) {
     window.addEventListener(
         'keydown',
         handleKeyDown,
+        true
+    );
+
+    window.addEventListener(
+        'keyup',
+        handleKeyUp,
         true
     );
 

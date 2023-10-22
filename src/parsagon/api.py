@@ -1,11 +1,9 @@
-import contextlib
-import json
 from json import JSONDecodeError
 
 import httpx
 
 from parsagon import settings
-from parsagon.exceptions import ParsagonException, APIException, ProgramNotFoundException
+from parsagon.exceptions import APIException, ProgramNotFoundException
 
 environment = "PANDAS_1.x"
 
@@ -58,7 +56,7 @@ def get_program_sketches(description):
     """
     Gets a program sketches (full and abridged) from a description.
     :param description: Description in natural language that will be used to generate the scraping program.
-    :return: A dict with keys "full" and "abridged" for the respective program ASTs.
+    :return: A dict with keys "full", "abridged", and "pseudocode" for the respective program ASTs and pseudocode.
     """
     return _api_call(httpx.post, "/transformers/get-program-sketch/", json={"description": description})
 
@@ -84,7 +82,7 @@ def get_schema_fields(schema):
     """
     Gets fields and their types from a given schema
     :param schema:
-    :return: A dict mapping fields to thir types
+    :return: A dict mapping fields to their types
     """
     return _api_call(httpx.post, "/transformers/get-schema-fields/", json={"schema": schema})
 
@@ -97,32 +95,51 @@ def get_cleaned_data(html, schema, nodes):
     :param nodes: Nodes to scrape
     :return: Cleaned data
     """
-    return _api_call(httpx.post, "/transformers/get-cleaned-data/", json={"html": html, "schema": schema, "nodes": nodes})
+    return _api_call(
+        httpx.post, "/transformers/get-cleaned-data/", json={"html": html, "schema": schema, "nodes": nodes}
+    )
 
 
-def scrape_page(html, schema):
+def scrape_page(html, schema, relevant_elem_ids):
     """
     Scrapes data from the provided page HTML - data will be returned in the schema provided.
-    :param url: url of the page to scrape.
     :param html: HTML of the page to scrape.
     :param schema: Schema of the data to scrape
+    :param relevant_elem_ids: Ids of elements to be considered
     :return: Scraped data
     """
-    return _api_call(httpx.post, "/transformers/get-custom-data/", json={"html": html, "schema": schema})
+    return _api_call(
+        httpx.post,
+        "/transformers/get-custom-data/",
+        json={"html": html, "schema": schema, "relevant_elem_ids": relevant_elem_ids},
+    )
 
 
-def ask_about_data(data, question):
+def get_str_about_data(data, question):
     """
     Asks GPT a question about the given data.
     :param data: the data to give GPT
     :param question: the question to ask about the data
     """
-    return _api_call(httpx.post, "transformers/ask-about-data/", json={"data": data, "question": question})
+    data = _api_call(httpx.post, "/transformers/get-str-about-data/", json={"data": data, "question": question})
+    return data["result"]
 
 
-def create_pipeline(name, description, program_sketch):
+def get_bool_about_data(data, question):
+    """
+    Asks GPT a question about the given data.
+    :param data: the data to give GPT
+    :param question: the question to ask about the data
+    """
+    data = _api_call(httpx.post, "/transformers/get-bool-about-data/", json={"data": data, "question": question})
+    return data["result"]
+
+
+def create_pipeline(name, description, program_sketch, pseudocode):
     return _api_call(
-        httpx.post, "/pipelines/", json={"name": name, "description": description, "program_sketch": program_sketch}
+        httpx.post,
+        "/pipelines/",
+        json={"name": name, "description": description, "program_sketch": program_sketch, "pseudocode": pseudocode},
     )
 
 
@@ -138,11 +155,16 @@ def create_custom_function(pipeline_id, call_id, custom_function):
     )
 
 
-def add_examples_to_custom_function(pipeline_id, call_id, custom_function):
+def add_examples_to_custom_function(pipeline_id, call_id, custom_function, remove_old_examples):
     _api_call(
         httpx.post,
         "/transformers/custom-function/add-examples/",
-        json={"pipeline": pipeline_id, "call_id": call_id, **custom_function.to_json()},
+        json={
+            "pipeline": pipeline_id,
+            "call_id": call_id,
+            "remove_old_examples": remove_old_examples,
+            **custom_function.to_json(),
+        },
     )
 
 
@@ -186,3 +208,7 @@ def get_run(run_id):
         httpx.get,
         f"/pipelines/runs/{run_id}/",
     )
+
+
+def poll_data(url, page_type):
+    return _api_call(httpx.post, "/extract/", json={"url": url, "page_type": page_type})

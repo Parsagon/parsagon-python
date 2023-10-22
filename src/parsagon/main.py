@@ -362,6 +362,8 @@ def batch_runs(batch_name, program_name, runs=[], headless=False, ignore_errors=
                         pbar.set_description(f"An error occurred: {e} - Waiting 60s before retrying (Attempt {j+2}/3)")
                         time.sleep(60)
                         pbar.set_description(default_desc)
+                        error = None
+                        error_variables = None
                         continue
                     else:
                         if ignore_errors:

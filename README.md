@@ -48,6 +48,9 @@ parsagon.create('Go to https://www.google.com/. Type "the meaning of life" into 
 # Run a program
 parsagon.run("My program")
 
+# Run a program multiple times
+parsagon.batch_runs("My batch name", "My program", runs=[{"variable_name": "value1"}, {"variable_name": "value2"}, ...])
+
 # List your programs
 parsagon.detail()
 

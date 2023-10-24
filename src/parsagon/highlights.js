@@ -128,14 +128,24 @@ function hasValidData(element, dataType) {
     return true;
 }
 
-function makeVisible(element) {
-    const rects = element.getClientRects();
-    if (rects.length) {
-        const rect = rects[0];
-        if (rect.width * rect.height === 0) {
-            element.style.display = 'block';
+function makeVisible(elements) {
+
+    let elemsToDisplayBlock = [];
+    for (let element of elements) {
+        const rects = element.getClientRects();
+        if (rects.length) {
+            const rect = rects[0];
+            if (rect.width * rect.height === 0) {
+                elemsToDisplayBlock.push(element);
+            }
         }
     }
+
+    requestAnimationFrame(() => {
+        for (let elem of elemsToDisplayBlock) {
+            elem.style.display = 'block';
+        }
+    })
 }
 
 const DUMMY_FRAGMENT = document.createDocumentFragment()
@@ -241,28 +251,45 @@ function removeTargetStoredCSS(element) {
     element.style.removeProperty('position');
     element.classList.remove(TARGET_STORED_CLASSNAME);
     if (element.classList.contains(AUTOCOMPLETE_CLASSNAME)) {
-        addAutocompleteCSS(element);
+        addAutocompleteCSS([element]);
     } else if (element.classList.contains(MOUSE_VISITED_CLASSNAME)) {
         addMouseVisitedCSS(element);
     }
 };
-function addAutocompleteCSS(element) {
-    if (!element.classList.contains(TARGET_STORED_CLASSNAME)) {
-        element.style.setProperty(
-            'outline',
-            '3px solid rgb(255, 177, 255)',
-            'important'
-        );
-        element.style.setProperty('outline-offset', '-3px', 'important');
-        if (
-            window.getComputedStyle(element)
-                .position === 'static'
-        ) {
-            element.style.setProperty('position', 'relative', 'important');
+function addAutocompleteCSS(elements) {
+    let setOutlineElements = [];
+    let makeStaticElements = [];
+    for (const element of elements) {
+        if (!element.classList.contains(TARGET_STORED_CLASSNAME)) {
+            setOutlineElements.push(element);
+            if (
+                window.getComputedStyle(element)
+                    .position === 'static'
+            ) {
+                makeStaticElements.push(element);
+            }
         }
     }
-    element.classList.add(AUTOCOMPLETE_CLASSNAME);
+
+    // Perform batch writes
+    requestAnimationFrame(() => {
+        for (const element of setOutlineElements) {
+                element.style.setProperty(
+                'outline',
+                '3px solid rgb(255, 177, 255)',
+                'important'
+            );
+            element.style.setProperty('outline-offset', '-3px', 'important');
+        }
+        for (const element of makeStaticElements) {
+            element.style.setProperty('position', 'relative', 'important');
+        }
+        for (const element of elements) {
+            element.classList.add(AUTOCOMPLETE_CLASSNAME);
+        }
+    });
 };
+
 function removeAutocompleteCSS(element) {
     element.style.removeProperty('outline');
     element.style.removeProperty('outline-offset');
@@ -300,13 +327,13 @@ function addAutocompletes() {
             document.querySelectorAll(
                 cssSelector
             );
-        for (const elem of similarElems) {
-            if (elem.classList.contains(TARGET_STORED_CLASSNAME)) {
-                continue;
-            }
-            makeVisible(elem);
-            addAutocompleteCSS(elem);
-        }
+
+        // Set to similarElems where elem.classList.contains(TARGET_STORED_CLASSNAME) === false
+        const elemsToMakeVisibleAndAddAutocompleteCSS = Array.from(similarElems).filter((elem) => {
+            return !elem.classList.contains(TARGET_STORED_CLASSNAME);
+        });
+        makeVisible(elemsToMakeVisibleAndAddAutocompleteCSS);
+        addAutocompleteCSS(elemsToMakeVisibleAndAddAutocompleteCSS);
     }
 };
 
@@ -496,7 +523,7 @@ function handleMouseMove(e) {
         return;
     }
 
-    makeVisible(srcElement);
+    makeVisible([srcElement]);
 
     addMouseVisitedCSS(srcElement);
     window.prevDOM = srcElement;

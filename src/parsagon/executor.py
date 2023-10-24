@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 import psutil
 import time
+from pathlib import Path
 from urllib.parse import urljoin
 
 import lxml.html
@@ -60,13 +61,23 @@ class Executor:
     Executes code produced by GPT with the proper context.  Records custom_function usage along the way.
     """
 
-    def __init__(self, headless=False, infer=False):
+    def __init__(self, headless=False, infer=False, profile_path=None):
         self.headless = headless
         if self.headless:
             self.display = Display(visible=False, size=(1280, 1050)).start()
         chrome_options = uc.ChromeOptions()
         chrome_options.add_argument("--start-maximized")
         driver_exec_path = ChromeDriverManager().install()
+        if profile_path is not None:
+            logger.warning(
+                "Warning: A profile path has been specified.  This command will fail if it is run with Chrome already open."
+            )
+            input("Please close any instance of Chrome now.  Press Enter to continue...")
+            profile_path = Path(profile_path)
+            user_data_dir = str(profile_path.parent)
+            profile_directory = str(profile_path.name)
+            chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
+            chrome_options.add_argument(f"--profile-directory={profile_directory}")
         self.driver = uc.Chrome(driver_executable_path=driver_exec_path, options=chrome_options)
         self.max_elem_ids = defaultdict(int)
         self.execution_context = {

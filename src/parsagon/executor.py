@@ -10,6 +10,8 @@ from urllib.parse import urljoin
 import lxml.html
 from pyvirtualdisplay import Display
 import undetected_chromedriver as uc
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
@@ -60,14 +62,19 @@ class Executor:
     Executes code produced by GPT with the proper context.  Records custom_function usage along the way.
     """
 
-    def __init__(self, headless=False, infer=False):
+    def __init__(self, headless=False, infer=False, use_uc=False):
         self.headless = headless
         if self.headless:
             self.display = Display(visible=False, size=(1280, 1050)).start()
-        chrome_options = uc.ChromeOptions()
-        chrome_options.add_argument("--start-maximized")
-        driver_exec_path = ChromeDriverManager().install()
-        self.driver = uc.Chrome(driver_executable_path=driver_exec_path, options=chrome_options)
+        driver_executable_path = ChromeDriverManager().install()
+        if use_uc:
+            chrome_options = uc.ChromeOptions()
+            chrome_options.add_argument("--start-maximized")
+            self.driver = uc.Chrome(driver_executable_path=driver_executable_path, options=chrome_options)
+        else:
+            chrome_options = webdriver.ChromeOptions()
+            chrome_options.add_argument("--start-maximized")
+            self.driver = webdriver.Chrome(service=ChromeService(driver_executable_path), options=chrome_options)
         self.max_elem_ids = defaultdict(int)
         self.execution_context = {
             "custom_assert": self.custom_assert,

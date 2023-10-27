@@ -24,6 +24,7 @@ from parsagon.api import (
 )
 from parsagon.exceptions import ParsagonException
 from parsagon.executor import Executor, custom_functions_to_descriptions
+from parsagon.secrets import extract_secrets
 from parsagon.settings import get_api_key, get_settings, clear_settings, save_setting, get_logging_config
 
 logger = logging.getLogger(__name__)
@@ -191,6 +192,7 @@ def create(task=None, program_name=None, headless=False, infer=False, verbose=Fa
         task = input("Type what you want to do: ")
 
     logger.info("Analyzing task description...")
+    task, secrets = extract_secrets(task)
     program_sketches = get_program_sketches(task)
 
     full_program = program_sketches["full"]
@@ -198,7 +200,8 @@ def create(task=None, program_name=None, headless=False, infer=False, verbose=Fa
     pseudocode = program_sketches["pseudocode"]
     logger.info(f"Created a program based on task description. Program does the following:\n\n{pseudocode}\n\nNow executing the program to identify web elements to be scraped:\n")
     logger.debug("Program:\n%s", abridged_program)
-    abridged_program += "\n\noutput = func()\nprint(f'Program finished and returned a value of:\\n{output}\\n')\n"  # Make the program runnable
+    args = ", ".join(f"{k}={repr(v)}" for k, v in secrets.items())
+    abridged_program += f"\n\noutput = func({args})" + "\nprint(f'Program finished and returned a value of:\\n{output}\\n')\n"  # Make the program runnable
 
     # Execute the abridged program to gather examples
     executor = Executor(headless=headless, infer=infer)
@@ -211,7 +214,7 @@ def create(task=None, program_name=None, headless=False, infer=False, verbose=Fa
         if program_name:
             logger.info(f"Saving program as {program_name}")
             try:
-                pipeline = create_pipeline(program_name, task, full_program, pseudocode)
+                pipeline = create_pipeline(program_name, task, full_program, pseudocode, secrets)
             except APIException as e:
                 if isinstance(e.value, list) and "Pipeline with name already exists" in e.value:
                     logger.info("A program with this name already exists. Please choose another name.")

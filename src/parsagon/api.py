@@ -135,11 +135,11 @@ def get_bool_about_data(data, question):
     return data["result"]
 
 
-def create_pipeline(name, description, program_sketch, pseudocode):
+def create_pipeline(name, description, program_sketch, pseudocode, secrets):
     return _api_call(
         httpx.post,
         "/pipelines/",
-        json={"name": name, "description": description, "program_sketch": program_sketch, "pseudocode": pseudocode},
+        json={"name": name, "description": description, "program_sketch": program_sketch, "pseudocode": pseudocode, "secrets": secrets},
     )
 
 

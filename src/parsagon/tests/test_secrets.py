@@ -9,7 +9,7 @@ def test_non_secrets_are_not_extracted():
     """
     task = 'Go to https://example.com. Type {username: "myusername"} in the username field'
     task, secrets = extract_secrets(task)
-    assert len(secrets) == 0
+    assert secrets == {}
     assert task == 'Go to https://example.com. Type {username: "myusername"} in the username field'
 
 
@@ -19,7 +19,7 @@ def test_secret_is_extracted():
     """
     task = 'Go to https://example.com. Type {SECRET_PASSWORD: "mypassword"} in the password field'
     task, secrets = extract_secrets(task)
-    assert len(secrets) == 1
+    assert secrets == {"SECRET_PASSWORD": "mypassword"}
     assert task == 'Go to https://example.com. Type {SECRET_PASSWORD: "******"} in the password field'
 
 
@@ -29,7 +29,7 @@ def test_secret_with_quotes_is_extracted():
     """
     task = 'Go to https://example.com. Type {SECRET_PASSWORD: "mypassword\\"?!1"} in the password field'
     task, secrets = extract_secrets(task)
-    assert len(secrets) == 1
+    assert secrets == {"SECRET_PASSWORD": 'mypassword"?!1'}
     assert task == 'Go to https://example.com. Type {SECRET_PASSWORD: "******"} in the password field'
 
 
@@ -39,7 +39,7 @@ def test_multiple_secrets_are_extracted():
     """
     task = 'Go to https://example.com. Type {SECRET_PASSWORD: "mypassword"} in the password field. Type {SECRET_ADDRESS: "myaddress"} in the address field'
     task, secrets = extract_secrets(task)
-    assert len(secrets) == 2
+    assert secrets == {"SECRET_PASSWORD": "mypassword", "SECRET_ADDRESS": "myaddress"}
     assert task == 'Go to https://example.com. Type {SECRET_PASSWORD: "******"} in the password field. Type {SECRET_ADDRESS: "******"} in the address field'
 
 
@@ -49,5 +49,5 @@ def test_secrets_mixed_with_non_secrets_are_extracted():
     """
     task = 'Go to https://example.com. Type {USERNAME: "myusername"} in the username field. Type {SECRET_PASSWORD: "mypassword"} in the password field. Type {SECRET_ADDRESS: "myaddress"} in the address field'
     task, secrets = extract_secrets(task)
-    assert len(secrets) == 2
+    assert secrets == {"SECRET_PASSWORD": "mypassword", "SECRET_ADDRESS": "myaddress"}
     assert task == 'Go to https://example.com. Type {USERNAME: "myusername"} in the username field. Type {SECRET_PASSWORD: "******"} in the password field. Type {SECRET_ADDRESS: "******"} in the address field'

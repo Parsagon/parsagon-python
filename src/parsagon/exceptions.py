@@ -24,3 +24,8 @@ class ProgramNotFoundException(ParsagonException):
 
     def to_string(self, verbose):
         return f"A program with name {self.program} does not exist."
+
+
+class RunFailedException(ParsagonException):
+    """Raised when a run fails."""
+    pass

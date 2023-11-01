@@ -192,11 +192,19 @@ def get_pipeline_code(pipeline_name, variables, headless):
         )
 
 
-def create_pipeline_run(pipeline_id, variables):
+def create_pipeline_run(pipeline_id, variables, is_local):
     return _api_call(
         httpx.post,
         f"/pipelines/{pipeline_id}/runs/",
-        json={"variables": variables},
+        json={"variables": variables, "is_local": is_local},
+    )
+
+
+def update_pipeline_run(run_id, data):
+    return _api_call(
+        httpx.patch,
+        f"/pipelines/runs/{run_id}/",
+        json=data,
     )
 
 

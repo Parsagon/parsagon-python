@@ -325,12 +325,12 @@ class Executor:
         elem = self._id_to_elem(elem_id)
         return self._click_elem(elem, window_id)
 
-    def click_next_page(self, description, window_id, call_id):
+    def click_next_page(self, description, window_id, call_id, wait=1):
         elem, elem_id, css_selector, xpath_selector = self.get_elem(description, "BUTTON")
         html = self.get_scrape_html()
         prev_html = self.driver.page_source
         success = self._click_elem(elem, window_id) if elem else False
-        time.sleep(1)
+        time.sleep(wait)
         custom_function = CustomFunction(
             "click_next_page",
             arguments={},

@@ -306,8 +306,6 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
     """
     Executes pipeline code
     """
-    configure_logging(verbose)
-
     if headless and remote:
         raise ParsagonException("Cannot run a program remotely in headless mode")
 
@@ -380,9 +378,7 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
     return globals_locals["output"]
 
 
-def batch_runs(batch_name, program_name, runs=[], headless=False, ignore_errors=False, error_value=None, rerun_warnings=False, rerun_warning_types=[], rerun_errors=False, verbose=False):
-    configure_logging(verbose)
-
+def batch_runs(batch_name, program_name, runs, headless=False, ignore_errors=False, error_value=None, rerun_warnings=False, rerun_warning_types=[], rerun_errors=False, verbose=False):
     save_file = f"{batch_name}.json"
     try:
         with open(save_file) as f:
@@ -444,11 +440,13 @@ def batch_runs(batch_name, program_name, runs=[], headless=False, ignore_errors=
                         else:
                             raise RunFailedException
     except RunFailedException:
-        logger.error(f"Unresolvable error occurred on run with variables {variables}: {error} - Data has been saved to {save_file}. Rerun your command to resume.")
+        pass
     except Exception as e:
-        error = str(e)
-        logger.error(f"Unresolvable error occurred while looping over runs: {error} - Data has been saved to {save_file}. Rerun your command to resume.")
+        error = repr(e)
     finally:
+        configure_logging(verbose)
+        if error:
+            logger.error(f"Unresolvable error occurred on run with variables {variables}: {error} - Data has been saved to {save_file}. Rerun your command to resume.")
         with open(save_file, "w") as f:
             json.dump(outputs, f)
         with open(metadata_file, "w") as f:

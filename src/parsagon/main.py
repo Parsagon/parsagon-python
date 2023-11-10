@@ -24,9 +24,9 @@ from parsagon.api import (
     get_run,
     poll_data,
 )
-from parsagon.exceptions import ParsagonException, APIException, RunFailedException
+from parsagon.assistant import assist
+from parsagon.exceptions import ParsagonException, RunFailedException
 from parsagon.executor import Executor, custom_functions_to_descriptions
-from parsagon.secrets import extract_secrets
 from parsagon.settings import get_api_key, get_settings, clear_settings, save_setting, get_logging_config
 
 logger = logging.getLogger(__name__)
@@ -193,65 +193,7 @@ def main():
 
 
 def create(task=None, program_name=None, headless=False, infer=False, verbose=False):
-    configure_logging(verbose)
-
-    if task:
-        logger.info("Launched with task description:\n%s", task)
-    else:
-        task = input("Type what you want to do: ")
-
-    logger.info("Analyzing task description...")
-    task, secrets = extract_secrets(task)
-    program_sketches = get_program_sketches(task)
-
-    full_program = program_sketches["full"]
-    abridged_program = program_sketches["abridged"]
-    pseudocode = program_sketches["pseudocode"]
-    logger.info(f"Created a program based on task description. Program does the following:\n\n{pseudocode}\n\nNow executing the program to identify web elements to be scraped:\n")
-    logger.debug("Program:\n%s", abridged_program)
-    args = ", ".join(f"{k}={repr(v)}" for k, v in secrets.items())
-    abridged_program += f"\n\noutput = func({args})" + "\nprint(f'Program finished and returned a value of:\\n{output}\\n')\n"  # Make the program runnable
-
-    # Execute the abridged program to gather examples
-    executor = Executor(headless=headless, infer=infer)
-    executor.execute(abridged_program)
-
-    # The user must select a name
-    while True:
-        if not program_name:
-            program_name = input("Name this program to save, or press enter without typing a name to DISCARD: ")
-        if program_name:
-            logger.info(f"Saving program as {program_name}")
-            try:
-                pipeline = create_pipeline(program_name, task, full_program, pseudocode, secrets)
-            except APIException as e:
-                if isinstance(e.value, list) and "Pipeline with name already exists" in e.value:
-                    logger.info("A program with this name already exists. Please choose another name.")
-                    program_name = None
-                    continue
-                else:
-                    raise e
-            pipeline_id = pipeline["id"]
-            try:
-                for call_id, custom_function in executor.custom_functions.items():
-                    debug_suffix = f" ({custom_function.name})"
-                    description = custom_functions_to_descriptions.get(custom_function.name)
-                    description = " to " + description if description else ""
-                    if verbose:
-                        description += debug_suffix
-                    logger.info(f"  Saving function{description}...")
-                    create_custom_function(pipeline_id, call_id, custom_function)
-                logger.info(f"Saved.")
-            except:
-                delete_pipeline(pipeline_id)
-                logger.info(f"An error occurred while saving the program. The program has been discarded.")
-            finally:
-                break
-        else:
-            logger.info("Discarded program.")
-            break
-
-    logger.info("Done.")
+    assist()
 
 
 def update(program_name, variables={}, headless=False, infer=False, replace=False, verbose=False):

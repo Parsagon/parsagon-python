@@ -7,6 +7,8 @@ import psutil
 import time
 from urllib.parse import urljoin
 
+from tqdm import tqdm
+
 import lxml.html
 from pyvirtualdisplay import Display
 import undetected_chromedriver as uc
@@ -191,17 +193,24 @@ class Executor:
 
         # Remove head elements
         for elem in root.iterfind(".//head"):
-            elem.text = ""
+            elem.getparent().remove(elem)
 
         # Remove invisible elements
+        visible_elem_ids = set(driver.execute_script("return Array.from(document.getElementsByTagName('*')).filter((elem) => elem.offsetWidth || elem.offsetHeight || elem.getClientRects().length).map((elem) => elem.getAttribute('data-psgn-id'))"))
         max_elem_id = self.max_elem_ids[self.driver.current_window_handle]
-        for elem_id in range(max_elem_id):
+        for elem_id in tqdm(range(max_elem_id), desc="Analyzing page", bar_format="{l_bar}{bar}"):
             try:
                 lxml_elem = root.xpath(f'//*[@data-psgn-id="{elem_id}"]')[0]
-                selenium_elem = driver.find_elements(By.XPATH, f'//*[@data-psgn-id="{elem_id}"]')[0]
             except IndexError:
                 continue
-            if not selenium_elem.is_displayed():
+            is_visible = str(elem_id) in visible_elem_ids
+            if is_visible:
+                try:
+                    selenium_elem = driver.find_elements(By.XPATH, f'//*[@data-psgn-id="{elem_id}"]')[0]
+                    is_visible = selenium_elem.is_displayed()
+                except IndexError:
+                    is_visible = False
+            if not is_visible:
                 parent = lxml_elem.getparent()
                 if parent is not None:
                     parent.remove(lxml_elem)
@@ -454,6 +463,7 @@ class Executor:
             f"window.scrollTo({{top: document.documentElement.scrollHeight * {y}, left: document.documentElement.scrollWidth * {x}, behavior: 'smooth'}});"
         )
         time.sleep(1)
+        self.mark_html()
 
     def press_key(self, key, window_id):
         if self.driver.current_window_handle != window_id:
@@ -558,12 +568,15 @@ class Executor:
         try:
             exec(code, self.execution_context)
         finally:
-            self.driver.quit()
-            for proc in psutil.process_iter():
-                try:
-                    if proc.name() == "chromedriver":
-                        proc.kill()
-                except psutil.NoSuchProcess:
-                    continue
-            if self.headless:
-                self.display.stop()
+            self.quit()
+
+    def quit(self):
+        self.driver.quit()
+        for proc in psutil.process_iter():
+            try:
+                if proc.name() == "chromedriver":
+                    proc.kill()
+            except psutil.NoSuchProcess:
+                continue
+        if self.headless:
+            self.display.stop()

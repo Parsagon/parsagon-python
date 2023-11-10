@@ -218,5 +218,13 @@ def get_run(run_id):
     )
 
 
+def send_assistant_message(message, thread_id=None):
+    return _api_call(httpx.post, "/transformers/send-assistant-message/", json={"message": message, "thread_id": thread_id})
+
+
+def send_assistant_function_outputs(outputs, thread_id, run_id):
+    return _api_call(httpx.post, "/transformers/send-assistant-function-outputs/", json={"outputs": outputs, "thread_id": thread_id, "run_id": run_id})
+
+
 def poll_data(url, page_type):
     return _api_call(httpx.post, "/extract/", json={"url": url, "page_type": page_type})

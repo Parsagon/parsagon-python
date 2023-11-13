@@ -2,22 +2,25 @@ import json
 from parsagon.api import send_assistant_message, send_assistant_function_outputs
 from parsagon.create import create_program
 from parsagon.executor import Executor
+from parsagon.print import assistant_print, assistant_spinner, browser_print
+from rich.prompt import Prompt
 
 
-def assist():
-    user_message = input("Type what do you want to do: ")
-    response = send_assistant_message(user_message)
+def assist(task, headless, infer):
+    with assistant_spinner():
+        response = send_assistant_message(task)
     while True:
         for message in response["messages"]:
             if message["role"] != "assistant":
                 continue
             for content in message["content"]:
-                print(content["text"]["value"])
+                assistant_print(content["text"]["value"])
         if response["status"] == "completed":
-            reply = input("Reply or type Q to end: ")
+            reply = Prompt.ask("Reply or type Q to end")
             if reply.strip() == "Q":
                 break
-            response = send_assistant_message(reply, response["thread_id"])
+            with assistant_spinner():
+                response = send_assistant_message(reply, response["thread_id"])
         elif response["status"] == "requires_action":
             outputs = []
             for function_call in response["required_action"]:
@@ -29,18 +32,18 @@ def assist():
                     output["output"] = html
                     outputs.append(output)
                 elif name == "create_program":
-                    args["task"] = args.pop("description")
-                    result = create_program(**args)
+                    result = create_program(args["description"], headless=headless, infer=infer)
                     output["output"] = json.dumps(result)
                     outputs.append(output)
-            response = send_assistant_function_outputs(outputs, response["thread_id"], response["run_id"])
+            with assistant_spinner():
+                response = send_assistant_function_outputs(outputs, response["thread_id"], response["run_id"])
         else:
             print("An error occurred")
             break
 
 
 def investigate_page(url):
-    print(f"Let me check what {url} looks like...")
+    browser_print(f"Checking what {url} looks like...")
     executor = Executor()
     executor.goto(url)
     html = executor.get_visible_html()

@@ -7,7 +7,7 @@ import psutil
 import time
 from urllib.parse import urljoin
 
-from tqdm import tqdm
+from rich.progress import Progress
 
 import lxml.html
 from pyvirtualdisplay import Display
@@ -28,11 +28,11 @@ from parsagon.api import (
     scrape_page,
     get_str_about_data,
     get_bool_about_data,
+    get_json_about_data,
 )
 from parsagon.custom_function import CustomFunction
 from parsagon.exceptions import ParsagonException
-
-logger = logging.getLogger(__name__)
+from parsagon.print import browser_print
 
 
 # A dictionary of custom function names to their descriptions for the user
@@ -93,11 +93,12 @@ class Executor:
             "press_key": self.press_key,
             "join_text": self.join_text,
             "wait": self.wait,
+            "get_inner_text": self.get_inner_text,
             "scrape_data": self.scrape_data,
             "get_str_about_data": get_str_about_data,
             "get_bool_about_data": get_bool_about_data,
+            "get_json_about_data": get_json_about_data,
         }
-        logger.debug("Available functions: %s", ", ".join(self.execution_context.keys()))
         self.custom_functions = {}
         self.infer = infer
 
@@ -137,7 +138,6 @@ class Executor:
         """
         Adds node IDs to elements on the current page that don't already have IDs.
         """
-        logger.debug("  Marking HTML...")
         max_elem_id = self.max_elem_ids[self.driver.current_window_handle]
         max_elem_id = self.driver.execute_script(
             f"let elemIdx = {max_elem_id}; "
@@ -198,22 +198,17 @@ class Executor:
         # Remove invisible elements
         visible_elem_ids = set(driver.execute_script("return Array.from(document.getElementsByTagName('*')).filter((elem) => elem.offsetWidth || elem.offsetHeight || elem.getClientRects().length).map((elem) => elem.getAttribute('data-psgn-id'))"))
         max_elem_id = self.max_elem_ids[self.driver.current_window_handle]
-        for elem_id in tqdm(range(max_elem_id), desc="Analyzing page", bar_format="{l_bar}{bar}"):
-            try:
-                lxml_elem = root.xpath(f'//*[@data-psgn-id="{elem_id}"]')[0]
-            except IndexError:
-                continue
-            is_visible = str(elem_id) in visible_elem_ids
-            if is_visible:
-                try:
-                    selenium_elem = driver.find_elements(By.XPATH, f'//*[@data-psgn-id="{elem_id}"]')[0]
-                    is_visible = selenium_elem.is_displayed()
-                except IndexError:
-                    is_visible = False
-            if not is_visible:
-                parent = lxml_elem.getparent()
-                if parent is not None:
-                    parent.remove(lxml_elem)
+        with Progress() as progress:
+            for elem_id in progress.track(range(max_elem_id), description="[green]Analyzing page"):
+                is_visible = str(elem_id) in visible_elem_ids
+                if not is_visible:
+                    try:
+                        lxml_elem = root.xpath(f'//*[@data-psgn-id="{elem_id}"]')[0]
+                        parent = lxml_elem.getparent()
+                        if parent is not None:
+                            parent.remove(lxml_elem)
+                    except IndexError:
+                        continue
 
         return lxml.html.tostring(root).decode()
 
@@ -247,7 +242,7 @@ class Executor:
         return elem, elem_id, css_selector, xpath_selector
 
     def get_elem_by_description(self, description, elem_type):
-        logger.info(f'Looking for {elem_type.lower()}: "{description}"')
+        browser_print(f'Looking for {elem_type.lower()}: "{description}"')
         visible_html = self.get_visible_html()
         elem_id = get_interaction_element_id(visible_html, elem_type, description)
         if elem_id is None:
@@ -256,7 +251,7 @@ class Executor:
             )
         elem = self._id_to_elem(elem_id)
         log_suffix = f' with text "{elem.text}"' if elem.text else ""
-        logger.info(f"Found element" + log_suffix)
+        browser_print(f"Found element" + log_suffix)
         return elem, elem_id
 
     def _id_to_elem(self, elem_id):
@@ -277,7 +272,7 @@ class Executor:
             self.driver.switch_to.new_window("tab")
 
         # Go to website
-        logger.info(f"Going to {url}")
+        browser_print(f"Going to {url}")
         self.driver.get(url)
 
         # Wait for website to load
@@ -299,7 +294,7 @@ class Executor:
 
         try:
             self.driver.execute_script("arguments[0].click();", elem)
-            logger.info("Clicked element")
+            browser_print("Clicked element")
             time.sleep(2)
         except Exception as e:
             return False
@@ -363,7 +358,7 @@ class Executor:
             try:
                 select_obj = Select(elem)
                 select_obj.select_by_visible_text(option)
-                logger.info(f'Selected option "{option}"')
+                browser_print(f'Selected option "{option}"')
                 time.sleep(2)
                 break
             except:
@@ -411,10 +406,9 @@ class Executor:
             try:
                 elem.clear()
                 elem.send_keys(text)
-                logger.info(f'Typed "{text}" into element')
+                browser_print(f'Typed "{text}" into element')
                 if enter:
                     elem.send_keys(Keys.RETURN)
-                    logger.debug("Pressed enter")
                 time.sleep(2)
                 break
             except:
@@ -458,7 +452,7 @@ class Executor:
     def scroll(self, x, y, window_id):
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
-        logger.info(f"Scrolling {x * 100}% to the left and {y * 100}% down")
+        browser_print(f"Scrolling {x * 100}% to the left and {y * 100}% down")
         self.driver.execute_script(
             f"window.scrollTo({{top: document.documentElement.scrollHeight * {y}, left: document.documentElement.scrollWidth * {x}, behavior: 'smooth'}});"
         )
@@ -468,7 +462,7 @@ class Executor:
     def press_key(self, key, window_id):
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
-        logger.info(f"Pressing {key}")
+        browser_print(f"Pressing {key}")
         ActionChains(self.driver).send_keys(getattr(Keys, key)).perform()
         time.sleep(1)
 
@@ -476,10 +470,13 @@ class Executor:
         return "\\n\\n".join(strings)
 
     def wait(self, seconds):
-        logger.info(f"Waiting {seconds} seconds...")
+        browser_print(f"Waiting {seconds} seconds...")
         time.sleep(seconds)
         self.mark_html()
         self.inject_highlights_script()
+
+    def get_inner_text(self, window_id):
+        return self.driver.execute_script("return document.body.innerText;")
 
     def scrape_data(self, schema, window_id, call_id):
         """
@@ -523,7 +520,7 @@ class Executor:
                 else:
                     nodes[field] = [[node_id] for node_id in self.get_selected_node_ids()]
                 self.highlights_cleanup()
-            logger.info("Scraping data...")
+            browser_print("Scraping data...")
             result = get_cleaned_data(html, schema, nodes)
             scraped_data = result["data"]
         else:
@@ -531,7 +528,7 @@ class Executor:
             input(f"Click on the element(s) from which data should be inferred. Hit ENTER when done: ")
             relevant_elem_ids = self.get_selected_node_and_descendant_ids()
             self.highlights_cleanup()
-            logger.info("Scraping data...")
+            browser_print("Scraping data...")
             result = scrape_page(html, schema, relevant_elem_ids)
             scraped_data = result["data"]
             nodes = result["nodes"]
@@ -543,7 +540,7 @@ class Executor:
                 raise ParsagonException(
                     f"Parsagon found the following data on the page for the format {schema}:\n\n{scraped_data}\n\nHowever, it could not find a plausible program to scrape this data. If the data above is incorrect, perhaps try rephrasing your prompt."
                 )
-        logger.info(f"Scraped data:\n{scraped_data}")
+        browser_print(f"Scraped data:\n{scraped_data}")
 
         custom_function = CustomFunction(
             "scrape_data",
@@ -565,8 +562,10 @@ class Executor:
         return scraped_data
 
     def execute(self, code):
+        loc = {}
         try:
-            exec(code, self.execution_context)
+            exec(code, self.execution_context, loc)
+            browser_print(f"Program finished and returned a value of:\n{loc['output']}\n")
         finally:
             self.quit()
 

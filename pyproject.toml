@@ -16,7 +16,7 @@ line-length = 120
 
 [project]
 name = "parsagon"
-version = "0.11.0"
+version = "0.12.0"
 description = "Allows you to create browser automations with natural language"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -33,8 +33,7 @@ dependencies = [
     'lxml == 4.9.2',
     'httpx == 0.24.1',
     'psutil == 5.9.6',
-    'halo == 0.0.31',
-    'tqdm == 4.66.1',
+    'rich == 13.6.0',
 
     # Used only in pipeline code execution
     'PyVirtualDisplay==3.0',

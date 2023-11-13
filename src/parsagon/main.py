@@ -7,8 +7,9 @@ import psutil
 import time
 import traceback
 
-from halo import Halo
-from tqdm import tqdm
+from rich.console import Console
+from rich.progress import Progress
+from rich.prompt import Prompt
 
 from parsagon.api import (
     get_program_sketches,
@@ -24,11 +25,13 @@ from parsagon.api import (
     get_run,
     poll_data,
 )
-from parsagon.exceptions import ParsagonException, APIException, RunFailedException
+from parsagon.assistant import assist
+from parsagon.create import create_program
+from parsagon.exceptions import ParsagonException, RunFailedException
 from parsagon.executor import Executor, custom_functions_to_descriptions
-from parsagon.secrets import extract_secrets
 from parsagon.settings import get_api_key, get_settings, clear_settings, save_setting, get_logging_config
 
+console = Console()
 logger = logging.getLogger(__name__)
 
 
@@ -46,18 +49,6 @@ def get_args():
     # Create
     parser_create = subparsers.add_parser("create", description="Creates a program.")
     parser_create.add_argument(
-        "--task",
-        dest="task",
-        type=str,
-        help="natural language description of the task to run",
-    )
-    parser_create.add_argument(
-        "--program",
-        dest="program_name",
-        type=str,
-        help="the name of the program to create",
-    )
-    parser_create.add_argument(
         "--headless",
         action="store_true",
         help="run the browser in headless mode",
@@ -66,6 +57,11 @@ def get_args():
         "--infer",
         action="store_true",
         help="let Parsagon infer all elements to be scraped",
+    )
+    parser_create.add_argument(
+        "--no_assistant",
+        action="store_true",
+        help="disable the Parsagon assistant",
     )
     parser_create.set_defaults(func=create)
 
@@ -192,66 +188,12 @@ def main():
         parser.print_help()
 
 
-def create(task=None, program_name=None, headless=False, infer=False, verbose=False):
-    configure_logging(verbose)
-
-    if task:
-        logger.info("Launched with task description:\n%s", task)
+def create(headless=False, infer=False, no_assistant=False, verbose=False):
+    task = Prompt.ask("Type what do you want to do")
+    if no_assistant:
+        create_program(task, headless=headless, infer=infer)
     else:
-        task = input("Type what you want to do: ")
-
-    logger.info("Analyzing task description...")
-    task, secrets = extract_secrets(task)
-    program_sketches = get_program_sketches(task)
-
-    full_program = program_sketches["full"]
-    abridged_program = program_sketches["abridged"]
-    pseudocode = program_sketches["pseudocode"]
-    logger.info(f"Created a program based on task description. Program does the following:\n\n{pseudocode}\n\nNow executing the program to identify web elements to be scraped:\n")
-    logger.debug("Program:\n%s", abridged_program)
-    args = ", ".join(f"{k}={repr(v)}" for k, v in secrets.items())
-    abridged_program += f"\n\noutput = func({args})" + "\nprint(f'Program finished and returned a value of:\\n{output}\\n')\n"  # Make the program runnable
-
-    # Execute the abridged program to gather examples
-    executor = Executor(headless=headless, infer=infer)
-    executor.execute(abridged_program)
-
-    # The user must select a name
-    while True:
-        if not program_name:
-            program_name = input("Name this program to save, or press enter without typing a name to DISCARD: ")
-        if program_name:
-            logger.info(f"Saving program as {program_name}")
-            try:
-                pipeline = create_pipeline(program_name, task, full_program, pseudocode, secrets)
-            except APIException as e:
-                if isinstance(e.value, list) and "Pipeline with name already exists" in e.value:
-                    logger.info("A program with this name already exists. Please choose another name.")
-                    program_name = None
-                    continue
-                else:
-                    raise e
-            pipeline_id = pipeline["id"]
-            try:
-                for call_id, custom_function in executor.custom_functions.items():
-                    debug_suffix = f" ({custom_function.name})"
-                    description = custom_functions_to_descriptions.get(custom_function.name)
-                    description = " to " + description if description else ""
-                    if verbose:
-                        description += debug_suffix
-                    logger.info(f"  Saving function{description}...")
-                    create_custom_function(pipeline_id, call_id, custom_function)
-                logger.info(f"Saved.")
-            except:
-                delete_pipeline(pipeline_id)
-                logger.info(f"An error occurred while saving the program. The program has been discarded.")
-            finally:
-                break
-        else:
-            logger.info("Discarded program.")
-            break
-
-    logger.info("Done.")
+        assist(task, headless=headless, infer=infer)
 
 
 def update(program_name, variables={}, headless=False, infer=False, replace=False, verbose=False):
@@ -261,8 +203,7 @@ def update(program_name, variables={}, headless=False, infer=False, replace=Fals
     abridged_program = pipeline["abridged_sketch"]
     # Make the program runnable
     variables_str = ", ".join(f"{k}={repr(v)}" for k, v in variables.items())
-    abridged_program += f"\n\noutput = func({variables_str})"
-    abridged_program += "\nprint(f'Program finished and returned a value of:\\n{output}\\n')\n"
+    abridged_program += f"\n\noutput = func({variables_str})\n"
 
     # Execute the abridged program to gather examples
     executor = Executor(headless=headless, infer=infer)
@@ -314,7 +255,7 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
 
     if remote:
         result = create_pipeline_run(pipeline_id, variables, False)
-        with Halo(text="Program running remotely...", spinner="dots"):
+        with console.status("Program running remotely...") as status:
             while True:
                 run = get_run(result["id"])
                 status = run["status"]
@@ -393,52 +334,52 @@ def batch_runs(batch_name, program_name, runs, headless=False, ignore_errors=Fal
         metadata = []
 
     num_initial_results = len(outputs)
-    pbar = tqdm(runs)
-    default_desc = f'Running program "{program_name}"'
-    pbar.set_description(default_desc)
     error = None
     variables = None
     try:
-        for i, variables in enumerate(pbar):
-            if i < num_initial_results:
-                if rerun_errors and metadata[i]["status"] == "ERROR":
-                    pass
-                elif rerun_warnings and metadata[i]["warnings"]:
-                    if not rerun_warning_types or any(warning["type"] in rerun_warning_types for warning in metadata[i]["warnings"]):
+        default_desc = f'Running program "{program_name}"'
+        with Progress() as progress:
+            task = progress.add_task(default_desc, total=len(runs))
+            for i, variables in progress.track(enumerate(runs), task_id=task):
+                if i < num_initial_results:
+                    if rerun_errors and metadata[i]["status"] == "ERROR":
                         pass
-                    else:
-                        continue
-                else:
-                    continue
-            for j in range(3):
-                result = run(program_name, variables, headless, output_log=True)
-                if result["status"] != "ERROR":
-                    output = result.pop("output")
-                    if i < num_initial_results:
-                        outputs[i] = output
-                        metadata[i] = result
-                    else:
-                        outputs.append(output)
-                        metadata.append(result)
-                    break
-                else:
-                    error = result["error"].strip().split("\n")[-1]
-                    if j < 2:
-                        pbar.set_description(f"An error occurred: {error} - Waiting 60s before retrying (Attempt {j+2}/3)")
-                        time.sleep(60)
-                        pbar.set_description(default_desc)
-                        error = None
-                        continue
-                    else:
-                        if ignore_errors:
-                            error = None
-                            if i < num_initial_results:
-                                outputs[i] = error_value
-                            else:
-                                outputs.append(error_value)
-                            break
+                    elif rerun_warnings and metadata[i]["warnings"]:
+                        if not rerun_warning_types or any(warning["type"] in rerun_warning_types for warning in metadata[i]["warnings"]):
+                            pass
                         else:
-                            raise RunFailedException
+                            continue
+                    else:
+                        continue
+                for j in range(3):
+                    result = run(program_name, variables, headless, output_log=True)
+                    if result["status"] != "ERROR":
+                        output = result.pop("output")
+                        if i < num_initial_results:
+                            outputs[i] = output
+                            metadata[i] = result
+                        else:
+                            outputs.append(output)
+                            metadata.append(result)
+                        break
+                    else:
+                        error = result["error"].strip().split("\n")[-1]
+                        if j < 2:
+                            progress.update(task, description=f"An error occurred: {error} - Waiting 60s before retrying (Attempt {j+2}/3)")
+                            time.sleep(60)
+                            progress.update(task, description=default_desc)
+                            error = None
+                            continue
+                        else:
+                            if ignore_errors:
+                                error = None
+                                if i < num_initial_results:
+                                    outputs[i] = error_value
+                                else:
+                                    outputs.append(error_value)
+                                break
+                            else:
+                                raise RunFailedException
     except RunFailedException:
         pass
     except Exception as e:
@@ -492,7 +433,7 @@ def setup(verbose=False):
 
 def _get_data(url, page_type, timeout):
     start_time = time.time()
-    with Halo(text="Extracting data...", spinner="dots"):
+    with console.status("Extracting data...") as status:
         while time.time() - start_time <= timeout:
             result = poll_data(url, page_type)
             if result["done"]:

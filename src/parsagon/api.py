@@ -135,6 +135,16 @@ def get_bool_about_data(data, question):
     return data["result"]
 
 
+def get_json_about_data(data, question):
+    """
+    Asks GPT a question about the given data.
+    :param data: the data to give GPT
+    :param question: the question to ask about the data
+    """
+    data = _api_call(httpx.post, "/transformers/get-json-about-data/", json={"data": data, "question": question})
+    return data["result"]
+
+
 def create_pipeline(name, description, program_sketch, pseudocode, secrets):
     return _api_call(
         httpx.post,
@@ -216,6 +226,14 @@ def get_run(run_id):
         httpx.get,
         f"/pipelines/runs/{run_id}/",
     )
+
+
+def send_assistant_message(message, thread_id=None):
+    return _api_call(httpx.post, "/transformers/send-assistant-message/", json={"message": message, "thread_id": thread_id})
+
+
+def send_assistant_function_outputs(outputs, thread_id, run_id):
+    return _api_call(httpx.post, "/transformers/send-assistant-function-outputs/", json={"outputs": outputs, "thread_id": thread_id, "run_id": run_id})
 
 
 def poll_data(url, page_type):

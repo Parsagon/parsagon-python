@@ -3,6 +3,7 @@ import logging
 import sys
 from os import environ
 from pathlib import Path
+import logging.config
 
 from parsagon.exceptions import ParsagonException
 
@@ -114,3 +115,7 @@ def get_logging_config(log_level="INFO"):
             },
         },
     }
+
+
+def configure_logging(verbose):
+    logging.config.dictConfig(get_logging_config("DEBUG" if verbose else "INFO"))

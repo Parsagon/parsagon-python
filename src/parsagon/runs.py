@@ -96,6 +96,8 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
         if "error" not in run_data:
             run["output"] = globals_locals["output"]
         return {k: v for k, v in run.items() if k in ("output", "status", "log", "warnings", "error")}
+    output_json = json.dumps(globals_locals.get("output")) if "output" in globals_locals else None
+    logger.info(f"Output:\n{output_json}")
     return globals_locals["output"]
 
 

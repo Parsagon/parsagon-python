@@ -196,7 +196,7 @@ class Executor:
             elem.getparent().remove(elem)
 
         # Remove invisible elements
-        visible_elem_ids = set(driver.execute_script("return Array.from(document.getElementsByTagName('*')).filter((elem) => elem.offsetWidth || elem.offsetHeight || elem.getClientRects().length).map((elem) => elem.getAttribute('data-psgn-id'))"))
+        visible_elem_ids = set(driver.execute_script("return Array.from(document.getElementsByTagName('*')).filter((elem) => { const style = getComputedStyle(elem); return style.opacity > 0.1 && style.display !== 'none' && style.visibility === 'visible' && elem.offsetWidth && elem.offsetHeight && elem.getClientRects().length }).map((elem) => elem.getAttribute('data-psgn-id'))"))
         max_elem_id = self.max_elem_ids[self.driver.current_window_handle]
         with Progress() as progress:
             for elem_id in progress.track(range(max_elem_id), description="[green]Analyzing page"):

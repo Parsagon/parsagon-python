@@ -16,3 +16,7 @@ def assistant_spinner(text=""):
 
 def browser_print(text):
     console.print(text, style="green")
+
+
+def error_print(text):
+    console.print(text, style="red")

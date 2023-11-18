@@ -2,7 +2,7 @@ import json
 from parsagon.api import send_assistant_message, send_assistant_function_outputs
 from parsagon.create import create_program
 from parsagon.executor import Executor
-from parsagon.print import assistant_print, assistant_spinner, browser_print
+from parsagon.print import assistant_print, assistant_spinner, browser_print, error_print
 from rich.prompt import Prompt
 
 
@@ -10,6 +10,9 @@ def assist(task, headless, infer):
     with assistant_spinner():
         response = send_assistant_message(task)
     while True:
+        if not response["success"]:
+            error_print("The OpenAI API is currently experiencing difficulties. You can try again later, or you can run `parsagon create --no_assistant` to use Parsagon without assistance from GPT.")
+            return
         for message in response["messages"]:
             if message["role"] != "assistant":
                 continue

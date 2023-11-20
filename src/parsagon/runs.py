@@ -8,6 +8,7 @@ import traceback
 import psutil
 from rich.console import Console
 from rich.progress import Progress
+from rich.prompt import Prompt
 
 from parsagon.api import (
     create_pipeline_run,
@@ -21,6 +22,16 @@ from parsagon.settings import get_api_key
 
 console = Console()
 logger = logging.getLogger(__name__)
+
+
+def run_with_file_output(*args, **kwargs):
+    dump_path = Prompt.ask("Please enter a path/filename to save the output (in JSON format)")
+    if not dump_path.endswith(".json"):
+        dump_path += ".json"
+    result = run(*args, **kwargs)
+    with open(dump_path, "w") as f:
+        json.dump(result, f, indent=4)
+    print(f"Output saved to {dump_path}")
 
 
 def run(program_name, variables={}, headless=False, remote=False, output_log=False, verbose=False):
@@ -96,8 +107,6 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
         if "error" not in run_data:
             run["output"] = globals_locals["output"]
         return {k: v for k, v in run.items() if k in ("output", "status", "log", "warnings", "error")}
-    output_json = json.dumps(globals_locals.get("output")) if "output" in globals_locals else None
-    logger.info(f"Output:\n{output_json}")
     return globals_locals["output"]
 
 

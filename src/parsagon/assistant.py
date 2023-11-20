@@ -9,7 +9,6 @@ from parsagon.runs import run, batch_runs, run_with_file_output
 
 def assist(headless=False, infer=False, verbose=False):
     task = Prompt.ask("Type what do you want to do")
-    create_program(task, headless=headless, infer=infer)
     with assistant_spinner():
         response = send_assistant_message(task)
     while True:

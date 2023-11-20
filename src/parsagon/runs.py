@@ -32,6 +32,7 @@ def run_with_file_output(*args, **kwargs):
     with open(dump_path, "w") as f:
         json.dump(result, f, indent=4)
     print(f"Output saved to {dump_path}")
+    return result
 
 
 def run(program_name, variables={}, headless=False, remote=False, output_log=False, verbose=False):

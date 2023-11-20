@@ -17,7 +17,7 @@ from parsagon.assistant import assist
 from parsagon.create import create_program
 from parsagon.exceptions import ParsagonException
 from parsagon.executor import Executor, custom_functions_to_descriptions
-from parsagon.runs import run
+from parsagon.runs import run_with_file_output
 from parsagon.settings import get_api_key, save_setting, configure_logging
 
 console = Console()
@@ -29,6 +29,16 @@ def get_args():
         prog="parsagon", description="Scrapes and interacts with web pages based on natural language.", add_help=False
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="run the task in verbose mode")
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="run the browser in headless mode",
+    )
+    parser.add_argument(
+        "--infer",
+        action="store_true",
+        help="let Parsagon infer all elements to be scraped",
+    )
     subparsers = parser.add_subparsers()
 
     # Create
@@ -43,12 +53,7 @@ def get_args():
         action="store_true",
         help="let Parsagon infer all elements to be scraped",
     )
-    parser_create.add_argument(
-        "--no_assistant",
-        action="store_true",
-        help="disable the Parsagon assistant",
-    )
-    parser_create.set_defaults(func=create)
+    parser_create.set_defaults(func=create_cli)
 
     # Detail
     parser_detail = subparsers.add_parser(
@@ -128,7 +133,7 @@ def get_args():
         action="store_true",
         help="output log data from the run",
     )
-    parser_run.set_defaults(func=run)
+    parser_run.set_defaults(func=run_with_file_output)
 
     # Delete
     parser_delete = subparsers.add_parser(
@@ -152,6 +157,13 @@ def get_args():
     )
     parser_setup.set_defaults(func=setup)
 
+    # Help
+    parser_help = subparsers.add_parser(
+        "help",
+        description="Shows help.",
+    )
+    parser_help.set_defaults(func=help, parser=parser)
+
     args = parser.parse_args()
     kwargs = vars(args)
     return kwargs, parser
@@ -159,26 +171,26 @@ def get_args():
 
 def main():
     kwargs, parser = get_args()
-    func = kwargs.pop("func")
+    func = kwargs.pop("func", None)
+    if func is None:
+        func = assist
+    else:
+        # Pop assist-only arguments
+        kwargs.pop("infer")
+        kwargs.pop("headless")
     verbose = kwargs["verbose"]
     configure_logging(verbose)
 
-    if func:
-        try:
-            return func(**kwargs)
-        except ParsagonException as e:
-            error_message = "Error:\n" + e.to_string(verbose)
-            logger.error(error_message)
-    else:
-        parser.print_help()
+    try:
+        return func(**kwargs)
+    except ParsagonException as e:
+        error_message = "Error:\n" + e.to_string(verbose)
+        logger.error(error_message)
 
 
-def create(headless=False, infer=False, no_assistant=False, verbose=False):
-    task = Prompt.ask("Type what do you want to do")
-    if no_assistant:
-        create_program(task, headless=headless, infer=infer)
-    else:
-        assist(task, headless=headless, infer=infer)
+def create_cli(headless=False, infer=False, verbose=False):
+    task = Prompt.ask("Enter a detailed scraping task")
+    create_program(task, headless=headless, infer=infer)
 
 
 def update(program_name, variables={}, headless=False, infer=False, replace=False, verbose=False):
@@ -257,6 +269,10 @@ def setup(verbose=False):
         logger.error("\nCancelled operation.")
         return
     logger.info("Setup complete.")
+
+
+def help(parser, verbose):
+    parser.print_help()
 
 
 def _get_data(url, page_type, timeout):

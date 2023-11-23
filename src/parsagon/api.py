@@ -46,10 +46,7 @@ def _api_call(httpx_func, endpoint, **kwargs):
     if not r.is_success:
         _request_to_exception(r)
     else:
-        try:
-            return r.json()
-        except:
-            return None
+        return r.json()
 
 
 def get_program_sketches(description):

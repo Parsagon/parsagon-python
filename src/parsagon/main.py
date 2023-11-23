@@ -15,7 +15,6 @@ from parsagon.api import (
     get_program_sketches,
     create_pipeline,
     delete_pipeline,
-    create_custom_function,
     add_examples_to_custom_function,
     create_pipeline_run,
     update_pipeline_run,

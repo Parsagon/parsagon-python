@@ -38,15 +38,28 @@ def _request_to_exception(response):
         raise APIException("Could not parse response.", status_code)
 
 
-def _api_call(httpx_func, endpoint, **kwargs):
+def _api_call(httpx_func, endpoint, output="json", **kwargs):
+    """
+    Calls `httpx_func` using the given endpoint. kwargs are passed to `httpx_func`
+
+    Output mode can be "json" or "none".
+    "json" returns the response as a deserialized JSON object.
+    "none" returns None.
+
+    If the request is not successful, an exception is thrown.
+    """
     api_key = settings.get_api_key()
     api_endpoint = f"{settings.get_api_base()}/api{endpoint}"
     headers = {"Authorization": f"Token {api_key}"}
     r = httpx_func(api_endpoint, headers=headers, timeout=None, **kwargs)
     if not r.is_success:
         _request_to_exception(r)
-    else:
+    if output == "json":
         return r.json()
+    elif output == "none":
+        return
+    else:
+        raise Exception("Invalid output mode")
 
 
 def get_program_sketches(description):
@@ -151,7 +164,7 @@ def create_pipeline(name, description, program_sketch, pseudocode, secrets):
 
 
 def delete_pipeline(pipeline_id):
-    return _api_call(httpx.delete, f"/pipelines/{pipeline_id}/")
+    _api_call(httpx.delete, f"/pipelines/{pipeline_id}/", output="none")
 
 
 def create_custom_function(pipeline_id, call_id, custom_function):

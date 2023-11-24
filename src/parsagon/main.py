@@ -22,7 +22,7 @@ from parsagon.api import (
     get_pipelines,
     get_pipeline_code,
     get_run,
-    poll_data,
+    poll_extract,
 )
 from parsagon.assistant import assist
 from parsagon.create import create_program
@@ -434,7 +434,7 @@ def _get_data(url, page_type, timeout):
     start_time = time.time()
     with console.status("Extracting data...") as status:
         while time.time() - start_time <= timeout:
-            result = poll_data(url, page_type)
+            result = poll_extract(url, page_type)
             if result["done"]:
                 return result["result"]
             time.sleep(15)

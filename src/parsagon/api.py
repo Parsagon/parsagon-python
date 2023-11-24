@@ -1,4 +1,5 @@
 from json import JSONDecodeError
+import time
 
 import httpx
 
@@ -125,14 +126,22 @@ def scrape_page(html, schema, relevant_elem_ids):
     )
 
 
+def poll_about_data(url, json):
+    for _ in range(10):
+        result = _api_call(httpx.post, url, json=json)
+        if result["done"]:
+            return result["result"]
+        time.sleep(5)
+    raise APIException("Request timed out")
+
+
 def get_str_about_data(data, question):
     """
     Asks GPT a question about the given data.
     :param data: the data to give GPT
     :param question: the question to ask about the data
     """
-    data = _api_call(httpx.post, "/transformers/get-str-about-data/", json={"data": data, "question": question})
-    return data["result"]
+    return poll_about_data("/transformers/get-str-about-data/", {"data": data, "question": question})
 
 
 def get_bool_about_data(data, question):
@@ -141,8 +150,7 @@ def get_bool_about_data(data, question):
     :param data: the data to give GPT
     :param question: the question to ask about the data
     """
-    data = _api_call(httpx.post, "/transformers/get-bool-about-data/", json={"data": data, "question": question})
-    return data["result"]
+    return poll_about_data("/transformers/get-bool-about-data/", {"data": data, "question": question})
 
 
 def get_json_about_data(data, question):
@@ -151,8 +159,7 @@ def get_json_about_data(data, question):
     :param data: the data to give GPT
     :param question: the question to ask about the data
     """
-    data = _api_call(httpx.post, "/transformers/get-json-about-data/", json={"data": data, "question": question})
-    return data["result"]
+    return poll_about_data("/transformers/get-json-about-data/", {"data": data, "question": question})
 
 
 def create_pipeline(name, description, program_sketch, pseudocode, secrets):
@@ -246,5 +253,5 @@ def send_assistant_function_outputs(outputs, thread_id, run_id):
     return _api_call(httpx.post, "/transformers/send-assistant-function-outputs/", json={"outputs": outputs, "thread_id": thread_id, "run_id": run_id})
 
 
-def poll_data(url, page_type):
+def poll_extract(url, page_type):
     return _api_call(httpx.post, "/extract/", json={"url": url, "page_type": page_type})

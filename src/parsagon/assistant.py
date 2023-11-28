@@ -13,7 +13,9 @@ def assist(headless=False, infer=False, verbose=False):
         response = send_assistant_message(task)
     while True:
         if not response["success"]:
-            error_print("The OpenAI API is currently experiencing difficulties. You can try again later, or you can run `parsagon create --no_assistant` to use Parsagon without assistance from GPT.")
+            error_print(
+                "The OpenAI API is currently experiencing difficulties. You can try again later, or you can run `parsagon create --no_assistant` to use Parsagon without assistance from GPT."
+            )
             return
         for message in response["messages"]:
             if message["role"] != "assistant":
@@ -45,6 +47,7 @@ def assist(headless=False, infer=False, verbose=False):
                     output["output"] = json.dumps(result)
                     outputs.append(output)
                 elif name == "batch_runs":
+                    args["runs"] = args.pop("variable_list")
                     batch_name = input("Please enter a name for the batch run (for saving of intermediate results): ")
                     result = batch_runs(batch_name, **args)
                     output["output"] = json.dumps(result)

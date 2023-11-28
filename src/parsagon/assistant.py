@@ -1,5 +1,5 @@
 import json
-from parsagon.api import send_assistant_message, send_assistant_function_outputs
+from parsagon.api import send_assistant_message, send_assistant_function_outputs, schedule, delete_schedule
 from parsagon.create import create_program
 from parsagon.executor import Executor
 from parsagon.print import assistant_print, assistant_spinner, browser_print
@@ -45,6 +45,15 @@ def assist(headless=False, infer=False, verbose=False):
                     batch_name = input("Please enter a name for the batch run (for saving of intermediate results): ")
                     result = batch_runs(batch_name, **args)
                     output["output"] = json.dumps(result)
+                    outputs.append(output)
+                elif name == "set_schedule":
+                    print(args)
+                    result = schedule(**args)
+                    output["output"] = json.dumps(result)
+                    outputs.append(output)
+                elif name == "clear_schedule":
+                    delete_schedule(**args)
+                    output["output"] = "Schedule cleared"
                     outputs.append(output)
             with assistant_spinner():
                 response = send_assistant_function_outputs(outputs, response["thread_id"], response["run_id"])

@@ -209,7 +209,9 @@ def update(program_name, variables={}, headless=False, infer=False, replace=Fals
     executor.execute(abridged_program)
 
     while True:
-        program_name_input = input(f"Type \"{program_name}\" to update this program, or press enter without typing a name to CANCEL: ")
+        program_name_input = input(
+            f'Type "{program_name}" to update this program, or press enter without typing a name to CANCEL: '
+        )
         if not program_name_input:
             logger.info("Canceled update.")
             return
@@ -248,6 +250,9 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
     """
     if headless and remote:
         raise ParsagonException("Cannot run a program remotely in headless mode")
+
+    if not isinstance(variables, dict):
+        raise ParsagonException("Variables must be a dictionary")
 
     logger.info("Preparing to run program %s", program_name)
     pipeline_id = get_pipeline(program_name)["id"]
@@ -318,7 +323,23 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
     return globals_locals["output"]
 
 
-def batch_runs(batch_name, program_name, runs, headless=False, ignore_errors=False, error_value=None, rerun_warnings=False, rerun_warning_types=[], rerun_errors=False, verbose=False):
+def batch_runs(
+    batch_name,
+    program_name,
+    runs,
+    headless=False,
+    ignore_errors=False,
+    error_value=None,
+    rerun_warnings=False,
+    rerun_warning_types=[],
+    rerun_errors=False,
+    verbose=False,
+):
+
+    # Validate runs
+    if not all(isinstance(run_, dict) for run_ in runs):
+        raise ParsagonException("Runs must be a list of dictionaries")
+
     save_file = f"{batch_name}.json"
     try:
         with open(save_file) as f:
@@ -344,7 +365,9 @@ def batch_runs(batch_name, program_name, runs, headless=False, ignore_errors=Fal
                     if rerun_errors and metadata[i]["status"] == "ERROR":
                         pass
                     elif rerun_warnings and metadata[i]["warnings"]:
-                        if not rerun_warning_types or any(warning["type"] in rerun_warning_types for warning in metadata[i]["warnings"]):
+                        if not rerun_warning_types or any(
+                            warning["type"] in rerun_warning_types for warning in metadata[i]["warnings"]
+                        ):
                             pass
                         else:
                             continue
@@ -364,7 +387,10 @@ def batch_runs(batch_name, program_name, runs, headless=False, ignore_errors=Fal
                     else:
                         error = result["error"].strip().split("\n")[-1]
                         if j < 2:
-                            progress.update(task, description=f"An error occurred: {error} - Waiting 60s before retrying (Attempt {j+2}/3)")
+                            progress.update(
+                                task,
+                                description=f"An error occurred: {error} - Waiting 60s before retrying (Attempt {j+2}/3)",
+                            )
                             time.sleep(60)
                             progress.update(task, description=default_desc)
                             error = None
@@ -386,7 +412,9 @@ def batch_runs(batch_name, program_name, runs, headless=False, ignore_errors=Fal
     finally:
         configure_logging(verbose)
         if error:
-            logger.error(f"Unresolvable error occurred on run with variables {variables}: {error} - Data has been saved to {save_file}. Rerun your command to resume.")
+            logger.error(
+                f"Unresolvable error occurred on run with variables {variables}: {error} - Data has been saved to {save_file}. Rerun your command to resume."
+            )
         with open(save_file, "w") as f:
             json.dump(outputs, f)
         with open(metadata_file, "w") as f:
@@ -397,7 +425,9 @@ def batch_runs(batch_name, program_name, runs, headless=False, ignore_errors=Fal
         if m["warnings"]:
             num_warnings += len(m["warnings"])
             num_runs_with_warnings += 1
-    logger.info(f"\nSummary: {len(outputs)} runs made; {num_warnings} warnings encountered across {num_runs_with_warnings} runs. See {metadata_file} for logs.\n")
+    logger.info(
+        f"\nSummary: {len(outputs)} runs made; {num_warnings} warnings encountered across {num_runs_with_warnings} runs. See {metadata_file} for logs.\n"
+    )
     return None if error else outputs
 
 

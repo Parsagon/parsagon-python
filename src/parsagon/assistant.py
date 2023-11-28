@@ -47,7 +47,6 @@ def assist(headless=False, infer=False, verbose=False):
                     output["output"] = json.dumps(result)
                     outputs.append(output)
                 elif name == "set_schedule":
-                    print(args)
                     result = schedule(**args)
                     output["output"] = json.dumps(result)
                     outputs.append(output)

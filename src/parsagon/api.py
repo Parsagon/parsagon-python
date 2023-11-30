@@ -1,5 +1,6 @@
 from json import JSONDecodeError
 import time
+from urllib.parse import quote
 
 import httpx
 
@@ -166,7 +167,13 @@ def create_pipeline(name, description, program_sketch, pseudocode, secrets):
     return _api_call(
         httpx.post,
         "/pipelines/",
-        json={"name": name, "description": description, "program_sketch": program_sketch, "pseudocode": pseudocode, "secrets": secrets},
+        json={
+            "name": name,
+            "description": description,
+            "program_sketch": program_sketch,
+            "pseudocode": pseudocode,
+            "secrets": secrets,
+        },
     )
 
 
@@ -195,11 +202,21 @@ def add_examples_to_custom_function(pipeline_id, call_id, custom_function, remov
     )
 
 
+def double_quote(string):
+    """
+    A bug in Django disallows URLs even with quoted slashes as in:
+    /api/pipelines/name/stripe%2Fstuff/code/ HTTP/1.1" 405
+    Therefore we must double quote
+    """
+    return quote(quote(string, safe=""), safe="")
+
+
 def get_pipeline(pipeline_name):
+    pipeline_name = double_quote(pipeline_name)
     with RaiseProgramNotFound(pipeline_name):
         return _api_call(
             httpx.get,
-            f"/pipelines/name/{pipeline_name}/",
+            f"/pipelines/named/{pipeline_name}/",
         )
 
 
@@ -208,10 +225,11 @@ def get_pipelines():
 
 
 def get_pipeline_code(pipeline_name, variables, headless):
+    pipeline_name = double_quote(pipeline_name)
     with RaiseProgramNotFound(pipeline_name):
         return _api_call(
             httpx.post,
-            f"/pipelines/name/{pipeline_name}/code/",
+            f"/pipelines/named/{pipeline_name}/code/",
             json={
                 "variables": variables,
                 "headless": headless,
@@ -246,11 +264,17 @@ def get_run(run_id):
 
 
 def send_assistant_message(message, thread_id=None):
-    return _api_call(httpx.post, "/transformers/send-assistant-message/", json={"message": message, "thread_id": thread_id})
+    return _api_call(
+        httpx.post, "/transformers/send-assistant-message/", json={"message": message, "thread_id": thread_id}
+    )
 
 
 def send_assistant_function_outputs(outputs, thread_id, run_id):
-    return _api_call(httpx.post, "/transformers/send-assistant-function-outputs/", json={"outputs": outputs, "thread_id": thread_id, "run_id": run_id})
+    return _api_call(
+        httpx.post,
+        "/transformers/send-assistant-function-outputs/",
+        json={"outputs": outputs, "thread_id": thread_id, "run_id": run_id},
+    )
 
 
 def poll_extract(url, page_type):

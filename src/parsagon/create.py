@@ -6,7 +6,7 @@ from parsagon.secrets import extract_secrets
 from rich.prompt import Prompt
 
 
-def create_program(task, headless=False, infer=False):
+def create_program(task, headless=False, infer=False, undetected=False):
     assistant_print("Creating a program based on your specifications...")
     task, secrets = extract_secrets(task)
     program_sketches = get_program_sketches(task)
@@ -28,7 +28,7 @@ def create_program(task, headless=False, infer=False):
     abridged_program += f"\n\noutput = func({args})\n"  # Make the program runnable
 
     # Execute the abridged program to gather examples
-    executor = Executor(headless=headless, infer=infer)
+    executor = Executor(headless=headless, infer=infer, use_uc=undetected)
     executor.execute(abridged_program)
 
     # The user must select a name

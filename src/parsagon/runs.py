@@ -35,7 +35,7 @@ def run_with_file_output(*args, **kwargs):
     return result
 
 
-def run(program_name, variables={}, headless=False, remote=False, output_log=False, verbose=False):
+def run(program_name, variables={}, headless=False, remote=False, output_log=False, undetected=False, verbose=False):
     """
     Executes pipeline code
     """
@@ -73,7 +73,7 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
                 time.sleep(5)
 
     run = create_pipeline_run(pipeline_id, variables, True)
-    code = get_pipeline_code(program_name, variables, headless)["code"]
+    code = get_pipeline_code(program_name, variables, headless, undetected)["code"]
     start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
     run_data = {"start_time": start_time}
 

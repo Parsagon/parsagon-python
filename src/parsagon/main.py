@@ -53,6 +53,11 @@ def get_args():
         action="store_true",
         help="let Parsagon infer all elements to be scraped",
     )
+    parser_create.add_argument(
+        "--undetected",
+        action="store_true",
+        help="run in undetected mode",
+    )
     parser_create.set_defaults(func=create_cli)
 
     # Detail
@@ -133,6 +138,11 @@ def get_args():
         action="store_true",
         help="output log data from the run",
     )
+    parser_run.add_argument(
+        "--undetected",
+        action="store_true",
+        help="run in undetected mode",
+    )
     parser_run.set_defaults(func=run_with_file_output)
 
     # Delete
@@ -188,9 +198,9 @@ def main():
         logger.error(error_message)
 
 
-def create_cli(headless=False, infer=False, verbose=False):
+def create_cli(headless=False, infer=False, undetected=False, verbose=False):
     task = Prompt.ask("Enter a detailed scraping task")
-    create_program(task, headless=headless, infer=infer)
+    create_program(task, headless=headless, infer=infer, undetected=undetected)
 
 
 def update(program_name, variables={}, headless=False, infer=False, replace=False, verbose=False):

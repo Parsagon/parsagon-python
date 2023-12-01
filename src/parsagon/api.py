@@ -251,12 +251,12 @@ def get_run(run_id):
     )
 
 
-def schedule(program_name, interval, variables_list=[{}]):
+def schedule(program_name, interval, runs=[{}]):
     pipeline_id = get_pipeline(program_name)["id"]
     return _api_call(
         httpx.post,
         f"/pipelines/schedules/",
-        json={"pipeline": pipeline_id, "interval": interval, "variables_list": variables_list},
+        json={"pipeline": pipeline_id, "interval": interval, "variables_list": runs},
     )
 
 

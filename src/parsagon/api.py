@@ -216,7 +216,7 @@ def get_pipeline(pipeline_name):
     with RaiseProgramNotFound(pipeline_name):
         return _api_call(
             httpx.get,
-            f"/pipelines/named/{pipeline_name}/",
+            f"/pipelines/name/{pipeline_name}/",
         )
 
 
@@ -224,15 +224,16 @@ def get_pipelines():
     return _api_call(httpx.get, f"/pipelines/")
 
 
-def get_pipeline_code(pipeline_name, variables, headless):
+def get_pipeline_code(pipeline_name, variables, headless, use_uc):
     pipeline_name = double_quote(pipeline_name)
     with RaiseProgramNotFound(pipeline_name):
         return _api_call(
             httpx.post,
-            f"/pipelines/named/{pipeline_name}/code/",
+            f"/pipelines/name/{pipeline_name}/code/",
             json={
                 "variables": variables,
                 "headless": headless,
+                "use_uc": use_uc,
             },
         )
 

@@ -212,11 +212,11 @@ def double_quote(string):
 
 
 def get_pipeline(pipeline_name):
-    pipeline_name = double_quote(pipeline_name)
+    escaped_pipeline_name = double_quote(pipeline_name)
     with RaiseProgramNotFound(pipeline_name):
         return _api_call(
             httpx.get,
-            f"/pipelines/name/{pipeline_name}/",
+            f"/pipelines/name/{escaped_pipeline_name}/?double_escaped=True",
         )
 
 
@@ -225,11 +225,11 @@ def get_pipelines():
 
 
 def get_pipeline_code(pipeline_name, variables, headless, use_uc):
-    pipeline_name = double_quote(pipeline_name)
+    escaped_pipeline_name = double_quote(pipeline_name)
     with RaiseProgramNotFound(pipeline_name):
         return _api_call(
             httpx.post,
-            f"/pipelines/name/{pipeline_name}/code/",
+            f"/pipelines/name/{escaped_pipeline_name}/code/?double_escaped=True",
             json={
                 "variables": variables,
                 "headless": headless,

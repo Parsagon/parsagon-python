@@ -23,18 +23,7 @@ console = Console()
 logger = logging.getLogger(__name__)
 
 
-def run_with_file_output(*args, **kwargs):
-    dump_path = Prompt.ask("Please enter a path/filename to save the output (in JSON format)")
-    if not dump_path.endswith(".json"):
-        dump_path += ".json"
-    result = run(*args, **kwargs)
-    with open(dump_path, "w") as f:
-        json.dump(result, f, indent=4)
-    print(f"Output saved to {dump_path}")
-    return result
-
-
-def run(program_name, variables={}, headless=False, remote=False, output_log=False, undetected=False, verbose=False):
+def run(program_name, variables={}, headless=False, remote=False, output_log=False, output_file=None, undetected=False, verbose=False):
     """
     Executes pipeline code
     """
@@ -55,7 +44,13 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
                 status = run["status"]
 
                 if output_log and status in ("FINISHED", "ERROR"):
-                    return {k: v for k, v in run.items() if k in ("output", "status", "log", "warnings", "error")}
+                    result = {k: v for k, v in run.items() if k in ("output", "status", "log", "warnings", "error")}
+                    if output_file:
+                        with open(output_file, "w") as f:
+                            json.dump(result, f, indent=4)
+                        return
+                    else:
+                        return result
 
                 if status == "FINISHED":
                     if verbose:
@@ -63,7 +58,13 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
                         for warning in run["warnings"]:
                             logger.warning(warning)
                     logger.info("Program finished running.")
-                    return run["output"]
+                    result = run["output"]
+                    if output_file:
+                        with open(output_file, "w") as f:
+                            json.dump(result, f, indent=4)
+                        return
+                    else:
+                        return result
                 elif status == "ERROR":
                     raise ParsagonException(f"Program failed to run: {run['error']}")
                 elif status == "CANCELED":
@@ -106,11 +107,18 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
                 continue
         run = update_pipeline_run(run["id"], run_data)
     logger.info("Done.")
+
+    result = globals_locals["output"]
     if output_log:
         if "error" not in run_data:
             run["output"] = globals_locals["output"]
-        return {k: v for k, v in run.items() if k in ("output", "status", "log", "warnings", "error")}
-    return globals_locals["output"]
+        result = {k: v for k, v in run.items() if k in ("output", "status", "log", "warnings", "error")}
+    if output_file:
+        with open(output_file, "w") as f:
+            json.dump(result, f, indent=4)
+        return
+    else:
+        return result
 
 
 def batch_runs(

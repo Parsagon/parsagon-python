@@ -4,10 +4,10 @@ from parsagon.create import create_program
 from parsagon.executor import Executor
 from parsagon.print import assistant_print, assistant_spinner, browser_print, error_print
 from rich.prompt import Prompt
-from parsagon.runs import run, batch_runs, run_with_file_output
+from parsagon.runs import run, batch_runs
 
 
-def assist(headless=False, infer=False, verbose=False):
+def assist(verbose=False):
     task = Prompt.ask("Type what do you want to do")
     with assistant_spinner():
         response = send_assistant_message(task)
@@ -37,11 +37,11 @@ def assist(headless=False, infer=False, verbose=False):
                     output["output"] = html
                     outputs.append(output)
                 elif name == "create_program":
-                    result = create_program(args["description"], headless=headless, infer=infer)
+                    result = create_program(args["description"])
                     output["output"] = json.dumps(result)
                     outputs.append(output)
                 elif name == "run_program":
-                    result = run_with_file_output(**args)
+                    result = run(**args)
                     output["output"] = json.dumps(result)
                     outputs.append(output)
                 elif name == "batch_runs":

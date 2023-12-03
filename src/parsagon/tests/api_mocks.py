@@ -53,7 +53,7 @@ def mock_httpx_method_func(*args, **kwargs):
             },
         )
 
-    if match := re.search(r"/pipelines/name/(.+)/$", url):
+    if match := re.search(r"/pipelines/name/(.+)/", url):
         assert method == "get"
         pipeline_name = match.group(1)
         if pipeline_name == not_found_pipeline_name:

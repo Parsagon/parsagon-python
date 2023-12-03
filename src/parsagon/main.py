@@ -17,28 +17,18 @@ from parsagon.assistant import assist
 from parsagon.create import create_program
 from parsagon.exceptions import ParsagonException
 from parsagon.executor import Executor, custom_functions_to_descriptions
-from parsagon.runs import run_with_file_output
+from parsagon.runs import run
 from parsagon.settings import get_api_key, save_setting, configure_logging
 
 console = Console()
 logger = logging.getLogger(__name__)
 
 
-def get_args():
+def get_args(argv):
     parser = argparse.ArgumentParser(
         prog="parsagon", description="Scrapes and interacts with web pages based on natural language.", add_help=False
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="run the task in verbose mode")
-    parser.add_argument(
-        "--headless",
-        action="store_true",
-        help="run the browser in headless mode",
-    )
-    parser.add_argument(
-        "--infer",
-        action="store_true",
-        help="let Parsagon infer all elements to be scraped",
-    )
     subparsers = parser.add_subparsers()
 
     # Create
@@ -139,11 +129,16 @@ def get_args():
         help="output log data from the run",
     )
     parser_run.add_argument(
+        "--output_file",
+        type=str,
+        help="write the data to the given file path",
+    )
+    parser_run.add_argument(
         "--undetected",
         action="store_true",
         help="run in undetected mode",
     )
-    parser_run.set_defaults(func=run_with_file_output)
+    parser_run.set_defaults(func=run)
 
     # Delete
     parser_delete = subparsers.add_parser(
@@ -174,20 +169,16 @@ def get_args():
     )
     parser_help.set_defaults(func=help, parser=parser)
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     kwargs = vars(args)
     return kwargs, parser
 
 
-def main():
-    kwargs, parser = get_args()
+def main(argv=None):
+    kwargs, parser = get_args(argv)
     func = kwargs.pop("func", None)
     if func is None:
         func = assist
-    else:
-        # Pop assist-only arguments
-        kwargs.pop("infer")
-        kwargs.pop("headless")
     verbose = kwargs["verbose"]
     configure_logging(verbose)
 

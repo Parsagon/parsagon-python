@@ -54,6 +54,7 @@ ELEMENT_TYPES = {
     "html": "HTML",
     "element": "ACTION",
     "textarea": "TEXT",
+    "text_markdown": "TEXT",
     "markdown": "TEXT",
     "elem_id": "ACTION",
 }

@@ -108,11 +108,13 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
         run = update_pipeline_run(run["id"], run_data)
     logger.info("Done.")
 
-    result = globals_locals["output"]
     if output_log:
         if "error" not in run_data:
             run["output"] = globals_locals["output"]
         result = {k: v for k, v in run.items() if k in ("output", "status", "log", "warnings", "error")}
+    else:
+        result = globals_locals["output"]
+
     if output_file:
         with open(output_file, "w") as f:
             json.dump(result, f, indent=4)

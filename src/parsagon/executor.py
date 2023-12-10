@@ -65,7 +65,8 @@ class Executor:
     Executes code produced by GPT with the proper context.  Records custom_function usage along the way.
     """
 
-    def __init__(self, headless=False, infer=False, use_uc=False):
+    def __init__(self, task, headless=False, infer=False, use_uc=False):
+        self.task = task
         self.headless = headless
         if self.headless:
             self.display = Display(visible=False, size=(1280, 1050)).start()
@@ -525,12 +526,8 @@ class Executor:
             result = get_cleaned_data(html, schema, nodes)
             scraped_data = result["data"]
         else:
-            self.highlights_setup("ACTION")
-            input(f"Click on the element(s) from which data should be inferred. Hit ENTER when done: ")
-            relevant_elem_ids = self.get_selected_node_and_descendant_ids()
-            self.highlights_cleanup()
             browser_print("Scraping data...")
-            result = scrape_page(html, schema, relevant_elem_ids)
+            result = scrape_page(self.get_visible_html(), schema, self.task)
             scraped_data = result["data"]
             nodes = result["nodes"]
             if not scraped_data and not nodes:

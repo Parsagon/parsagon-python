@@ -112,18 +112,18 @@ def get_cleaned_data(html, schema, nodes):
     )
 
 
-def scrape_page(html, schema, relevant_elem_ids):
+def scrape_page(html, schema, task):
     """
     Scrapes data from the provided page HTML - data will be returned in the schema provided.
     :param html: HTML of the page to scrape.
     :param schema: Schema of the data to scrape
-    :param relevant_elem_ids: Ids of elements to be considered
+    :param task: The user's task
     :return: Scraped data
     """
     return _api_call(
         httpx.post,
         "/transformers/get-custom-data/",
-        json={"html": html, "schema": schema, "relevant_elem_ids": relevant_elem_ids},
+        json={"html": html, "schema": schema, "task": task},
     )
 
 

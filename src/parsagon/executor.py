@@ -245,8 +245,9 @@ class Executor:
 
     def get_elem_by_description(self, description, elem_type):
         browser_print(f'Looking for {elem_type.lower()}: "{description}"')
+        self.mark_html()
         visible_html = self.get_visible_html()
-        elem_id = get_interaction_element_id(visible_html, elem_type, description)
+        elem_id = get_interaction_element_id(visible_html, description, self.task)
         if elem_id is None:
             raise ParsagonException(
                 f'Could not find an element matching "{description}". Perhaps try rephrasing your prompt.'
@@ -254,7 +255,7 @@ class Executor:
         elem = self._id_to_elem(elem_id)
         log_suffix = f' with text "{elem.text}"' if elem.text else ""
         browser_print(f"Found element" + log_suffix)
-        return elem, elem_id
+        return elem, elem_id, None, None
 
     def _id_to_elem(self, elem_id):
         """

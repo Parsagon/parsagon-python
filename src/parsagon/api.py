@@ -73,19 +73,17 @@ def get_program_sketches(description):
     return _api_call(httpx.post, "/transformers/get-program-sketch/", json={"description": description})
 
 
-def get_interaction_element_id(marked_html, elem_type, description):
+def get_interaction_element_id(marked_html, description, task):
     """
     Gets a program sketches (full and abridged) from a description.
     :param marked_html: HTML with data-psgn-id attributes.
-    :param elem_type: One of INPUT, BUTTON, or SELECT.
     :param description: A natural language description of the element.
     :return: The integer ID (data-psgn-id) of the element in the marked HTML.
     """
-    assert elem_type.isupper()
     result = _api_call(
         httpx.post,
         "/transformers/get-nav-elem/",
-        json={"html": marked_html, "elem_type": elem_type, "description": description},
+        json={"html": marked_html, "description": description, "task": task},
     )["id"]
     return result
 

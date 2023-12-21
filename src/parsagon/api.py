@@ -274,6 +274,23 @@ def get_run(run_id):
     )
 
 
+def schedule(program_name, interval, runs=[{}]):
+    pipeline_id = get_pipeline(program_name)["id"]
+    return _api_call(
+        httpx.post,
+        f"/pipelines/schedules/",
+        json={"pipeline": pipeline_id, "interval": interval, "variables_list": runs},
+    )
+
+
+def delete_schedule(program_name):
+    pipeline_id = get_pipeline(program_name)["id"]
+    return _api_call(
+        httpx.delete,
+        f"/pipelines/{pipeline_id}/schedules/",
+    )
+
+
 def send_assistant_message(message, thread_id=None):
     return _api_call(
         httpx.post, "/transformers/send-assistant-message/", json={"message": message, "thread_id": thread_id}

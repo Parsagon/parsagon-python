@@ -15,6 +15,7 @@ from parsagon.api import (
 )
 from parsagon.assistant import assist
 from parsagon.create import create_program
+from parsagon.edit import edit_program
 from parsagon.exceptions import ParsagonException
 from parsagon.executor import Executor, custom_functions_to_descriptions
 from parsagon.runs import run
@@ -49,6 +50,15 @@ def get_args(argv):
         help="run in undetected mode",
     )
     parser_create.set_defaults(func=create_cli)
+
+    # Edit
+    parser_edit = subparsers.add_parser("edit", description="Edits a program.")
+    parser_edit.set_defaults(func=edit)
+    parser_edit.add_argument(
+        "program_name",
+        type=str,
+        help="the name of the program to update",
+    )
 
     # Detail
     parser_detail = subparsers.add_parser(
@@ -194,6 +204,11 @@ def create_cli(headless=False, infer=False, undetected=False, verbose=False):
     create_program(task, headless=headless, infer=infer, undetected=undetected)
 
 
+def edit(program_name, variables={}, verbose=False):
+    task = Prompt.ask("Describe how you want to edit the program")
+    edit_program(task, program_name)
+
+
 def update(program_name, variables={}, headless=False, infer=False, replace=False, verbose=False):
     configure_logging(verbose)
 
@@ -204,7 +219,7 @@ def update(program_name, variables={}, headless=False, infer=False, replace=Fals
     abridged_program += f"\n\noutput = func({variables_str})\n"
 
     # Execute the abridged program to gather examples
-    executor = Executor(headless=headless, infer=infer)
+    executor = Executor(pipeline["description"], headless=headless, infer=infer)
     executor.execute(abridged_program)
 
     while True:

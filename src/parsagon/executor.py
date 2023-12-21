@@ -8,6 +8,7 @@ import time
 from urllib.parse import urljoin
 
 from rich.progress import Progress
+from rich.prompt import Confirm, Prompt
 
 import lxml.html
 from pyvirtualdisplay import Display
@@ -21,6 +22,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
 from webdriver_manager.chrome import ChromeDriverManager
 
+from parsagon import settings
 from parsagon.api import (
     get_interaction_element_id,
     get_schema_fields,
@@ -65,9 +67,10 @@ class Executor:
     Executes code produced by GPT with the proper context.  Records custom_function usage along the way.
     """
 
-    def __init__(self, task, headless=False, infer=False, use_uc=False):
+    def __init__(self, task, headless=False, infer=False, use_uc=False, function_bank={}):
         self.task = task
         self.headless = headless
+        self.function_bank = function_bank
         if self.headless:
             self.display = Display(visible=False, size=(1280, 1050)).start()
         driver_executable_path = ChromeDriverManager().install()
@@ -113,6 +116,15 @@ class Executor:
             self.custom_functions[call_id].examples.extend(custom_function.examples)
         else:
             self.custom_functions[call_id] = custom_function
+
+    def exec_custom_function(self, name, call_id, args_dict):
+        code = self.function_bank[call_id]
+        args_dict["call_id"] = call_id
+        args_str = ", ".join(f"{k}={repr(v)}" for k, v in args_dict.items())
+        code = f"{code}\noutput = {name}{call_id}({args_str})"
+        context = {"driver": self.driver, "PARSAGON_API_KEY": settings.get_api_key()}
+        exec(code, context, context)
+        return context["output"]
 
     def inject_highlights_script(self):
         self.driver.execute_script(self.highlights_script)
@@ -309,6 +321,10 @@ class Executor:
         """
         Clicks a button using its description.
         """
+        if call_id in self.function_bank:
+            edit = Confirm.ask(f'Now clicking the element referred to by "{description}". Do you want to edit this step?')
+            if not edit:
+                return self.exec_custom_function("click_elem", call_id, {"description": description, "window_id": window_id})
         elem, elem_id, css_selector, xpath_selector = self.get_elem(description, "BUTTON")
         html = self.get_scrape_html()
         success = self._click_elem(elem, window_id) if elem else False
@@ -485,6 +501,11 @@ class Executor:
         """
         Scrapes data from the current page.
         """
+        if call_id in self.function_bank:
+            edit = Confirm.ask(f'Now scraping data in the format {schema}. Do you want to edit this step?')
+            if not edit:
+                return self.exec_custom_function("scrape_data", call_id, {"schema": schema, "window_id": window_id})
+
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
 

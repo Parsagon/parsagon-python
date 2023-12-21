@@ -73,6 +73,10 @@ def get_program_sketches(description):
     return _api_call(httpx.post, "/transformers/get-program-sketch/", json={"description": description})
 
 
+def edit_program_sketch(sketch, description):
+    return _api_call(httpx.post, "/transformers/edit-program-sketch/", json={"sketch": sketch, "description": description})
+
+
 def get_interaction_element_id(marked_html, description, task):
     """
     Gets a program sketches (full and abridged) from a description.
@@ -126,7 +130,7 @@ def scrape_page(html, schema, task):
 
 
 def poll_about_data(url, json):
-    for _ in range(10):
+    for _ in range(20):
         result = _api_call(httpx.post, url, json=json)
         if result["done"]:
             return result["result"]
@@ -173,6 +177,10 @@ def create_pipeline(name, description, program_sketch, pseudocode, secrets):
             "secrets": secrets,
         },
     )
+
+
+def update_pipeline(pipeline_id, data):
+    return _api_call(httpx.patch, f"/pipelines/{pipeline_id}/", json=data)
 
 
 def delete_pipeline(pipeline_id):
@@ -234,6 +242,10 @@ def get_pipeline_code(pipeline_name, variables, headless, use_uc):
                 "use_uc": use_uc,
             },
         )
+
+
+def get_pipeline_code_parts(pipeline_id):
+    return _api_call(httpx.get, f"/pipelines/{pipeline_id}/code-parts/")
 
 
 def create_pipeline_run(pipeline_id, variables, is_local):

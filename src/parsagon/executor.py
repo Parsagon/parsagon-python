@@ -7,9 +7,6 @@ import psutil
 import time
 from urllib.parse import urljoin
 
-from rich.progress import Progress
-from rich.prompt import Confirm, Prompt
-
 import lxml.html
 from pyvirtualdisplay import Display
 import undetected_chromedriver as uc
@@ -34,8 +31,7 @@ from parsagon.api import (
 )
 from parsagon.custom_function import CustomFunction
 from parsagon.exceptions import ParsagonException
-from parsagon.print import browser_print
-
+from parsagon.print import browser_print, input, Progress, ask, confirm
 
 # A dictionary of custom function names to their descriptions for the user
 custom_functions_to_descriptions = {
@@ -336,7 +332,7 @@ class Executor:
         Clicks a button using its description.
         """
         if call_id in self.function_bank:
-            edit = Confirm.ask(
+            edit = confirm(
                 f'Now clicking the element referred to by "{description}". Do you want to edit this step?'
             )
             if not edit:
@@ -520,7 +516,7 @@ class Executor:
         Scrapes data from the current page.
         """
         if call_id in self.function_bank:
-            edit = Confirm.ask(f"Now scraping data in the format {schema}. Do you want to edit this step?")
+            edit = confirm(f"Now scraping data in the format {schema}. Do you want to edit this step?")
             if not edit:
                 return self.exec_custom_function("scrape_data", call_id, {"schema": schema, "window_id": window_id})
 
@@ -539,7 +535,7 @@ class Executor:
             for field, field_type in field_types.items():
                 self.highlights_setup(ELEMENT_TYPES[field_type])
                 field_repr = field.replace("dataset0|", "").replace("|", " / ")
-                field_input = Prompt.ask(
+                field_input = ask(
                     f"Click elements containing data for the field `{field_repr}`. Hit TAB to autocomplete or DELETE/BACKSPACE to clear selections. Hit ENTER when done"
                 )
                 if field_input.startswith("CSS:"):

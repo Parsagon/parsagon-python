@@ -3,19 +3,19 @@ import json
 import logging.config
 import time
 
-from rich.console import Console
-from rich.prompt import Prompt
 
 from parsagon.api import delete_pipeline, add_examples_to_custom_function, get_pipeline, get_pipelines, poll_extract
 from parsagon.assistant import assist
+from parsagon.api import delete_pipeline, add_examples_to_custom_function, get_pipeline, get_pipelines, poll_extract
 from parsagon.create import create_program
 from parsagon.edit import edit_program
 from parsagon.exceptions import ParsagonException
 from parsagon.executor import Executor, custom_functions_to_descriptions
+from parsagon.gui import run_gui
 from parsagon.runs import run
 from parsagon.settings import get_api_key, save_setting, configure_logging
+from parsagon.print import ask, assistant_print, status, input
 
-console = Console()
 logger = logging.getLogger(__name__)
 
 
@@ -177,7 +177,7 @@ def main(argv=None):
     kwargs, parser = get_args(argv)
     func = kwargs.pop("func", None)
     if func is None:
-        func = assist
+        func = run_gui
     verbose = kwargs["verbose"]
     configure_logging(verbose)
 
@@ -189,12 +189,12 @@ def main(argv=None):
 
 
 def create_cli(headless=False, undetected=False, verbose=False):
-    task = Prompt.ask("Enter a detailed scraping task")
+    task = ask("Enter a detailed scraping task")
     create_program(task, headless=headless, undetected=undetected)
 
 
 def edit(program_name, variables={}, verbose=False):
-    task = Prompt.ask("Describe how you want to edit the program")
+    task = ask("Describe how you want to edit the program")
     edit_program(task, program_name)
 
 
@@ -242,7 +242,7 @@ def detail(program_name=None, verbose=False):
     else:
         data = get_pipelines()
     for pipeline in data:
-        print(
+        assistant_print(
             f"Program: {pipeline['name']}\nDescription: {pipeline['description']}\nVariables: {pipeline['variables']}\n"
         )
 
@@ -282,7 +282,7 @@ def help(parser, verbose):
 
 def _get_data(url, page_type, timeout):
     start_time = time.time()
-    with console.status("Extracting data...") as status:
+    with status("Extracting data..."):
         while time.time() - start_time <= timeout:
             result = poll_extract(url, page_type)
             if result["done"]:

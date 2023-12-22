@@ -1,9 +1,8 @@
 from parsagon.api import get_program_sketches, create_pipeline, create_custom_function, delete_pipeline
 from parsagon.exceptions import APIException
 from parsagon.executor import Executor, custom_functions_to_descriptions
-from parsagon.print import assistant_print
+from parsagon.print import assistant_print, ask, input, confirm
 from parsagon.secrets import extract_secrets
-from rich.prompt import Confirm, Prompt
 
 
 def create_program(task, headless=False, undetected=False, program_name=None, assume_yes=False):
@@ -18,11 +17,11 @@ def create_program(task, headless=False, undetected=False, program_name=None, as
     if assume_yes:
         infer = True
     else:
-        approval = Confirm.ask("Confirm the program does what you want")
+        approval = confirm("Confirm the program does what you want")
         if not approval:
-            feedback = Prompt.ask("What do you want the program to do differently?")
+            feedback = ask("What do you want the program to do differently?")
             return {"success": False, "outcome": "User canceled program creation", "user_feedback": feedback}
-        infer_response = Prompt.ask(
+        infer_response = ask(
             "To complete the program, Parsagon must visit the page(s) mentioned above and identify the exact web elements to interact with. Hit ENTER to let Parsagon do this on its own, or type MANUAL to show Parsagon the relevant elements by clicking on them",
             choices=["", "MANUAL"],
             show_choices=False,
@@ -40,7 +39,7 @@ def create_program(task, headless=False, undetected=False, program_name=None, as
     # The user must select a name
     while True:
         if not program_name:
-            program_name = Prompt.ask("Name this program to save, or press enter without typing a name to DISCARD")
+            program_name = ask("Name this program to save, or press enter without typing a name to DISCARD")
         if program_name:
             assistant_print(f"Saving program as {program_name}")
             try:

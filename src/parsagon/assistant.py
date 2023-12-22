@@ -68,7 +68,7 @@ def assist(verbose=False):
 
 def investigate_page(url):
     browser_print(f"Checking what {url} looks like...")
-    executor = Executor()
+    executor = Executor("")
     executor.goto(url)
     html = executor.get_visible_html()
     executor.quit()

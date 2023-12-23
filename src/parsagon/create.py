@@ -6,7 +6,7 @@ from parsagon.secrets import extract_secrets
 from rich.prompt import Prompt
 
 
-def create_program(task, headless=False, infer=False, undetected=False):
+def create_program(task, headless=False, infer=False, undetected=False, program_name=None):
     assistant_print("Creating a program based on your specifications...")
     task, secrets = extract_secrets(task)
     program_sketches = get_program_sketches(task)
@@ -33,7 +33,8 @@ def create_program(task, headless=False, infer=False, undetected=False):
 
     # The user must select a name
     while True:
-        program_name = Prompt.ask("Name this program to save, or press enter without typing a name to DISCARD")
+        if not program_name:
+            program_name = Prompt.ask("Name this program to save, or press enter without typing a name to DISCARD")
         if program_name:
             assistant_print(f"Saving program as {program_name}")
             try:
@@ -63,4 +64,8 @@ def create_program(task, headless=False, infer=False, undetected=False):
             return {"success": False, "outcome": f"User decided not to save the program"}
 
     assistant_print("Done.")
-    return {"success": True, "outcome": f"Program successfully saved with name {program_name}", "program_name": program_name}
+    return {
+        "success": True,
+        "outcome": f"Program successfully saved with name {program_name}",
+        "program_name": program_name,
+    }

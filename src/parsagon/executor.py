@@ -137,11 +137,16 @@ class Executor:
 
     def get_selected_node_ids(self, css_selector=None, xpath_selector=None):
         if css_selector:
-            return [elem.get_attribute("data-psgn-id") for elem in self.driver.find_elements(By.CSS_SELECTOR, css_selector)]
+            return [
+                elem.get_attribute("data-psgn-id") for elem in self.driver.find_elements(By.CSS_SELECTOR, css_selector)
+            ]
         elif xpath_selector:
             return [elem.get_attribute("data-psgn-id") for elem in self.driver.find_elements(By.XPATH, xpath_selector)]
         else:
-            return [elem.get_attribute("data-psgn-id") for elem in self.driver.find_elements(By.CLASS_NAME, "parsagon-io-example-stored")]
+            return [
+                elem.get_attribute("data-psgn-id")
+                for elem in self.driver.find_elements(By.CLASS_NAME, "parsagon-io-example-stored")
+            ]
 
     def get_selected_node_and_descendant_ids(self):
         return self.driver.execute_script(
@@ -210,7 +215,11 @@ class Executor:
             elem.getparent().remove(elem)
 
         # Remove invisible elements
-        visible_elem_ids = set(driver.execute_script("return Array.from(document.getElementsByTagName('*')).filter((elem) => { const style = getComputedStyle(elem); return style.opacity > 0.1 && style.display !== 'none' && style.visibility === 'visible' && elem.offsetWidth && elem.offsetHeight && elem.getClientRects().length }).map((elem) => elem.getAttribute('data-psgn-id'))"))
+        visible_elem_ids = set(
+            driver.execute_script(
+                "return Array.from(document.getElementsByTagName('*')).filter((elem) => { const style = getComputedStyle(elem); return style.opacity > 0.1 && style.display !== 'none' && style.visibility === 'visible' && elem.offsetWidth && elem.offsetHeight && elem.getClientRects().length }).map((elem) => elem.getAttribute('data-psgn-id'))"
+            )
+        )
         max_elem_id = self.max_elem_ids[self.driver.current_window_handle]
         with Progress() as progress:
             for elem_id in progress.track(range(max_elem_id), description="[green]Analyzing page"):
@@ -235,7 +244,12 @@ class Executor:
         )
         self.mark_html()
         selected_node_ids = self.get_selected_node_ids()
-        while user_input != "N/A" and not selected_node_ids and not user_input.startswith("XPATH:") and not user_input.startswith("CSS:"):
+        while (
+            user_input != "N/A"
+            and not selected_node_ids
+            and not user_input.startswith("XPATH:")
+            and not user_input.startswith("CSS:")
+        ):
             user_input = input('Please click an element or type "N/A": ')
             selected_node_ids = self.get_selected_node_ids()
         self.highlights_cleanup()
@@ -322,9 +336,13 @@ class Executor:
         Clicks a button using its description.
         """
         if call_id in self.function_bank:
-            edit = Confirm.ask(f'Now clicking the element referred to by "{description}". Do you want to edit this step?')
+            edit = Confirm.ask(
+                f'Now clicking the element referred to by "{description}". Do you want to edit this step?'
+            )
             if not edit:
-                return self.exec_custom_function("click_elem", call_id, {"description": description, "window_id": window_id})
+                return self.exec_custom_function(
+                    "click_elem", call_id, {"description": description, "window_id": window_id}
+                )
         elem, elem_id, css_selector, xpath_selector = self.get_elem(description, "BUTTON")
         html = self.get_scrape_html()
         success = self._click_elem(elem, window_id) if elem else False
@@ -502,36 +520,27 @@ class Executor:
         Scrapes data from the current page.
         """
         if call_id in self.function_bank:
-            edit = Confirm.ask(f'Now scraping data in the format {schema}. Do you want to edit this step?')
+            edit = Confirm.ask(f"Now scraping data in the format {schema}. Do you want to edit this step?")
             if not edit:
                 return self.exec_custom_function("scrape_data", call_id, {"schema": schema, "window_id": window_id})
 
         if self.driver.current_window_handle != window_id:
             self.driver.switch_to.window(window_id)
 
-        if self.infer:
-            user_input = "INFER"
-        else:
-            user_input = input(
-                f'Now determining what elements to scrape to collect data in the format {schema}. Hit ENTER to continue by clicking on the elements to scrape, or type a valid command: '
-            )
-            while user_input not in ("", "INFER"):
-                user_input = input('Hit ENTER or type "INFER": ')
+        browser_print(f"Now collecting data in the format {schema}")
 
         self.mark_html()
         html = self.get_scrape_html()
         nodes = {}
         css_selectors = {}
         xpath_selectors = {}
-        if user_input == "":
+        if not self.infer:
             field_types = get_schema_fields(schema)
             for field, field_type in field_types.items():
-                if not isinstance(field_type, str):
-                    continue
                 self.highlights_setup(ELEMENT_TYPES[field_type])
                 field_repr = field.replace("dataset0|", "").replace("|", " / ")
-                field_input = input(
-                    f"Click elements containing data for the field `{field_repr}`. Hit TAB to autocomplete or DELETE/BACKSPACE to clear selections. Hit ENTER when done: "
+                field_input = Prompt.ask(
+                    f"Click elements containing data for the field `{field_repr}`. Hit TAB to autocomplete or DELETE/BACKSPACE to clear selections. Hit ENTER when done"
                 )
                 if field_input.startswith("CSS:"):
                     css_selector = field_input[4:].strip()
@@ -552,13 +561,9 @@ class Executor:
             result = scrape_page(self.get_visible_html(), schema, self.task)
             scraped_data = result["data"]
             nodes = result["nodes"]
-            if not scraped_data and not nodes:
+            if not scraped_data or not nodes:
                 raise ParsagonException(
-                    f"Parsagon could not find any data on the page that would fit the format {schema}. Perhaps try rephrasing your prompt."
-                )
-            elif not nodes:
-                raise ParsagonException(
-                    f"Parsagon found the following data on the page for the format {schema}:\n\n{scraped_data}\n\nHowever, it could not find a plausible program to scrape this data. If the data above is incorrect, perhaps try rephrasing your prompt."
+                    f"Parsagon could not find any data on the page that would fit the format {schema}. You can try rephrasing your prompt, or you can run Parsagon in manual mode to click on elements you want to scrape."
                 )
         browser_print(f"Scraped data:\n{scraped_data}")
 

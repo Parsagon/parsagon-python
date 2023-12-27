@@ -3,10 +3,10 @@ from parsagon.exceptions import APIException
 from parsagon.executor import Executor, custom_functions_to_descriptions
 from parsagon.print import assistant_print
 from parsagon.secrets import extract_secrets
-from rich.prompt import Prompt
+from rich.prompt import Confirm, Prompt
 
 
-def create_program(task, headless=False, infer=False, undetected=False, program_name=None):
+def create_program(task, headless=False, undetected=False, program_name=None, assume_yes=False):
     assistant_print("Creating a program based on your specifications...")
     task, secrets = extract_secrets(task)
     program_sketches = get_program_sketches(task)
@@ -14,14 +14,20 @@ def create_program(task, headless=False, infer=False, undetected=False, program_
     full_program = program_sketches["full"]
     abridged_program = program_sketches["abridged"]
     pseudocode = program_sketches["pseudocode"]
-    assistant_print(f"Here's what the program does:\n\nSummary: {task}\n\nSteps:\n\n{pseudocode}\n\n")
-    while True:
-        approval = input("Confirm the program does what you want (Y/n): ")
-        if approval.strip() == "Y":
-            break
-        if approval.strip() == "n":
-            feedback = input("What do you want the program to do differently? ")
+    assistant_print(f"Here's an outline of what the program does:\n\nSummary: {task}\n\nSteps:\n\n{pseudocode}\n\n")
+    if assume_yes:
+        infer = True
+    else:
+        approval = Confirm.ask("Confirm the program does what you want")
+        if not approval:
+            feedback = Prompt.ask("What do you want the program to do differently?")
             return {"success": False, "outcome": "User canceled program creation", "user_feedback": feedback}
+        infer_response = Prompt.ask(
+            "To complete the program, Parsagon must visit the page(s) mentioned above and identify the exact web elements to interact with. Hit ENTER to let Parsagon do this on its own, or type MANUAL to show Parsagon the relevant elements by clicking on them",
+            choices=["", "MANUAL"],
+            show_choices=False,
+        )
+        infer = infer_response != "MANUAL"
 
     assistant_print(f"Now executing the program to identify web elements to be scraped:")
     args = ", ".join(f"{k}={repr(v)}" for k, v in secrets.items())

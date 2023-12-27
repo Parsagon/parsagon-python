@@ -6,13 +6,7 @@ import time
 from rich.console import Console
 from rich.prompt import Prompt
 
-from parsagon.api import (
-    delete_pipeline,
-    add_examples_to_custom_function,
-    get_pipeline,
-    get_pipelines,
-    poll_extract
-)
+from parsagon.api import delete_pipeline, add_examples_to_custom_function, get_pipeline, get_pipelines, poll_extract
 from parsagon.assistant import assist
 from parsagon.create import create_program
 from parsagon.edit import edit_program
@@ -38,11 +32,6 @@ def get_args(argv):
         "--headless",
         action="store_true",
         help="run the browser in headless mode",
-    )
-    parser_create.add_argument(
-        "--infer",
-        action="store_true",
-        help="let Parsagon infer all elements to be scraped",
     )
     parser_create.add_argument(
         "--undetected",
@@ -199,9 +188,9 @@ def main(argv=None):
         logger.error(error_message)
 
 
-def create_cli(headless=False, infer=False, undetected=False, verbose=False):
+def create_cli(headless=False, undetected=False, verbose=False):
     task = Prompt.ask("Enter a detailed scraping task")
-    create_program(task, headless=headless, infer=infer, undetected=undetected)
+    create_program(task, headless=headless, undetected=undetected)
 
 
 def edit(program_name, variables={}, verbose=False):

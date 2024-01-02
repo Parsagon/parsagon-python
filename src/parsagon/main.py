@@ -14,7 +14,7 @@ from parsagon.executor import Executor, custom_functions_to_descriptions
 from parsagon.gui import run_gui
 from parsagon.runs import run
 from parsagon.settings import get_api_key, save_setting, configure_logging
-from parsagon.print import ask, assistant_print, status, input
+from parsagon.print import ask, assistant_print, status, input, gui_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +177,7 @@ def main(argv=None):
     kwargs, parser = get_args(argv)
     func = kwargs.pop("func", None)
     if func is None:
-        func = run_gui
+        func = run_gui if gui_enabled else assist
     verbose = kwargs["verbose"]
     configure_logging(verbose)
 

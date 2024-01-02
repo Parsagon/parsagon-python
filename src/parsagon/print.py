@@ -6,7 +6,7 @@ from rich.progress import Progress as RichProgress
 
 from parsagon.gui import GUIController
 
-gui_enabled = True
+gui_enabled = False
 console = Console()
 
 
@@ -56,11 +56,13 @@ def input(prompt):
     else:
         return GUIController.shared().input(prompt)
 
+
 def confirm(prompt):
     if not gui_enabled:
         return Confirm.ask(prompt)
     else:
         return GUIController.shared().input(prompt + " (y/n):") == "y"
+
 
 # === Status, loading ===
 def assistant_spinner(text=""):
@@ -86,6 +88,7 @@ class Progress:
         if not gui_enabled:
             return self.rich_progress.track(iterable, description=description, task_id=task_id)
         else:
+
             def gui_generator():
                 gui_controller = GUIController.shared()
                 gui_controller.show_progress(True, description)
@@ -94,6 +97,7 @@ class Progress:
                     yield item
                     GUIController.shared().set_progress(i)
                 gui_controller.show_progress(False)
+
             return gui_generator()
 
     def add_task(self, description, total):

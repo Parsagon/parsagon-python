@@ -4,6 +4,7 @@ import sys
 from os import environ
 from pathlib import Path
 import logging.config
+from parsagon.print import input
 
 from parsagon.exceptions import ParsagonException
 

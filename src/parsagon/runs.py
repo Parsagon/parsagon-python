@@ -5,9 +5,6 @@ import time
 import traceback
 
 import psutil
-from rich.console import Console
-from rich.progress import Progress
-from rich.prompt import Prompt
 
 from parsagon.api import (
     create_pipeline_run,
@@ -18,8 +15,8 @@ from parsagon.api import (
 )
 from parsagon.exceptions import ParsagonException, RunFailedException
 from parsagon.settings import get_api_key
+from parsagon.print import status, Progress
 
-console = Console()
 logger = logging.getLogger(__name__)
 
 
@@ -38,7 +35,7 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
 
     if remote:
         result = create_pipeline_run(pipeline_id, variables, False)
-        with console.status("Program running remotely...") as status:
+        with status("Program running remotely..."):
             while True:
                 run = get_run(result["id"])
                 status = run["status"]

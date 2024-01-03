@@ -6,7 +6,18 @@ from pathlib import Path
 from threading import Condition
 
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QEventLoop, QSize
-from PyQt6.QtGui import QTextCursor, QMovie, QKeyEvent
+from PyQt6.QtGui import (
+    QTextCursor,
+    QMovie,
+    QKeyEvent,
+    QPalette,
+    QColor,
+    QFont,
+    QPixmap,
+    QIcon,
+    QTextOption,
+    QFontMetrics,
+)
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -18,11 +29,19 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QLabel,
     QProgressBar,
+    QScrollArea,
+    QSpacerItem,
+    QSizePolicy,
+    QFrame,
 )
 from PyQt6.QtCore import Qt
 
 # Global variable that simply keeps the GUI window from being garbage collected
 gui_window = None
+
+
+message_padding_constant = 4
+message_width_proportion = 0.85
 
 
 class ResultContainer:
@@ -133,13 +152,27 @@ class GUI(QMainWindow):
 
         self.setWindowTitle("Parsagon")
         self.setGeometry(100, 100, 400, 700)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+
+        palette = self.palette()
+        palette.setColor(self.backgroundRole(), Qt.GlobalColor.white)
+        self.setPalette(palette)
 
         main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 12)
+        main_layout.setSpacing(10)
 
-        self.message_edit = QTextEdit(self)
-        self.message_edit.setReadOnly(True)  # Make the text edit read-only
-        main_layout.addWidget(self.message_edit)
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.message_container = QWidget()
+        self.messages_layout = QVBoxLayout(self.message_container)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setWidget(self.message_container)
+
+        # Add a vertical spacer to push messages to the top
+        self.spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.messages_layout.addSpacerItem(self.spacer)
+        main_layout.addWidget(self.scroll_area)
 
         # Progress
         self.progress_container = QWidget()  # or QFrame()
@@ -152,32 +185,57 @@ class GUI(QMainWindow):
         main_layout.addWidget(self.progress_container)
         self.progress_container.setVisible(False)
 
-        input_layout = QHBoxLayout()
+        input_wrapper_layout = QHBoxLayout()
+        input_wrapper_layout.setContentsMargins(10, 0, 10, 0)
+
+        input_border = QWidget()
+        input_border.setContentsMargins(10, 2, 7, 2)
+        input_border.setObjectName("inputBorder")
+        input_border.setStyleSheet(
+            """#inputBorder {
+            border: 1px solid #CBCED2;
+            border-radius: 14px;
+        }
+        QWidget {
+            border: none;
+        }
+        """
+        )
+        input_wrapper_layout.addWidget(input_border)
+        input_layout = QHBoxLayout(input_border)
+        input_layout.setContentsMargins(0, 0, 0, 0)
 
         self.user_input_edit = CustomTextEdit(self.on_user_input, self)
-        self.user_input_edit.setFixedHeight(30)
+        self.user_input_edit.setFont(QFont("Menlo", 15))
+        self.user_input_edit.setFixedHeight(43)
         input_layout.addWidget(self.user_input_edit, alignment=Qt.AlignmentFlag.AlignVCenter)
         self.user_input_edit.setEnabled(True)
         self.user_input_edit.setVisible(True)
 
-        self.send_button = QPushButton("Send", self)
+        from parsagon.settings import get_resource_path
+
+        pixmap = QPixmap(str(get_resource_path() / "send@2x.png"))
+        pixmap.setDevicePixelRatio(2.0)
+        icon = QIcon(pixmap)
+        self.send_button = QPushButton("", self)
+        self.send_button.setIcon(icon)
+        self.send_button.setIconSize(QSize(33, 33))
         self.send_button.clicked.connect(self.on_user_input)
         input_layout.addWidget(self.send_button, alignment=Qt.AlignmentFlag.AlignVCenter)
 
         self.loading_spinner = QLabel(self)
         self.loading_spinner.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        from parsagon.settings import get_resource_path
 
         spinner_movie = QMovie(str(get_resource_path() / "loading.gif"))
-        spinner_movie.setScaledSize(QSize(30, 15))
+        spinner_movie.setScaledSize(QSize(33, 33))
+        spinner_movie.currentPixmap().setDevicePixelRatio(2.0)
         self.loading_spinner.setMovie(spinner_movie)
-        self.loading_spinner.setFixedHeight(30)
+        self.loading_spinner.setFixedHeight(33)
         spinner_movie.start()
         self.loading_spinner.setVisible(False)  # Initially hidden
         input_layout.addWidget(self.loading_spinner, alignment=Qt.AlignmentFlag.AlignVCenter)
 
-        main_layout.addLayout(input_layout)
-
+        main_layout.addLayout(input_wrapper_layout)
         self.central_widget = QWidget()
         self.central_widget.setLayout(main_layout)
         self.setCentralWidget(self.central_widget)
@@ -198,7 +256,7 @@ class GUI(QMainWindow):
     def on_user_input(self):
         user_input = self.user_input_edit.toPlainText()
         if user_input:  # Add non-empty input to the message list
-            self.update_text_ui(user_input, "black")  # Display user input in blue for distinction
+            self.update_text_ui(user_input, "user")  # Display user input in blue for distinction
         with self.condition:
             self.controller.current_input = user_input
             self.user_input_edit.clear()
@@ -229,9 +287,27 @@ class GUI(QMainWindow):
             style += f" background-color: {background_color};"
         new_text = f'<div style="{style}">{text}</div><br>'  # Add <br> after closing </div>
 
-        self.message_edit.moveCursor(QTextCursor.MoveOperation.End)
-        self.message_edit.insertHtml(new_text)
-        self.message_edit.moveCursor(QTextCursor.MoveOperation.End)
+        message_edit = QTextEdit(self)
+        message_edit.setFont(QFont("Menlo", 13))
+        message_edit.insertHtml(text)
+
+        # message_edit.setFixedWidth(int(self.scroll_area.width() * message_width_proportion))
+        message_edit.setReadOnly(True)
+        # message_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        message_edit.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        message_edit.setWordWrapMode(QTextOption.WrapMode.WordWrap)
+        message_edit.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+
+        message_edit.show()
+        self.messages_layout.addWidget(message_edit, alignment=Qt.AlignmentFlag.AlignTop)
+        message_edit.show()
+        message_edit.setFixedHeight(int(message_edit.document().size().height()) + message_padding_constant)
+
+        # Update the spacer
+        self.messages_layout.removeItem(self.spacer)
+        self.messages_layout.addSpacerItem(self.spacer)
+
+        self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
 
     @pyqtSlot()
     def focus_input(self):

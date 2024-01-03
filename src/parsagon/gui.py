@@ -1,4 +1,6 @@
 import contextlib
+import multiprocessing
+import os
 import sys
 from pathlib import Path
 from threading import Condition
@@ -14,10 +16,10 @@ from PyQt6.QtWidgets import (
     QWidget,
     QHBoxLayout,
     QTextEdit,
-    QLabel, QProgressBar,
+    QLabel,
+    QProgressBar,
 )
 from PyQt6.QtCore import Qt
-
 
 # Global variable that simply keeps the GUI window from being garbage collected
 gui_window = None
@@ -59,7 +61,19 @@ class GUIController(QThread):
         self.__class__._instance = self
 
     def run(self):
-        self.callback()
+        GUIController._instance = self
+        try:
+            self.callback(self)
+        except Exception as e:
+            if isinstance(e, (KeyboardInterrupt, SystemExit)):
+                raise
+            else:
+                from parsagon.print import error_print
+
+                error_print(str(e))
+                error_print(
+                    "Parsagon encountered an error.  Please restart the application to continue.  You may want to copy any messages above you want to save."
+                )
 
     def input(self, prompt):
         self.print(prompt)
@@ -119,7 +133,7 @@ class GUI(QMainWindow):
 
         self.setWindowTitle("Parsagon")
         self.setGeometry(100, 100, 400, 700)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
 
         main_layout = QVBoxLayout()
 
@@ -152,7 +166,9 @@ class GUI(QMainWindow):
 
         self.loading_spinner = QLabel(self)
         self.loading_spinner.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        spinner_movie = QMovie(str(Path(__file__).parent / "loading.gif"))
+        from parsagon.settings import get_resource_path
+
+        spinner_movie = QMovie(str(get_resource_path() / "loading.gif"))
         spinner_movie.setScaledSize(QSize(30, 15))
         self.loading_spinner.setMovie(spinner_movie)
         self.loading_spinner.setFixedHeight(30)
@@ -175,9 +191,9 @@ class GUI(QMainWindow):
         self.controller.update_text_signal.connect(self.update_text_ui)
         self.controller.request_input_signal.connect(self.focus_input)
         self.controller.execute_on_main_thread_signal.connect(self.execute_callback)
-        self.controller.start()
-
         self.show()
+
+        self.controller.start()
 
     def on_user_input(self):
         user_input = self.user_input_edit.toPlainText()
@@ -227,16 +243,33 @@ class GUI(QMainWindow):
         loop.quit()  # Exit the event loop to unblock the background thread
 
 
+def gui_assist(global_gui):
+    from parsagon.assistant import assist
+    from parsagon.gui import GUIController
+
+    GUIController._instance = global_gui
+    from parsagon.settings import get_api_key
+
+    _ = get_api_key(interactive=True)
+    assist(True)
+
+
 def run_gui(verbose=False):
     global gui_window
     app = QApplication(sys.argv)
-    from parsagon.assistant import assist
+    gui_window_ = GUI(gui_assist)
+    gui_window = gui_window_
+    return app.exec()
 
-    try:
-        gui_window_ = GUI(assist)
-        gui_window = gui_window_
-    except Exception as e:
-        from parsagon.print import error_print
-        error_print(str(e))
-        sys.exit(1)
-    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    # Pyinstaller fix
+    multiprocessing.freeze_support()
+
+    # Environment variables for development
+    os.environ["API_BASE"] = "https://parsagon.dev"
+    os.environ[
+        "SSL_CERT_FILE"
+    ] = "/Users/gabemontague/Dropbox/Mac/Documents/Documents/Projects/parsagon/code/ps-scraper-web/certs/dev-parsagon.dev.pem"
+
+    sys.exit(run_gui(verbose=True))

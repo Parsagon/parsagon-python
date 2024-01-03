@@ -1,3 +1,5 @@
+import re
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt, Confirm
@@ -85,6 +87,7 @@ class Progress:
             self.rich_progress = RichProgress()
 
     def track(self, iterable, description="Working...", task_id=None):
+        description = re.sub(r"^\[[a-zA-Z]+]", "", description)
         if not gui_enabled:
             return self.rich_progress.track(iterable, description=description, task_id=task_id)
         else:

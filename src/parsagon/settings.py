@@ -4,7 +4,7 @@ import sys
 from os import environ
 from pathlib import Path
 import logging.config
-from parsagon.print import input
+from parsagon.print import input, gui_enabled
 
 from parsagon.exceptions import ParsagonException
 
@@ -120,3 +120,13 @@ def get_logging_config(log_level="INFO"):
 
 def configure_logging(verbose):
     logging.config.dictConfig(get_logging_config("DEBUG" if verbose else "INFO"))
+
+
+def get_resource_path():
+    if gui_enabled:
+        try:
+            return Path(sys._MEIPASS)
+        except AttributeError:
+            return Path(__file__).parent
+    else:
+        return Path(__file__).parent

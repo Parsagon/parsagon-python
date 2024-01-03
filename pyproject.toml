@@ -51,6 +51,7 @@ dev = [
     "pytest==7.3.2",
     "pytest-mock==3.11.1",
     "pre-commit==3.6.0",
+    "pyinstaller==6.3.0"
 ]
 
 [project.urls]

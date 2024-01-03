@@ -32,6 +32,7 @@ from parsagon.api import (
 from parsagon.custom_function import CustomFunction
 from parsagon.exceptions import ParsagonException
 from parsagon.print import browser_print, input, Progress, ask, confirm
+from parsagon.settings import get_resource_path
 
 # A dictionary of custom function names to their descriptions for the user
 custom_functions_to_descriptions = {
@@ -103,7 +104,7 @@ class Executor:
         self.custom_functions = {}
         self.infer = infer
 
-        highlights_path = Path(__file__).parent / "highlights.js"
+        highlights_path = get_resource_path() / "highlights.js"
         with highlights_path.open() as f:
             self.highlights_script = f.read()
 

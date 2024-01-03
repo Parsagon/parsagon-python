@@ -391,9 +391,6 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
 
     # Environment variables for development
-    os.environ["API_BASE"] = "https://parsagon.dev"
-    os.environ[
-        "SSL_CERT_FILE"
-    ] = "/Users/gabemontague/Dropbox/Mac/Documents/Documents/Projects/parsagon/code/ps-scraper-web/certs/dev-parsagon.dev.pem"
+    # os.environ["API_BASE"] = "https://parsagon.dev"
 
     sys.exit(run_gui(verbose=True))

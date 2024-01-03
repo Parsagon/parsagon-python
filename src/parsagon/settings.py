@@ -4,7 +4,6 @@ import sys
 from os import environ
 from pathlib import Path
 import logging.config
-from parsagon.print import input, gui_enabled
 
 from parsagon.exceptions import ParsagonException
 
@@ -13,6 +12,8 @@ __SETTINGS_FILE = environ.get("SETTINGS_FILE", ".parsagon_profile")
 
 
 logger = logging.getLogger(__name__)
+
+GUI_ENABLED = True
 
 
 def pytest_is_running():
@@ -31,6 +32,8 @@ def get_api_key(interactive=False):
         assert isinstance(saved_api_key, str), "API key must be a string."
         return saved_api_key
     elif interactive:
+        from parsagon.print import input
+
         while True:
             api_key = input("Please enter your Parsagon API key: ")
             if len(api_key) != 40:
@@ -123,7 +126,7 @@ def configure_logging(verbose):
 
 
 def get_resource_path():
-    if gui_enabled:
+    if GUI_ENABLED:
         try:
             return Path(sys._MEIPASS)
         except AttributeError:

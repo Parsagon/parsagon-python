@@ -2,28 +2,25 @@ import contextlib
 import multiprocessing
 import os
 import sys
-from pathlib import Path
 from threading import Condition
 
+import markdown
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QEventLoop, QSize
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import (
-    QTextCursor,
     QMovie,
     QKeyEvent,
-    QPalette,
-    QColor,
     QFont,
     QPixmap,
     QIcon,
     QTextOption,
-    QFontMetrics,
+    QPainter,
 )
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
     QVBoxLayout,
     QPushButton,
-    QLineEdit,
     QWidget,
     QHBoxLayout,
     QTextEdit,
@@ -34,13 +31,14 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
     QFrame,
 )
-from PyQt6.QtCore import Qt
+
+from parsagon.settings import get_resource_path
 
 # Global variable that simply keeps the GUI window from being garbage collected
 gui_window = None
 
 
-message_padding_constant = 4
+message_padding_constant = 0
 message_width_proportion = 0.85
 
 
@@ -95,14 +93,16 @@ class GUIController(QThread):
                 )
 
     def input(self, prompt):
-        self.print(prompt)
+        if prompt:
+            self.print(prompt, "#33B1FF")
         self.request_input_signal.emit()
         with self.condition:
             self.condition.wait()
             return self.current_input
 
-    def print(self, text, color="black", background=None):
-        self.update_text_signal.emit(text, color, background)
+    def print(self, text, color="black", background="#CBCED2"):
+        html = text.replace("\n", "<br>")
+        self.update_text_signal.emit(html, color, background)
 
     @contextlib.contextmanager
     def spinner(self):
@@ -144,6 +144,21 @@ class CustomTextEdit(QTextEdit):
             super().keyPressEvent(event)
 
 
+class CalloutFrame(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.callout_arrow_path = str(get_resource_path() / "callout_arrow@2x.png")
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        pixmap = QPixmap(self.callout_arrow_path)
+        pixmap.setDevicePixelRatio(2.0)
+        x = self.width() - 34
+        y = self.height() - 17
+        # painter.drawPixmap(x, y, pixmap)
+
+
 class GUI(QMainWindow):
     def __init__(self, background_thread_callback):
         super().__init__()
@@ -175,7 +190,7 @@ class GUI(QMainWindow):
         main_layout.addWidget(self.scroll_area)
 
         # Progress
-        self.progress_container = QWidget()  # or QFrame()
+        self.progress_container = QWidget()
         progress_layout = QVBoxLayout()
         self.progress_container.setLayout(progress_layout)
         self.progress_title = QLabel("Loading...", self)
@@ -211,8 +226,7 @@ class GUI(QMainWindow):
         input_layout.addWidget(self.user_input_edit, alignment=Qt.AlignmentFlag.AlignVCenter)
         self.user_input_edit.setEnabled(True)
         self.user_input_edit.setVisible(True)
-
-        from parsagon.settings import get_resource_path
+        self.user_input_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         pixmap = QPixmap(str(get_resource_path() / "send@2x.png"))
         pixmap.setDevicePixelRatio(2.0)
@@ -256,7 +270,7 @@ class GUI(QMainWindow):
     def on_user_input(self):
         user_input = self.user_input_edit.toPlainText()
         if user_input:  # Add non-empty input to the message list
-            self.update_text_ui(user_input, "user")  # Display user input in blue for distinction
+            self.update_text_ui(user_input, "user")
         with self.condition:
             self.controller.current_input = user_input
             self.user_input_edit.clear()
@@ -280,26 +294,60 @@ class GUI(QMainWindow):
         self.progress_bar.setValue(progress)
 
     @pyqtSlot(str, str, str)
-    def update_text_ui(self, text, text_color="black", background_color=None):
-        # Create HTML with block-level elements and inline CSS for text and background color
-        style = f"color: {text_color};"
-        if background_color:
-            style += f" background-color: {background_color};"
-        new_text = f'<div style="{style}">{text}</div><br>'  # Add <br> after closing </div>
+    def update_text_ui(self, text, text_color="black", background_color="#33B1FF"):
+        text = text.replace("\n", "<br>")
+        is_user = text_color == "user"
+        align_right = is_user
 
         message_edit = QTextEdit(self)
         message_edit.setFont(QFont("Menlo", 13))
         message_edit.insertHtml(text)
-
-        # message_edit.setFixedWidth(int(self.scroll_area.width() * message_width_proportion))
         message_edit.setReadOnly(True)
-        # message_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         message_edit.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        message_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         message_edit.setWordWrapMode(QTextOption.WrapMode.WordWrap)
         message_edit.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        message_edit.setObjectName("message")
+        message_edit.setStyleSheet(
+            """
+            #message {
+                border: none;
+                background-color: transparent;
+            }
+            """
+        )
 
+        callout = CalloutFrame(self)
+        callout.setObjectName("messageContainer")
+        callout.setStyleSheet(
+            f"""
+            #messageContainer {{
+                border-radius: 14px;
+                background-color: {background_color};
+            }}
+        """
+        )
+
+        callout_layout = QVBoxLayout(callout)
+        callout_layout.setContentsMargins(5, 5, 5, 5)
+        callout_layout.setSpacing(0)
+        callout_layout.addWidget(message_edit)
+
+        hbox = QHBoxLayout()
+        if align_right:
+            hbox.addSpacerItem(QSpacerItem(30, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum))
+            hbox.addWidget(callout)
+        else:
+            hbox.addWidget(callout)
+            hbox.addSpacerItem(QSpacerItem(30, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum))
+
+        callout.show()
+        callout_layout.update()
         message_edit.show()
-        self.messages_layout.addWidget(message_edit, alignment=Qt.AlignmentFlag.AlignTop)
+        self.messages_layout.addLayout(hbox)
+        message_edit.show()
+        callout_layout.update()
+        callout.show()
         message_edit.show()
         message_edit.setFixedHeight(int(message_edit.document().size().height()) + message_padding_constant)
 

@@ -30,6 +30,10 @@ python3 -m PyInstaller \
     --osx-bundle-identifier "com.parsagon.parsagon" \
     --add-data "parsagon/highlights.js:." \
     --add-data "parsagon/loading.gif:." \
+    --add-data "parsagon/send@2x.png:." \
+    --add-data "parsagon/send.png:." \
+    --add-data "parsagon/callout_arrow@2x.png:." \
+    --add-data "parsagon/callout_arrow.png:." \
     --clean ./parsagon/gui.py
 
 codesign --deep --force --options=runtime --entitlements "$GUI_DIR/entitlements.plist" --sign "$APP_HASH" --timestamp ./dist/Parsagon.app

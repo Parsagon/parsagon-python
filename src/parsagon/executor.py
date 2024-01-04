@@ -332,9 +332,7 @@ class Executor:
         Clicks a button using its description.
         """
         if call_id in self.function_bank:
-            edit = confirm(
-                f'Now clicking the element referred to by "{description}". Do you want to edit this step?'
-            )
+            edit = confirm(f'Now clicking the element referred to by "{description}". Do you want to edit this step?')
             if not edit:
                 return self.exec_custom_function(
                     "click_elem", call_id, {"description": description, "window_id": window_id}
@@ -554,7 +552,7 @@ class Executor:
             scraped_data = result["data"]
         else:
             browser_print("Scraping data...")
-            result = scrape_page(self.get_visible_html(), schema, self.task)
+            result = scrape_page(self.get_visible_html(), schema, self.task, html)
             scraped_data = result["data"]
             nodes = result["nodes"]
             if not scraped_data or not nodes:

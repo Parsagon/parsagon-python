@@ -74,7 +74,9 @@ def get_program_sketches(description):
 
 
 def edit_program_sketch(sketch, description):
-    return _api_call(httpx.post, "/transformers/edit-program-sketch/", json={"sketch": sketch, "description": description})
+    return _api_call(
+        httpx.post, "/transformers/edit-program-sketch/", json={"sketch": sketch, "description": description}
+    )
 
 
 def get_interaction_element_id(marked_html, description, task):
@@ -114,7 +116,7 @@ def get_cleaned_data(html, schema, nodes):
     )
 
 
-def scrape_page(html, schema, task):
+def scrape_page(html, schema, task, full_html=None):
     """
     Scrapes data from the provided page HTML - data will be returned in the schema provided.
     :param html: HTML of the page to scrape.
@@ -125,7 +127,7 @@ def scrape_page(html, schema, task):
     return _api_call(
         httpx.post,
         "/transformers/get-custom-data/",
-        json={"html": html, "schema": schema, "task": task},
+        json={"html": html, "schema": schema, "task": task, "full_html": full_html},
     )
 
 

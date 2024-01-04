@@ -59,11 +59,11 @@ def create_program(task, headless=False, undetected=False, program_name=None, as
                     assistant_print(f"  Saving function{description}...")
                     create_custom_function(pipeline_id, call_id, custom_function)
                 assistant_print(f"Saved.")
+                break
             except:
                 delete_pipeline(pipeline_id)
                 assistant_print(f"An error occurred while saving the program. The program has been discarded.")
-            finally:
-                break
+                return {"success": False, "outcome": f"User decided not to save the program"}
         else:
             assistant_print("Discarded program.")
             return {"success": False, "outcome": f"User decided not to save the program"}

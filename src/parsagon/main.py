@@ -11,10 +11,12 @@ from parsagon.create import create_program
 from parsagon.edit import edit_program
 from parsagon.exceptions import ParsagonException
 from parsagon.executor import Executor, custom_functions_to_descriptions
-from parsagon.gui import run_gui
 from parsagon.runs import run
 from parsagon.settings import get_api_key, save_setting, configure_logging
 from parsagon.print import ask, assistant_print, status, input, gui_enabled
+
+if gui_enabled:
+    from parsagon.gui import run_gui
 
 logger = logging.getLogger(__name__)
 

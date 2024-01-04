@@ -4,9 +4,9 @@ from rich.prompt import Prompt, Confirm
 from rich.text import Text
 from rich.progress import Progress as RichProgress
 
-from parsagon.gui import GUIController
-
 gui_enabled = False
+if gui_enabled:
+    from parsagon.gui import GUIController
 console = Console()
 
 

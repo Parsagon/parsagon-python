@@ -32,7 +32,7 @@ from PyQt6.QtWidgets import (
     QFrame,
 )
 
-from parsagon.settings import get_resource_path
+from parsagon.settings import get_graphic
 
 # Global variable that simply keeps the GUI window from being garbage collected
 gui_window = None
@@ -147,7 +147,7 @@ class CustomTextEdit(QTextEdit):
 class CalloutFrame(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.callout_arrow_path = str(get_resource_path() / "callout_arrow@2x.png")
+        self.callout_arrow_path = get_graphic("callout_arrow@2x.png")
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -228,7 +228,7 @@ class GUI(QMainWindow):
         self.user_input_edit.setVisible(True)
         self.user_input_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        pixmap = QPixmap(str(get_resource_path() / "send@2x.png"))
+        pixmap = QPixmap(get_graphic("send@2x.png"))
         pixmap.setDevicePixelRatio(2.0)
         icon = QIcon(pixmap)
         self.send_button = QPushButton("", self)
@@ -240,7 +240,7 @@ class GUI(QMainWindow):
         self.loading_spinner = QLabel(self)
         self.loading_spinner.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        spinner_movie = QMovie(str(get_resource_path() / "loading.gif"))
+        spinner_movie = QMovie(get_graphic("loading.gif"))
         spinner_movie.setScaledSize(QSize(33, 33))
         spinner_movie.currentPixmap().setDevicePixelRatio(2.0)
         self.loading_spinner.setMovie(spinner_movie)

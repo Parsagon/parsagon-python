@@ -13,7 +13,7 @@ __SETTINGS_FILE = environ.get("SETTINGS_FILE", ".parsagon_profile")
 
 logger = logging.getLogger(__name__)
 
-GUI_ENABLED = False
+GUI_ENABLED = True
 
 
 def pytest_is_running():
@@ -133,3 +133,7 @@ def get_resource_path():
             return Path(__file__).parent
     else:
         return Path(__file__).parent
+
+
+def get_graphic(name):
+    return str(get_resource_path() / name)

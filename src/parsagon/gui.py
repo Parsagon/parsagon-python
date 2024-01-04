@@ -1,14 +1,4 @@
 import contextlib
-import multiprocessing
-import os
-
-# Set environment variables here
-os.environ["API_BASE"] = "https://parsagon.dev"
-os.environ[
-    "SSL_CERT_FILE"
-] = "/Users/gabemontague/Dropbox/Mac/Documents/Documents/Projects/parsagon/code/ps-scraper-web/certs/dev-parsagon.dev.pem"
-
-import sys
 from threading import Condition
 
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QEventLoop, QSize
@@ -23,7 +13,6 @@ from PyQt6.QtGui import (
     QPainter,
 )
 from PyQt6.QtWidgets import (
-    QApplication,
     QMainWindow,
     QVBoxLayout,
     QPushButton,
@@ -39,10 +28,6 @@ from PyQt6.QtWidgets import (
 )
 
 from parsagon.settings import get_graphic
-
-# Global variable that simply keeps the GUI window from being garbage collected
-gui_window = None
-
 
 message_padding_constant = 0
 message_width_proportion = 0.85
@@ -74,19 +59,22 @@ class GUIController(QThread):
             raise RuntimeError("GUIController has not been initialized")
         return cls._instance
 
-    def __init__(self, condition, callback, parent=None):
+    def __init__(self, condition, parent=None):
         super().__init__(parent)
         self.condition = condition
         self.current_input = None
-        self.callback = callback
         self.progress_total = None
         assert self.__class__._instance is None, "GUIController is a singleton"
         self.__class__._instance = self
 
     def run(self):
-        GUIController._instance = self
+        self.__class__._instance._instance = self
         try:
-            self.callback(self)
+            from parsagon.assistant import assist
+            from parsagon.settings import get_graphic, get_api_key
+
+            _ = get_api_key(interactive=True)
+            assist(True)
         except Exception as e:
             if isinstance(e, (KeyboardInterrupt, SystemExit)):
                 raise
@@ -165,11 +153,10 @@ class CalloutFrame(QFrame):
         # painter.drawPixmap(x, y, pixmap)
 
 
-class GUI(QMainWindow):
-    def __init__(self, background_thread_callback):
+class GUIWindow(QMainWindow):
+    def __init__(self):
         super().__init__()
         self.condition = Condition()
-        self.background_thread_callback = background_thread_callback
 
         self.setWindowTitle("Parsagon")
         self.setGeometry(100, 100, 400, 700)
@@ -238,6 +225,7 @@ class GUI(QMainWindow):
         pixmap.setDevicePixelRatio(2.0)
         icon = QIcon(pixmap)
         self.send_button = QPushButton("", self)
+        self.send_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.send_button.setIcon(icon)
         self.send_button.setIconSize(QSize(33, 33))
         self.send_button.clicked.connect(self.on_user_input)
@@ -261,7 +249,7 @@ class GUI(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         # Signals
-        self.controller = GUIController(self.condition, self.background_thread_callback)
+        self.controller = GUIController(self.condition)
         self.controller.set_loading_signal.connect(self.set_loading)
         self.controller.show_progress_signal.connect(self.show_progress)
         self.controller.set_progress_title_signal.connect(self.set_progress_title)
@@ -371,29 +359,3 @@ class GUI(QMainWindow):
     def execute_callback(self, callback, loop, result_container):
         result_container.value = callback()  # Store the result of the callback
         loop.quit()  # Exit the event loop to unblock the background thread
-
-
-def gui_assist(global_gui):
-    from parsagon.assistant import assist
-    from parsagon.gui import GUIController
-
-    GUIController._instance = global_gui
-    from parsagon.settings import get_api_key
-
-    _ = get_api_key(interactive=True)
-    assist(True)
-
-
-def run_gui(verbose=False):
-    global gui_window
-    app = QApplication(sys.argv)
-    gui_window_ = GUI(gui_assist)
-    gui_window = gui_window_
-    return app.exec()
-
-
-if __name__ == "__main__":
-    # Pyinstaller fix
-    multiprocessing.freeze_support()
-
-    sys.exit(run_gui(verbose=True))

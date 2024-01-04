@@ -50,7 +50,7 @@ python3 -m PyInstaller \
     --osx-bundle-identifier "com.parsagon.parsagon" \
     --add-data "$PARSAGON_DIR/highlights.js:." \
     --add-data "$GRAPHICS_DIR/*:graphics" \
-    --clean ./parsagon/gui.py
+    --clean ./parsagon/gui_entry.py
 
 if [ "$SHOULD_SIGN" -eq 1 ]; then
   codesign --deep --force --options=runtime --entitlements "$GUI_DIR/entitlements.plist" --sign "$APP_HASH" --timestamp ./dist/Parsagon.app

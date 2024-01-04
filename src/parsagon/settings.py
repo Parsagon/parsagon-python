@@ -136,4 +136,4 @@ def get_resource_path():
 
 
 def get_graphic(name):
-    return str(get_resource_path() / name)
+    return str(get_resource_path() / "graphics" / name)

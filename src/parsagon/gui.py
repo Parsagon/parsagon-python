@@ -1,10 +1,16 @@
 import contextlib
 import multiprocessing
 import os
+
+# Set environment variables here
+os.environ["API_BASE"] = "https://parsagon.dev"
+os.environ[
+    "SSL_CERT_FILE"
+] = "/Users/gabemontague/Dropbox/Mac/Documents/Documents/Projects/parsagon/code/ps-scraper-web/certs/dev-parsagon.dev.pem"
+
 import sys
 from threading import Condition
 
-import markdown
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QEventLoop, QSize
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import (
@@ -389,8 +395,5 @@ def run_gui(verbose=False):
 if __name__ == "__main__":
     # Pyinstaller fix
     multiprocessing.freeze_support()
-
-    # Environment variables for development
-    # os.environ["API_BASE"] = "https://parsagon.dev"
 
     sys.exit(run_gui(verbose=True))

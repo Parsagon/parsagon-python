@@ -1,26 +1,35 @@
 import contextlib
-import sys
-from pathlib import Path
 from threading import Condition
 
-from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QEventLoop, QSize
-from PyQt6.QtGui import QTextCursor, QMovie, QKeyEvent
+from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QEventLoop, QSize, QTimer
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import (
+    QMovie,
+    QKeyEvent,
+    QFont,
+    QPixmap,
+    QIcon,
+    QTextOption,
+)
 from PyQt6.QtWidgets import (
-    QApplication,
     QMainWindow,
     QVBoxLayout,
     QPushButton,
-    QLineEdit,
     QWidget,
     QHBoxLayout,
     QTextEdit,
-    QLabel, QProgressBar,
+    QLabel,
+    QProgressBar,
+    QScrollArea,
+    QSpacerItem,
+    QSizePolicy,
+    QFrame,
 )
-from PyQt6.QtCore import Qt
 
+from parsagon.settings import get_graphic
 
-# Global variable that simply keeps the GUI window from being garbage collected
-gui_window = None
+message_padding_constant = 0
+message_width_proportion = 0.85
 
 
 class ResultContainer:
@@ -49,27 +58,45 @@ class GUIController(QThread):
             raise RuntimeError("GUIController has not been initialized")
         return cls._instance
 
-    def __init__(self, condition, callback, parent=None):
+    def __init__(self, condition, parent=None):
         super().__init__(parent)
+        self.timer = None
         self.condition = condition
         self.current_input = None
-        self.callback = callback
         self.progress_total = None
         assert self.__class__._instance is None, "GUIController is a singleton"
         self.__class__._instance = self
 
     def run(self):
-        self.callback()
+        self.__class__._instance._instance = self
+        try:
+            from parsagon.assistant import assist
+            from parsagon.settings import get_graphic, get_api_key
+
+            _ = get_api_key(interactive=True)
+            assist(True)
+        except Exception as e:
+            if isinstance(e, (KeyboardInterrupt, SystemExit)):
+                raise
+            else:
+                from parsagon.print import error_print
+
+                error_print(str(e))
+                error_print(
+                    "Parsagon encountered an error.  Please restart the application to continue.  You may want to copy any messages above you want to save."
+                )
 
     def input(self, prompt):
-        self.print(prompt)
+        if prompt:
+            self.print(prompt)
         self.request_input_signal.emit()
         with self.condition:
             self.condition.wait()
             return self.current_input
 
-    def print(self, text, color="black", background=None):
-        self.update_text_signal.emit(text, color, background)
+    def print(self, text, color="black", background="#CBCED2"):
+        html = text.replace("\n", "<br>")
+        self.update_text_signal.emit(html, color, background)
 
     @contextlib.contextmanager
     def spinner(self):
@@ -111,24 +138,39 @@ class CustomTextEdit(QTextEdit):
             super().keyPressEvent(event)
 
 
-class GUI(QMainWindow):
-    def __init__(self, background_thread_callback):
+class GUIWindow(QMainWindow):
+    def __init__(self):
         super().__init__()
         self.condition = Condition()
-        self.background_thread_callback = background_thread_callback
 
         self.setWindowTitle("Parsagon")
         self.setGeometry(100, 100, 400, 700)
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
 
-        main_layout = QVBoxLayout()
+        palette = self.palette()
+        palette.setColor(self.backgroundRole(), Qt.GlobalColor.white)
+        self.setPalette(palette)
 
-        self.message_edit = QTextEdit(self)
-        self.message_edit.setReadOnly(True)  # Make the text edit read-only
-        main_layout.addWidget(self.message_edit)
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 12)
+        main_layout.setSpacing(10)
+
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.message_container = QWidget()
+        self.messages_layout = QVBoxLayout(self.message_container)
+        self.messages_layout.setContentsMargins(0, 10, 0, 10)
+        self.messages_layout.setSpacing(0)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setWidget(self.message_container)
+
+        # Add a vertical spacer to push messages to the top
+        self.spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.messages_layout.addSpacerItem(self.spacer)
+        main_layout.addWidget(self.scroll_area)
 
         # Progress
-        self.progress_container = QWidget()  # or QFrame()
+        self.progress_container = QWidget()
         progress_layout = QVBoxLayout()
         self.progress_container.setLayout(progress_layout)
         self.progress_title = QLabel("Loading...", self)
@@ -138,36 +180,64 @@ class GUI(QMainWindow):
         main_layout.addWidget(self.progress_container)
         self.progress_container.setVisible(False)
 
-        input_layout = QHBoxLayout()
+        input_wrapper_layout = QHBoxLayout()
+        input_wrapper_layout.setContentsMargins(10, 0, 10, 0)
+
+        input_border = QWidget()
+        input_border.setContentsMargins(10, 2, 7, 2)
+        input_border.setObjectName("inputBorder")
+        input_border.setStyleSheet(
+            """
+            #inputBorder {
+                border: 1px solid #CBCED2;
+                border-radius: 14px;
+            }
+            QWidget {
+                border: none;
+            }
+        """
+        )
+        input_wrapper_layout.addWidget(input_border)
+        input_layout = QHBoxLayout(input_border)
+        input_layout.setContentsMargins(0, 0, 0, 0)
 
         self.user_input_edit = CustomTextEdit(self.on_user_input, self)
-        self.user_input_edit.setFixedHeight(30)
+        self.user_input_edit.setFont(QFont("Menlo", 15))
+        self.user_input_edit.setFixedHeight(43)
         input_layout.addWidget(self.user_input_edit, alignment=Qt.AlignmentFlag.AlignVCenter)
         self.user_input_edit.setEnabled(True)
         self.user_input_edit.setVisible(True)
+        self.user_input_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        self.send_button = QPushButton("Send", self)
+        pixmap = QPixmap(get_graphic("send@2x.png"))
+        pixmap.setDevicePixelRatio(2.0)
+        icon = QIcon(pixmap)
+        self.send_button = QPushButton("", self)
+        self.send_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.send_button.setIcon(icon)
+        self.send_button.setIconSize(QSize(33, 33))
         self.send_button.clicked.connect(self.on_user_input)
         input_layout.addWidget(self.send_button, alignment=Qt.AlignmentFlag.AlignVCenter)
 
         self.loading_spinner = QLabel(self)
         self.loading_spinner.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        spinner_movie = QMovie(str(Path(__file__).parent / "loading.gif"))
-        spinner_movie.setScaledSize(QSize(30, 15))
+
+        spinner_movie = QMovie(get_graphic("loading.gif"))
+        spinner_movie.setScaledSize(QSize(33, 33))
+        spinner_movie.currentPixmap().setDevicePixelRatio(2.0)
         self.loading_spinner.setMovie(spinner_movie)
-        self.loading_spinner.setFixedHeight(30)
+        self.loading_spinner.setFixedHeight(33)
         spinner_movie.start()
         self.loading_spinner.setVisible(False)  # Initially hidden
         input_layout.addWidget(self.loading_spinner, alignment=Qt.AlignmentFlag.AlignVCenter)
 
-        main_layout.addLayout(input_layout)
-
+        main_layout.addLayout(input_wrapper_layout)
         self.central_widget = QWidget()
         self.central_widget.setLayout(main_layout)
         self.setCentralWidget(self.central_widget)
 
         # Signals
-        self.controller = GUIController(self.condition, self.background_thread_callback)
+        self.controller = GUIController(self.condition)
         self.controller.set_loading_signal.connect(self.set_loading)
         self.controller.show_progress_signal.connect(self.show_progress)
         self.controller.set_progress_title_signal.connect(self.set_progress_title)
@@ -175,14 +245,17 @@ class GUI(QMainWindow):
         self.controller.update_text_signal.connect(self.update_text_ui)
         self.controller.request_input_signal.connect(self.focus_input)
         self.controller.execute_on_main_thread_signal.connect(self.execute_callback)
-        self.controller.start()
-
         self.show()
+
+        self.timer = QTimer.singleShot(500, self.delayed_setup)
+
+    def delayed_setup(self):
+        self.controller.start()
 
     def on_user_input(self):
         user_input = self.user_input_edit.toPlainText()
-        if user_input:  # Add non-empty input to the message list
-            self.update_text_ui(user_input, "black")  # Display user input in blue for distinction
+        if user_input:
+            self.update_text_ui(user_input, "user")
         with self.condition:
             self.controller.current_input = user_input
             self.user_input_edit.clear()
@@ -206,16 +279,96 @@ class GUI(QMainWindow):
         self.progress_bar.setValue(progress)
 
     @pyqtSlot(str, str, str)
-    def update_text_ui(self, text, text_color="black", background_color=None):
-        # Create HTML with block-level elements and inline CSS for text and background color
-        style = f"color: {text_color};"
-        if background_color:
-            style += f" background-color: {background_color};"
-        new_text = f'<div style="{style}">{text}</div><br>'  # Add <br> after closing </div>
+    def update_text_ui(self, text, text_color="user", background_color="#33B1FF"):
+        text = text.replace("\n", "<br>")
+        is_user = text_color == "user"
+        if is_user:
+            text_color = "white"
+        align_right = is_user
 
-        self.message_edit.moveCursor(QTextCursor.MoveOperation.End)
-        self.message_edit.insertHtml(new_text)
-        self.message_edit.moveCursor(QTextCursor.MoveOperation.End)
+        message_edit = QTextEdit(self)
+        message_edit.setFont(QFont("Menlo", 13))
+        message_edit.insertHtml(text)
+        message_edit.setReadOnly(True)
+        message_edit.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        message_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        message_edit.setWordWrapMode(QTextOption.WrapMode.WordWrap)
+        message_edit.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        message_edit.setObjectName("message")
+        message_edit.setStyleSheet(
+            f"""
+            #message {{
+                border: none;
+                background-color: transparent;
+                color: {text_color}
+            }}
+        """
+        )
+
+        outer_callout_layout = QVBoxLayout()
+        outer_callout_layout.setContentsMargins(0, 0, 0, 0)
+        outer_callout_layout.setSpacing(0)
+
+        callout = QFrame(self)
+        callout.setObjectName("messageContainer")
+        callout.setStyleSheet(
+            f"""
+            #messageContainer {{
+                border-radius: 12px;
+                background-color: {background_color};
+            }}
+        """
+        )
+        callout_tail = QLabel(self)
+        path_suffix = "_user" if align_right else ""
+        callout_arrow_path = get_graphic(f"callout_arrow{path_suffix}@2x.png")
+        pixmap = QPixmap(callout_arrow_path)
+        pixmap.setDevicePixelRatio(2.0)
+        callout_tail.setPixmap(pixmap)
+        callout_tail_width = pixmap.width() // 2
+        padding_amount = 7
+        callout_tail.setFixedSize(QSize(callout_tail_width + padding_amount, pixmap.height()))
+        callout_tail.setObjectName("calloutTail")
+        callout_tail.setAlignment(Qt.AlignmentFlag.AlignLeft if not align_right else Qt.AlignmentFlag.AlignRight)
+        padding_side = "right" if align_right else "left"
+        callout_tail.setStyleSheet(
+            f"""
+            #calloutTail {{
+                padding-{padding_side}: {padding_amount}px;
+            }}
+        """
+        )
+
+        inner_callout_layout = QVBoxLayout(callout)
+        inner_callout_layout.setContentsMargins(5, 5, 5, 5)
+        inner_callout_layout.setSpacing(0)
+        inner_callout_layout.addWidget(message_edit)
+
+        outer_callout_layout.addWidget(callout)
+        outer_callout_layout.addWidget(
+            callout_tail, alignment=Qt.AlignmentFlag.AlignLeft if not align_right else Qt.AlignmentFlag.AlignRight
+        )
+
+        hbox = QHBoxLayout()
+        hbox.setContentsMargins(10, 0, 10, 0)
+        if align_right:
+            hbox.addSpacerItem(QSpacerItem(35, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum))
+            hbox.addLayout(outer_callout_layout)
+        else:
+            hbox.addLayout(outer_callout_layout)
+            hbox.addSpacerItem(QSpacerItem(35, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum))
+
+        self.messages_layout.addLayout(hbox)
+        message_edit.show()
+        inner_callout_layout.update()
+        callout.show()
+        message_edit.setFixedHeight(int(message_edit.document().size().height()) + message_padding_constant)
+
+        # Update the spacer
+        self.messages_layout.removeItem(self.spacer)
+        self.messages_layout.addSpacerItem(self.spacer)
+
+        self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
 
     @pyqtSlot()
     def focus_input(self):
@@ -225,18 +378,3 @@ class GUI(QMainWindow):
     def execute_callback(self, callback, loop, result_container):
         result_container.value = callback()  # Store the result of the callback
         loop.quit()  # Exit the event loop to unblock the background thread
-
-
-def run_gui(verbose=False):
-    global gui_window
-    app = QApplication(sys.argv)
-    from parsagon.assistant import assist
-
-    try:
-        gui_window_ = GUI(assist)
-        gui_window = gui_window_
-    except Exception as e:
-        from parsagon.print import error_print
-        error_print(str(e))
-        sys.exit(1)
-    sys.exit(app.exec())

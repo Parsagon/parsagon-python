@@ -2,7 +2,7 @@ import json
 from parsagon.api import send_assistant_message, send_assistant_function_outputs, schedule, delete_schedule
 from parsagon.create import create_program
 from parsagon.executor import Executor
-from parsagon.print import assistant_print, assistant_spinner, browser_print, error_print, ask, input
+from parsagon.print import assistant_print, assistant_spinner, browser_print, error_print, ask, input, ask_reply
 from parsagon.runs import run, batch_runs
 
 
@@ -22,7 +22,7 @@ def assist(verbose=False):
             for content in message["content"]:
                 assistant_print(content["text"]["value"])
         if response["status"] == "completed":
-            reply = ask("Reply or type Q to end")
+            reply = ask_reply()
             if reply.strip() == "Q":
                 break
             with assistant_spinner():

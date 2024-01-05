@@ -15,8 +15,6 @@ from parsagon.runs import run
 from parsagon.settings import get_api_key, save_setting, configure_logging
 from parsagon.print import ask, assistant_print, status, input
 
-if gui_enabled:
-    from parsagon.gui import run_gui
 
 logger = logging.getLogger(__name__)
 

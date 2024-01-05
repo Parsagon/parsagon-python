@@ -10,7 +10,6 @@ from PyQt6.QtGui import (
     QPixmap,
     QIcon,
     QTextOption,
-    QPainter,
 )
 from PyQt6.QtWidgets import (
     QMainWindow,

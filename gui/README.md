@@ -2,7 +2,7 @@
 
 ## Running locally
 
-* Activate the venv.
+* Install PyQT in your virtualenv.  You can either run `pip3 install PyQt6==6.6.1` in the main project virtualenv, or switch to using the virtualenv produced by the build instructions below (this virtualenv is located in the `src` directory rather than in the project root).
 * `cd` into the `src` directory.
 * Run `python3 ./parsagon/gui_entry.py`
 * Keep in mind that some environment variables may be overridden if they are specified in `gui_entry.py`.

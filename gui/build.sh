@@ -39,6 +39,7 @@ source venv/bin/activate
 if [ "$REUSE_VENV" -eq 0 ]; then
   pip3 install ..
   pip3 uninstall -y parsagon
+  pip3 install PyQt6==6.6.1
   pip3 install pyinstaller
 fi
 

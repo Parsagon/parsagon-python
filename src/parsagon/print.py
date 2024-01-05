@@ -7,6 +7,7 @@ from rich.text import Text
 from rich.progress import Progress as RichProgress
 
 from parsagon.settings import GUI_ENABLED
+
 if GUI_ENABLED:
     from parsagon.gui import GUIController
 
@@ -97,10 +98,10 @@ class Progress:
             self.rich_progress = RichProgress()
 
     def track(self, iterable, description="Working...", task_id=None):
-        description = re.sub(r"^\[[a-zA-Z]+]", "", description)
         if not GUI_ENABLED:
             return self.rich_progress.track(iterable, description=description, task_id=task_id)
         else:
+            description = re.sub(r"^\[[a-zA-Z]+]", "", description)
 
             def gui_generator():
                 gui_controller = GUIController.shared()

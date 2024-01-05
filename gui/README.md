@@ -1,10 +1,15 @@
 # Parsagon Desktop Application
 
+## Running locally
+
+* Activate the venv.
+* `cd` into the `src` directory.
+* Run `python3 ./parsagon/gui_entry.py`
+* Keep in mind that some environment variables may be overridden if they are specified in `gui_entry.py`.
+
 ## Building for MacOS
 
-* Create a new virtual environment and activate it.
-
-* Install ONLY the production dependencies, and `pyinstaller`
+* Deactivate the virtual environment - a new one will be created for the build.
 
 * Using the link https://github.com/txoof/codesign/blob/main/Signing_and_Notarizing_HOWTO.md, 
 
@@ -15,13 +20,13 @@
 
 * Not that the `API_BASE` environment variable must be hard-coded if you want to build a development version of the app.  Uncomment the line with `os.environ["API_BASE"]` in `gui.py`
 
-* With the virtualenv activated, run `gui/build.sh`
+* Run `gui/build.sh`
 
 * Wait for an email to your Apple ID email saying that the application has been notarized.
 
 * Run: `xcrun stapler staple ./src/dist/Parsagon.pkg` 
 
-* The pkg file is now notarized.
+* The pkg file located in `./src/dist` is now notarized.
 
 	
 

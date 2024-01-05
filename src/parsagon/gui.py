@@ -1,7 +1,7 @@
 import contextlib
 from threading import Condition
 
-from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QEventLoop, QSize
+from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QEventLoop, QSize, QTimer
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import (
     QMovie,
@@ -61,6 +61,7 @@ class GUIController(QThread):
 
     def __init__(self, condition, parent=None):
         super().__init__(parent)
+        self.timer = None
         self.condition = condition
         self.current_input = None
         self.progress_total = None
@@ -88,7 +89,7 @@ class GUIController(QThread):
 
     def input(self, prompt):
         if prompt:
-            self.print(prompt, "#33B1FF")
+            self.print(prompt)
         self.request_input_signal.emit()
         with self.condition:
             self.condition.wait()
@@ -138,21 +139,6 @@ class CustomTextEdit(QTextEdit):
             super().keyPressEvent(event)
 
 
-class CalloutFrame(QFrame):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.callout_arrow_path = get_graphic("callout_arrow@2x.png")
-
-    def paintEvent(self, event):
-        super().paintEvent(event)
-        painter = QPainter(self)
-        pixmap = QPixmap(self.callout_arrow_path)
-        pixmap.setDevicePixelRatio(2.0)
-        x = self.width() - 34
-        y = self.height() - 17
-        # painter.drawPixmap(x, y, pixmap)
-
-
 class GUIWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -174,6 +160,8 @@ class GUIWindow(QMainWindow):
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.message_container = QWidget()
         self.messages_layout = QVBoxLayout(self.message_container)
+        self.messages_layout.setContentsMargins(0, 10, 0, 10)
+        self.messages_layout.setSpacing(0)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.message_container)
 
@@ -200,13 +188,14 @@ class GUIWindow(QMainWindow):
         input_border.setContentsMargins(10, 2, 7, 2)
         input_border.setObjectName("inputBorder")
         input_border.setStyleSheet(
-            """#inputBorder {
-            border: 1px solid #CBCED2;
-            border-radius: 14px;
-        }
-        QWidget {
-            border: none;
-        }
+            """
+            #inputBorder {
+                border: 1px solid #CBCED2;
+                border-radius: 14px;
+            }
+            QWidget {
+                border: none;
+            }
         """
         )
         input_wrapper_layout.addWidget(input_border)
@@ -259,11 +248,14 @@ class GUIWindow(QMainWindow):
         self.controller.execute_on_main_thread_signal.connect(self.execute_callback)
         self.show()
 
+        self.timer = QTimer.singleShot(500, self.delayed_setup)
+
+    def delayed_setup(self):
         self.controller.start()
 
     def on_user_input(self):
         user_input = self.user_input_edit.toPlainText()
-        if user_input:  # Add non-empty input to the message list
+        if user_input:
             self.update_text_ui(user_input, "user")
         with self.condition:
             self.controller.current_input = user_input
@@ -288,9 +280,11 @@ class GUIWindow(QMainWindow):
         self.progress_bar.setValue(progress)
 
     @pyqtSlot(str, str, str)
-    def update_text_ui(self, text, text_color="black", background_color="#33B1FF"):
+    def update_text_ui(self, text, text_color="user", background_color="#33B1FF"):
         text = text.replace("\n", "<br>")
         is_user = text_color == "user"
+        if is_user:
+            text_color = "white"
         align_right = is_user
 
         message_edit = QTextEdit(self)
@@ -303,46 +297,72 @@ class GUIWindow(QMainWindow):
         message_edit.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         message_edit.setObjectName("message")
         message_edit.setStyleSheet(
-            """
-            #message {
+            f"""
+            #message {{
                 border: none;
                 background-color: transparent;
-            }
-            """
-        )
-
-        callout = CalloutFrame(self)
-        callout.setObjectName("messageContainer")
-        callout.setStyleSheet(
-            f"""
-            #messageContainer {{
-                border-radius: 14px;
-                background-color: {background_color};
+                color: {text_color}
             }}
         """
         )
 
-        callout_layout = QVBoxLayout(callout)
-        callout_layout.setContentsMargins(5, 5, 5, 5)
-        callout_layout.setSpacing(0)
-        callout_layout.addWidget(message_edit)
+        outer_callout_layout = QVBoxLayout()
+        outer_callout_layout.setContentsMargins(0, 0, 0, 0)
+        outer_callout_layout.setSpacing(0)
+
+        callout = QFrame(self)
+        callout.setObjectName("messageContainer")
+        callout.setStyleSheet(
+            f"""
+            #messageContainer {{
+                border-radius: 12px;
+                background-color: {background_color};
+            }}
+        """
+        )
+        callout_tail = QLabel(self)
+        path_suffix = "_user" if align_right else ""
+        callout_arrow_path = get_graphic(f"callout_arrow{path_suffix}@2x.png")
+        pixmap = QPixmap(callout_arrow_path)
+        pixmap.setDevicePixelRatio(2.0)
+        callout_tail.setPixmap(pixmap)
+        callout_tail_width = pixmap.width() // 2
+        padding_amount = 7
+        callout_tail.setFixedSize(QSize(callout_tail_width + padding_amount, pixmap.height()))
+        callout_tail.setObjectName("calloutTail")
+        callout_tail.setAlignment(Qt.AlignmentFlag.AlignLeft if not align_right else Qt.AlignmentFlag.AlignRight)
+        padding_side = "right" if align_right else "left"
+        callout_tail.setStyleSheet(
+            f"""
+            #calloutTail {{
+                padding-{padding_side}: {padding_amount}px;
+            }}
+        """
+        )
+
+        inner_callout_layout = QVBoxLayout(callout)
+        inner_callout_layout.setContentsMargins(5, 5, 5, 5)
+        inner_callout_layout.setSpacing(0)
+        inner_callout_layout.addWidget(message_edit)
+
+        outer_callout_layout.addWidget(callout)
+        outer_callout_layout.addWidget(
+            callout_tail, alignment=Qt.AlignmentFlag.AlignLeft if not align_right else Qt.AlignmentFlag.AlignRight
+        )
 
         hbox = QHBoxLayout()
+        hbox.setContentsMargins(10, 0, 10, 0)
         if align_right:
-            hbox.addSpacerItem(QSpacerItem(30, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum))
-            hbox.addWidget(callout)
+            hbox.addSpacerItem(QSpacerItem(35, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum))
+            hbox.addLayout(outer_callout_layout)
         else:
-            hbox.addWidget(callout)
-            hbox.addSpacerItem(QSpacerItem(30, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum))
+            hbox.addLayout(outer_callout_layout)
+            hbox.addSpacerItem(QSpacerItem(35, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum))
 
-        callout.show()
-        callout_layout.update()
-        message_edit.show()
         self.messages_layout.addLayout(hbox)
         message_edit.show()
-        callout_layout.update()
+        inner_callout_layout.update()
         callout.show()
-        message_edit.show()
         message_edit.setFixedHeight(int(message_edit.document().size().height()) + message_padding_constant)
 
         # Update the spacer

@@ -13,7 +13,7 @@ __SETTINGS_FILE = environ.get("SETTINGS_FILE", ".parsagon_profile")
 
 logger = logging.getLogger(__name__)
 
-GUI_ENABLED = True
+GUI_ENABLED = False
 
 
 def pytest_is_running():

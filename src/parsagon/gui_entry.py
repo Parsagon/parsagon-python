@@ -5,10 +5,7 @@ import os
 multiprocessing.freeze_support()
 
 # Set environment variables
-os.environ["API_BASE"] = "https://parsagon.dev"
-os.environ[
-    "SSL_CERT_FILE"
-] = "/Users/gabemontague/Dropbox/Mac/Documents/Documents/Projects/parsagon/code/ps-scraper-web/certs/dev-parsagon.dev.pem"
+# os.environ["API_BASE"] = "https://parsagon.dev"
 
 from parsagon.gui import GUIWindow
 

@@ -33,3 +33,9 @@
 	Other reference
 
 	* https://gist.github.com/txoof/0636835d3cc65245c6288b2374799c43 (more links)
+
+
+
+## Known issues
+
+* When enough messages are added, a scroll bar appears on the right.  This causes a slight decrease in the width of the message space, similar to if you had resized the window to be slightly less in width.  This results in a few of the message callouts being too small for their text content and requiring their own scrolling systems, but most are fine.

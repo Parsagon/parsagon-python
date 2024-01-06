@@ -1,5 +1,7 @@
 # Parsagon Desktop Application
 
+**NOTE**: For everything below, you must first set `GUI_ENABLED` to True in `settings.py`!
+
 ## Running locally
 
 * Install PyQT in your virtualenv.  You can either run `pip3 install PyQt6==6.6.1` in the main project virtualenv, or switch to using the virtualenv produced by the build instructions below (this virtualenv is located in the `src` directory rather than in the project root).

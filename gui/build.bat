@@ -36,7 +36,7 @@ if "%REUSE_VENV%"=="0" (
     pip install pyinstaller==6.3.0
 )
 
-set "PYINSTALLER_CMD=python -m PyInstaller --name Parsagon --icon "%GUI_DIR%\windows.ico" --onefile --add-data "%PARSAGON_DIR%\highlights.js;.""
+set "PYINSTALLER_CMD=python -m PyInstaller --name Parsagon --icon "%GUI_DIR%\windows.ico" --onefile --windowed --add-data "%PARSAGON_DIR%\highlights.js;.""
 
 for /r "%GRAPHICS_DIR%" %%f in (*.*) do (
     set "PYINSTALLER_CMD=!PYINSTALLER_CMD! --add-data "%%f;graphics""

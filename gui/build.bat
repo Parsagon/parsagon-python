@@ -45,4 +45,6 @@ for /r "%GRAPHICS_DIR%" %%f in (*.*) do (
 echo !PYINSTALLER_CMD!
 !PYINSTALLER_CMD! --clean .\parsagon\gui_entry.py
 
+"C:\Program Files (x86)\NSIS\makensis.exe" "%GUI_DIR%\ParsagonInstaller.nsi"
+
 ENDLOCAL

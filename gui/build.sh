@@ -57,7 +57,7 @@ python3 -m PyInstaller \
     --clean ./parsagon/gui_entry.py
 
 if [ "$SHOULD_SIGN" -eq 1 ]; then
-  codesign --deep --force --options=runtime --entitlements "$GUI_DIR/entitlements.plist" --sign "$APP_HASH" --timestamp ./dist/Parsagon.app
+  codesign --no-interactive --deep --force --options=runtime --entitlements "$GUI_DIR/entitlements.plist" --sign "$APP_HASH" --timestamp ./dist/Parsagon.app
 
   if [ -d "/tmp/parsagon" ]; then
     rm -rf "/tmp/parsagon"

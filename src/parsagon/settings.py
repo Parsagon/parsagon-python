@@ -21,6 +21,19 @@ def pytest_is_running():
     return "pytest" in sys.modules
 
 
+def get_save_api_key_interactive():
+    from parsagon.print import input, error_print
+
+    while True:
+        api_key = input("Please enter your Parsagon API key: ")
+        if len(api_key) != 40:
+            error_print("Error: a Parsagon API key must be 40 characters long.")
+        else:
+            break
+    save_setting("api_key", api_key)
+    return api_key
+
+
 def get_api_key(interactive=False):
     """
     Return API key, preventing tests from talking to the real backend
@@ -33,16 +46,7 @@ def get_api_key(interactive=False):
         assert isinstance(saved_api_key, str), "API key must be a string."
         return saved_api_key
     elif interactive:
-        from parsagon.print import input, error_print
-
-        while True:
-            api_key = input("Please enter your Parsagon API key: ")
-            if len(api_key) != 40:
-                error_print("Error: a Parsagon API key must be 40 characters long.")
-            else:
-                break
-        save_setting("api_key", api_key)
-        return api_key
+        return get_save_api_key_interactive()
     else:
         raise ParsagonException("No API key found. Please run `parsagon setup`.")
 

@@ -27,24 +27,29 @@ from PyQt6.QtWidgets import (
     QFrame,
 )
 
-from parsagon.settings import get_graphic
+from parsagon.exceptions import ParsagonException, APIException
+from parsagon.settings import get_graphic, get_save_api_key_interactive
 
 message_padding_constant = 0
 message_width_proportion = 0.85
-is_windows = os.name == 'nt'
+is_windows = os.name == "nt"
 font_size_messages = 13 if not is_windows else 10
 font_size_input = 15 if not is_windows else 11
+
 
 class ResultContainer:
     def __init__(self):
         self.value = None
 
+
 try:
     from ctypes import windll
-    app_id = 'parsagon.parsagon.gui.1'
+
+    app_id = "parsagon.parsagon.gui.1"
     windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
 except ImportError:
     pass
+
 
 class GUIController(QThread):
     """
@@ -78,22 +83,30 @@ class GUIController(QThread):
 
     def run(self):
         self.__class__._instance._instance = self
-        try:
-            from parsagon.assistant import assist
-            from parsagon.settings import get_graphic, get_api_key
+        while True:
+            retry = False
+            try:
+                from parsagon.assistant import assist
+                from parsagon.settings import get_graphic, get_api_key
 
-            _ = get_api_key(interactive=True)
-            assist(True)
-        except Exception as e:
-            if isinstance(e, (KeyboardInterrupt, SystemExit)):
-                raise
-            else:
-                from parsagon.print import error_print
+                _ = get_api_key(interactive=True)
+                assist(True)
+            except Exception as e:
+                if isinstance(e, (KeyboardInterrupt, SystemExit)):
+                    raise
+                else:
+                    from parsagon.print import error_print
 
-                error_print(str(e))
-                error_print(
-                    "Parsagon encountered an error.  Please restart the application to continue.  You may want to copy any messages above you want to save."
-                )
+                    error_print(str(e))
+                    error_print(
+                        "Parsagon encountered an error.  Please restart the application to continue.  You may want to copy any messages above you want to save."
+                    )
+
+                    if isinstance(e, APIException) and e.status_code == 401:
+                        get_save_api_key_interactive()
+                        retry = True
+            if not retry:
+                break
 
     def input(self, prompt):
         if prompt:

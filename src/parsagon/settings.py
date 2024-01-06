@@ -32,12 +32,12 @@ def get_api_key(interactive=False):
         assert isinstance(saved_api_key, str), "API key must be a string."
         return saved_api_key
     elif interactive:
-        from parsagon.print import input
+        from parsagon.print import input, error_print
 
         while True:
             api_key = input("Please enter your Parsagon API key: ")
             if len(api_key) != 40:
-                logger.error("Error: a Parsagon API key must be 40 characters long.")
+                error_print("Error: a Parsagon API key must be 40 characters long.")
             else:
                 break
         save_setting("api_key", api_key)

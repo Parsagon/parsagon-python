@@ -1,5 +1,6 @@
 import contextlib
 from threading import Condition
+import os
 
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QEventLoop, QSize, QTimer
 from PyQt6.QtCore import Qt
@@ -30,7 +31,9 @@ from parsagon.settings import get_graphic
 
 message_padding_constant = 0
 message_width_proportion = 0.85
-
+is_windows = os.name == 'nt'
+font_size_messages = 13 if not is_windows else 10
+font_size_input = 15 if not is_windows else 11
 
 class ResultContainer:
     def __init__(self):
@@ -202,7 +205,7 @@ class GUIWindow(QMainWindow):
         input_layout.setContentsMargins(0, 0, 0, 0)
 
         self.user_input_edit = CustomTextEdit(self.on_user_input, self)
-        self.user_input_edit.setFont(QFont("Menlo", 15))
+        self.user_input_edit.setFont(QFont("Menlo", font_size_input))
         self.user_input_edit.setFixedHeight(43)
         input_layout.addWidget(self.user_input_edit, alignment=Qt.AlignmentFlag.AlignVCenter)
         self.user_input_edit.setEnabled(True)
@@ -287,7 +290,7 @@ class GUIWindow(QMainWindow):
         align_right = is_user
 
         message_edit = QTextEdit(self)
-        message_edit.setFont(QFont("Menlo", 13))
+        message_edit.setFont(QFont("Menlo", font_size_messages))
         message_edit.insertHtml(text)
         message_edit.setReadOnly(True)
         message_edit.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)

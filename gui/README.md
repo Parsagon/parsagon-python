@@ -38,6 +38,14 @@
 
 
 
+## Building for Windows
+
+* Using Windows command prompt, `cd` into the root of the repo.
+* Run `gui/build.sh`
+* The output will be located at `gui/ParsagonInstaller.exe`
+
+
+
 ## Known issues
 
 * When enough messages are added, a scroll bar appears on the right.  This causes a slight decrease in the width of the message space, similar to if you had resized the window to be slightly less in width.  This results in a few of the message callouts being too small for their text content and requiring their own scrolling systems, but most are fine.

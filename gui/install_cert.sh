@@ -12,7 +12,7 @@ echo "$APP_CERT" | base64 --decode > /tmp/certificate_app.p12
 echo "$INSTALLER_CERT" | base64 --decode > /tmp/certificate_installer.p12
 
 # Create a keychain
-security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+security create-keychain -p "$SECURE_PASSWORD" "$KEYCHAIN_NAME"
 security default-keychain -s "$KEYCHAIN_NAME"
 security unlock-keychain -p "$SECURE_PASSWORD" "$KEYCHAIN_NAME"
 

@@ -39,6 +39,12 @@ class ResultContainer:
     def __init__(self):
         self.value = None
 
+try:
+    from ctypes import windll
+    app_id = 'parsagon.parsagon.gui.1'
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+except ImportError:
+    pass
 
 class GUIController(QThread):
     """

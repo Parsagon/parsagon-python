@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import sys
 from os import environ
 from pathlib import Path
@@ -13,7 +14,7 @@ __SETTINGS_FILE = environ.get("SETTINGS_FILE", ".parsagon_profile")
 
 logger = logging.getLogger(__name__)
 
-GUI_ENABLED = False
+GUI_ENABLED = os.environ.get("GUI_ENABLED", "0") == "1"
 
 
 def pytest_is_running():

@@ -4,6 +4,7 @@ set -euo pipefail
 
 SHOULD_SIGN="${1:-1}"
 REUSE_VENV="${2:-0}"
+KEYCHAIN_PROFILE="parsagon_notarization"
 
 GUI_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 REPO_DIR="$(dirname "$GUI_DIR")"
@@ -23,6 +24,8 @@ if [ "$SHOULD_SIGN" -eq 1 ]; then
   echo "Installer hash: $INSTALLER_HASH"
   echo "Dev email: $DEV_EMAIL"
   echo "Team ID: $TEAM_ID"
+
+  xcrun notarytool store-credentials "$KEYCHAIN_PROFILE" --apple-id "$DEV_EMAIL" --team-id "$TEAM_ID" --password "$APP_SPECIFIC_PASSWORD"
 fi
 
 cd "$SRC_DIR"
@@ -63,7 +66,11 @@ if [ "$SHOULD_SIGN" -eq 1 ]; then
 
   ditto ../src/dist /tmp/parsagon/
   rm /tmp/parsagon/Parsagon
-  productbuild --identifier "com.parsagon.parsagon.pkg" --sign "$INSTALLER_HASH" --timestamp --root /tmp/parsagon /Applications ./dist/Parsagon.pkg
+  productbuild --identifier "com.parsagon.parsagon.pkg" --sign "$INSTALLER_HASH" --timestamp --root /tmp/parsagon /Applications ./dist/ParsagonInstaller.pkg
 
-  xcrun altool --notarize-app --primary-bundle-id "com.parsagon.parsagon" --username="$DEV_EMAIL" --password "@keychain:Developer-altool" --file ./dist/Parsagon.pkg --asc-provider "$TEAM_ID"
+  # Notarize the app
+  xcrun notarytool submit ./dist/ParsagonParsagonInstaller.pkg --keychain-profile "$KEYCHAIN_PROFILE" --wait
+
+  # Staple the notarization ticket
+  xcrun stapler staple "./dist/Parsagon.app"
 fi

@@ -1,0 +1,54 @@
+name: Build macOS App
+on:
+  push:
+    branches: [ windows-gui, main ]
+jobs:
+#  build-macos:
+#    runs-on: macos-11
+#    steps:
+#    - name: Checkout Repository
+#      uses: actions/checkout@v2
+#    - name: Set Up Python
+#      uses: actions/setup-python@v2
+#      with:
+#        python-version: '3.11' # Specify the Python version
+#    - name: Run Build Script
+#      run: |
+#        bash ./gui/build.sh
+#      env:
+#        DEV_EMAIL: ${{ secrets.DEV_EMAIL }}
+#        TEAM_ID: ${{ secrets.TEAM_ID }}
+#        APP_HASH: ${{ secrets.APP_HASH }}
+#        INSTALLER_HASH: ${{ secrets.INSTALLER_HASH }}
+#        APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+#    - name: Upload Artifact
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: ParsagonInstaller-macOS
+#        path: ./src/dist/ParsagonInstaller.pkg
+  build-windows:
+    runs-on: windows-2019
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Add any additional Python dependencies here
+      - name: Install NSIS
+        run: |
+          choco install nsis
+      - name: Run Build Script
+        run: |
+          ./gui/build.bat
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ParsagonInstaller-Windows
+          path: ./gui/ParsagonInstaller.exe
+
+      

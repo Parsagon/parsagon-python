@@ -5,6 +5,7 @@ import os
 multiprocessing.freeze_support()
 
 # Set environment variables
+os.environ["GUI_ENABLED"] = "1"
 # os.environ["API_BASE"] = "https://parsagon.dev"
 
 import sys

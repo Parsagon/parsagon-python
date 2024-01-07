@@ -15,6 +15,7 @@ echo "$INSTALLER_CERT" | base64 --decode > /tmp/certificate_installer.p12
 # Create a keychain
 security list-keychains -d user -s login.keychain
 security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+security default-keychain -s "$KEYCHAIN_NAME"
 
 # Append temp keychain to the user domain
 security list-keychains -d user -s "$KEYCHAIN_NAME" $(security list-keychains -d user | sed s/\"//g)
@@ -31,3 +32,5 @@ security import /tmp/certificate_installer.p12 -k "$KEYCHAIN_NAME" -P "$CERT_PAS
 
 # Set key partition list
 security set-key-partition-list -S apple-tool:,apple:, -s -k $KEYCHAIN_PASSWORD -t private $KEYCHAIN_NAME
+
+security list-keychains -s "$KEYCHAIN_NAME"

@@ -66,11 +66,11 @@ if [ "$SHOULD_SIGN" -eq 1 ]; then
 
   ditto ../src/dist /tmp/parsagon/
   rm /tmp/parsagon/Parsagon
-  productbuild --identifier "com.parsagon.parsagon.pkg" --sign "$INSTALLER_HASH" --timestamp --root /tmp/parsagon /Applications ./dist/ParsagonInstaller.pkg
+  productbuild --identifier "com.parsagon.parsagon" --sign "$INSTALLER_HASH" --timestamp --root /tmp/parsagon /Applications ./dist/ParsagonInstaller.pkg
 
   # Notarize the app
   xcrun notarytool submit ./dist/ParsagonInstaller.pkg --keychain-profile "$KEYCHAIN_PROFILE" --wait
 
   # Staple the notarization ticket
-  xcrun stapler staple "./dist/Parsagon.app"
+  xcrun stapler staple "./dist/ParsagonInstaller.pkg"
 fi

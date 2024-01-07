@@ -5,7 +5,7 @@ set -euo pipefail
 APP_CERT=$1
 INSTALLER_CERT=$2
 SECURE_PASSWORD=$3
-KEYCHAIN_NAME="builder2"
+KEYCHAIN_NAME="builder"
 
 # Decode the certificates and save to temporary files
 echo "$APP_CERT" | base64 --decode > /tmp/certificate_app.p12

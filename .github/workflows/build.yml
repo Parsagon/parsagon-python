@@ -13,7 +13,7 @@ jobs:
       with:
         python-version: '3.11' # Specify the Python version
     - name: Install Application Certificate
-      run: ./gui/install_cert.sh "${{ secrets.APP_CERTIFICATE }}" "${{ secrets.INSTALLER_CERTIFICATE }}" "${{ secrets.KEYCHAIN_PASSWORD }}"
+      run: ./gui/install_cert.sh "${{ secrets.APP_CERTIFICATE }}" "${{ secrets.INSTALLER_CERTIFICATE }}" "${{ secrets.CERT_PASSWORD }}" "${{ secrets.KEYCHAIN_PASSWORD }}"
     - name: Run Build Script
       run: |
         bash ./gui/build.sh

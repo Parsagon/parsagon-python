@@ -26,7 +26,7 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
-        name: ParsagonInstaller-macOS
+        name: Parsagon_Installer_v${{ env.VERSION }}_macOS
         path: ./src/dist/Parsagon_Installer_v${{ env.VERSION }}.pkg
   build-windows:
     runs-on: windows-2019
@@ -50,5 +50,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: ParsagonInstaller-Windows
+          name: Parsagon_Installer_v${{ env.VERSION }}_Windows
           path: ./gui/Parsagon_Installer_v${{ env.VERSION }}.exe

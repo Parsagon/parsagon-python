@@ -37,7 +37,6 @@ if "%REUSE_VENV%"=="0" (
 )
 
 for /f %%a in ('python "%GUI_DIR%\update_gui_env.py"') do set "VERSION=%%a"
-set "VERSION=%VERSION:~0,-1%"
 
 echo Version: %VERSION%
 
@@ -52,6 +51,6 @@ echo !PYINSTALLER_CMD!
 
 "C:\Program Files (x86)\NSIS\makensis.exe" "/DVERSION=%VERSION%" "%GUI_DIR%\ParsagonInstaller.nsi"
 
-echo VERSION=%VERSION% >> %GITHUB_ENV%
+echo VERSION=%VERSION%>> %GITHUB_ENV%
 
 ENDLOCAL

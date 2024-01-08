@@ -30,6 +30,8 @@ jobs:
         path: ./src/dist/Parsagon_Installer_v${{ env.VERSION }}.pkg
   build-windows:
     runs-on: windows-2019
+    outputs:
+      version: ${{ steps.set_version.outputs.version }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -52,3 +54,36 @@ jobs:
         with:
           name: Parsagon_Installer_v${{ env.VERSION }}_Windows
           path: ./gui/Parsagon_Installer_v${{ env.VERSION }}.exe
+      - name: Set VERSION as output
+        id: set_version
+        run: echo "::set-output name=version::$(echo $VERSION)"
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        run: |
+          mkdir artifacts
+          ARTIFACTS_URL=$(gh run view ${{ github.run_id }} --json artifactsUrl -q .artifactsUrl)
+          ARTIFACTS=$(gh api $ARTIFACTS_URL | jq -r '.artifacts[].archive_download_url')
+          for url in $ARTIFACTS; do
+            gh api -X GET $url --output artifacts/
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        run: |
+          gh release create v${{ env.VERSION }} \
+            --title "Release v${{ env.VERSION }}" \
+            --notes "Release notes here"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build-windows.outputs.version }}
+      - name: Upload artifacts to release
+        run: |
+          for file in artifacts/*; do
+            gh release upload v${{ env.VERSION }} "$file" --clobber
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build-windows.outputs.version }}

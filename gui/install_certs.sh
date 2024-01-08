@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# ONLY TO BE RUN ON GITHUB ACTIONS RUNNER!
+
 set -euo pipefail
 
 APP_CERT="$1"

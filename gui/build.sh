@@ -30,6 +30,7 @@ fi
 
 cd "$SRC_DIR"
 
+# Virtual environment setup, cleaning old builds
 rm -f *.spec && rm -rf dist/ build/
 
 if [ "$REUSE_VENV" -eq 0 ]; then
@@ -46,6 +47,10 @@ if [ "$REUSE_VENV" -eq 0 ]; then
   pip3 install pyinstaller==6.3.0
 fi
 
+# Generate/gui_env.py
+VERSION=$(python "${GUI_DIR}/update_gui_env.py")
+
+# Make the app
 python3 -m PyInstaller \
     --name Parsagon \
     --icon "$GUI_DIR/macos.icns" \
@@ -56,6 +61,7 @@ python3 -m PyInstaller \
     --add-data "$GRAPHICS_DIR/*:graphics" \
     --clean ./parsagon/gui_entry.py
 
+# Signing
 if [ "$SHOULD_SIGN" -eq 1 ]; then
   codesign --deep --force --options=runtime --entitlements "$GUI_DIR/entitlements.plist" --sign "$APP_HASH" --timestamp ./dist/Parsagon.app
 
@@ -72,5 +78,7 @@ if [ "$SHOULD_SIGN" -eq 1 ]; then
   xcrun notarytool submit ./dist/ParsagonInstaller.pkg --keychain-profile "$KEYCHAIN_PROFILE" --wait
 
   # Staple the notarization ticket
-  xcrun stapler staple "./dist/ParsagonInstaller.pkg"
+  xcrun stapler staple "./dist/Parsagon${VERSION}.pkg"
 fi
+
+echo "VERSION=$VERSION" >> $GITHUB_ENV

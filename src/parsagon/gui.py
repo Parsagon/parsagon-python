@@ -1,6 +1,6 @@
 import contextlib
-from threading import Condition
 import os
+from threading import Condition
 
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QEventLoop, QSize, QTimer
 from PyQt6.QtCore import Qt
@@ -11,6 +11,7 @@ from PyQt6.QtGui import (
     QPixmap,
     QIcon,
     QTextOption,
+    QAction,
 )
 from PyQt6.QtWidgets import (
     QMainWindow,
@@ -25,9 +26,10 @@ from PyQt6.QtWidgets import (
     QSpacerItem,
     QSizePolicy,
     QFrame,
+    QMessageBox,
 )
 
-from parsagon.exceptions import ParsagonException, APIException
+from parsagon.exceptions import APIException
 from parsagon.settings import get_graphic, get_save_api_key_interactive
 
 message_padding_constant = 0
@@ -233,10 +235,10 @@ class GUIWindow(QMainWindow):
 
         pixmap = QPixmap(get_graphic("send@2x.png"))
         pixmap.setDevicePixelRatio(2.0)
-        icon = QIcon(pixmap)
+        send_icon = QIcon(pixmap)
         self.send_button = QPushButton("", self)
         self.send_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.send_button.setIcon(icon)
+        self.send_button.setIcon(send_icon)
         self.send_button.setIconSize(QSize(33, 33))
         self.send_button.clicked.connect(self.on_user_input)
         input_layout.addWidget(self.send_button, alignment=Qt.AlignmentFlag.AlignVCenter)
@@ -257,6 +259,17 @@ class GUIWindow(QMainWindow):
         self.central_widget = QWidget()
         self.central_widget.setLayout(main_layout)
         self.setCentralWidget(self.central_widget)
+
+        # Create the menu bar
+        menu_bar = self.menuBar()
+
+        # Create a menu for the app name
+        app_menu = menu_bar.addMenu("Parsagon")
+
+        # Create an "About" action
+        about_action = QAction("About", self)
+        app_menu.addAction(about_action)
+        about_action.triggered.connect(self.show_about_dialog)
 
         # Signals
         self.controller = GUIController(self.condition)
@@ -282,6 +295,19 @@ class GUIWindow(QMainWindow):
             self.controller.current_input = user_input
             self.user_input_edit.clear()
             self.condition.notify()
+
+    def show_about_dialog(self):
+        version = os.environ.get("VERSION", "unknown")
+
+        message = f"""
+        Version {version}<br>
+        Copyright © 2024 Parsagon
+        """
+
+        # Title appears to be broken
+        box = QMessageBox()
+        box.about(self, "", message)
+        box.setWindowTitle("About Parsagon")
 
     @pyqtSlot(bool)
     def set_loading(self, loading):

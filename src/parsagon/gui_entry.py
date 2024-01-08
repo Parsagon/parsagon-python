@@ -5,9 +5,9 @@ import os
 multiprocessing.freeze_support()
 
 # Set environment variables
-os.environ["GUI_ENABLED"] = "1"
-# os.environ["API_BASE"] = "https://parsagon.dev"
+import gui_env  # noqa
 
+assert os.environ["GUI_ENABLED"] == "1", "GUI_ENABLED must be set to 1 in gui_env.py"
 import sys
 
 from PyQt6.QtGui import QIcon

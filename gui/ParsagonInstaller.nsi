@@ -1,5 +1,9 @@
 # Define the name of the installer
-OutFile "ParsagonInstaller.exe"
+!ifndef VERSION
+    !define VERSION "Dev"
+!endif
+
+OutFile "Parsagon${VERSION}.exe"
 
 # Define the installation directory
 InstallDir "$PROGRAMFILES\Parsagon"

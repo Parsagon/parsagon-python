@@ -36,6 +36,10 @@ if "%REUSE_VENV%"=="0" (
     pip install pyinstaller==6.3.0
 )
 
+for /f %%a in ('python "%GUI_DIR%\update_gui_env.py"') do set "VERSION=%%a"
+
+echo Version: %VERSION%
+
 set "PYINSTALLER_CMD=python -m PyInstaller --name Parsagon --icon "%GUI_DIR%\windows.ico" --onefile --windowed --add-data "%PARSAGON_DIR%\highlights.js;.""
 
 for /r "%GRAPHICS_DIR%" %%f in (*.*) do (
@@ -45,6 +49,8 @@ for /r "%GRAPHICS_DIR%" %%f in (*.*) do (
 echo !PYINSTALLER_CMD!
 !PYINSTALLER_CMD! --clean .\parsagon\gui_entry.py
 
-"C:\Program Files (x86)\NSIS\makensis.exe" "%GUI_DIR%\ParsagonInstaller.nsi"
+"C:\Program Files (x86)\NSIS\makensis.exe" "/DVERSION=%VERSION%" "%GUI_DIR%\ParsagonInstaller.nsi"
+
+echo VERSION=%VERSION% >> %GITHUB_ENV%
 
 ENDLOCAL

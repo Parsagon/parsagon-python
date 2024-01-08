@@ -59,8 +59,8 @@
 ## Building for Windows
 
 * Using Windows command prompt, `cd` into the root of the repo.
-* Run `gui/build.sh`
-* The output will be located at `gui/ParsagonInstaller.exe`
+* Run `gui\build.bat`
+* The output will be located at `gui\ParsagonInstaller.exe`
 
 
 

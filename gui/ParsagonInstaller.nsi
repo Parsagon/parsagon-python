@@ -3,7 +3,7 @@
     !define VERSION "Dev"
 !endif
 
-OutFile "Parsagon${VERSION}.exe"
+OutFile "Parsagon_Installer_v${VERSION}.exe"
 
 # Define the installation directory
 InstallDir "$PROGRAMFILES\Parsagon"

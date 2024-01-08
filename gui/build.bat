@@ -37,6 +37,7 @@ if "%REUSE_VENV%"=="0" (
 )
 
 for /f %%a in ('python "%GUI_DIR%\update_gui_env.py"') do set "VERSION=%%a"
+set "VERSION=%VERSION:~0,-1%"
 
 echo Version: %VERSION%
 

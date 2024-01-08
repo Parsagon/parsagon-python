@@ -40,4 +40,4 @@ with open(gui_env_path, "w") as f:
     f.write(env_script)
 
 # Pass version to bash
-print(version.replace(".", "-"))
+print(version)

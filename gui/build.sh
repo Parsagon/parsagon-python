@@ -72,13 +72,13 @@ if [ "$SHOULD_SIGN" -eq 1 ]; then
 
   ditto ../src/dist /tmp/parsagon/
   rm /tmp/parsagon/Parsagon
-  productbuild --identifier "com.parsagon.parsagon" --sign "$INSTALLER_HASH" --timestamp --root /tmp/parsagon /Applications ./dist/ParsagonInstaller.pkg
+  productbuild --identifier "com.parsagon.parsagon" --sign "$INSTALLER_HASH" --timestamp --root /tmp/parsagon /Applications "./dist/Parsagon_Installer_v${VERSION}.pkg"
 
   # Notarize the app
-  xcrun notarytool submit ./dist/ParsagonInstaller.pkg --keychain-profile "$KEYCHAIN_PROFILE" --wait
+  xcrun notarytool submit "./dist/Parsagon_Installer_v${VERSION}.pkg" --keychain-profile "$KEYCHAIN_PROFILE" --wait
 
   # Staple the notarization ticket
-  xcrun stapler staple "./dist/Parsagon${VERSION}.pkg"
+  xcrun stapler staple "./dist/Parsagon_Installer_v${VERSION}.pkg"
 fi
 
 echo "VERSION=$VERSION" >> $GITHUB_ENV

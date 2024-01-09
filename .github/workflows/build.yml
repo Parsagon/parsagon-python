@@ -56,9 +56,9 @@ jobs:
           name: Parsagon_Installer_v${{ env.VERSION }}_Windows
           path: ./gui/build.bat
 #          path: ./gui/Parsagon_Installer_v${{ env.VERSION }}.exe
-#      - name: Set VERSION as output
-#        id: set_version
-#        run: echo "::set-output name=version::$(echo $VERSION)"
+      - name: Set VERSION as output
+        id: set_version
+        run: echo "::set-output name=version::$(echo 100)"
   release:
     permissions: write-all
     needs: [build-macos, build-windows]
@@ -79,4 +79,4 @@ jobs:
             ./artifacts/Parsagon_Installer_v${{ env.VERSION }}_Windows/build.bat
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.your_previous_job.outputs.version }}
+          VERSION: ${{ needs.build-windows.outputs.version }}

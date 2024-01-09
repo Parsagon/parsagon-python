@@ -26,7 +26,7 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
-        name: Parsagon_Installer_v${{ env.VERSION }}_macOS
+        name: Parsagon_Installer_v100_macOS
         path: ./gui/build.sh
 #        path: ./src/dist/Parsagon_Installer_v${{ env.VERSION }}.pkg
   build-windows:
@@ -74,7 +74,6 @@ jobs:
         run: |
           gh release create v${{ env.VERSION }} \
             --title "v${{ env.VERSION }}" \
-            --notes "Release notes here" \
             ./artifacts/Parsagon_Installer_v${{ env.VERSION }}_macOS/build.sh \
             ./artifacts/Parsagon_Installer_v${{ env.VERSION }}_Windows/build.bat
         env:

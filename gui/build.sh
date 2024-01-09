@@ -67,10 +67,9 @@ if [ "$SHOULD_SIGN" -eq 1 ]; then
   if [ -d "/tmp/parsagon" ]; then
     rm -rf "/tmp/parsagon"
   fi
-  mkdir /tmp/parsagon
+  mkdir -p /tmp/parsagon
 
   ditto ../src/dist /tmp/parsagon/
-  rm /tmp/parsagon/Parsagon
   productbuild --identifier "com.parsagon.parsagon" --sign "$INSTALLER_HASH" --timestamp --root /tmp/parsagon /Applications "./dist/Parsagon_Installer_v${VERSION}.pkg"
 
   # Notarize the app

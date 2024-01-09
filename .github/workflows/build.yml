@@ -60,6 +60,7 @@ jobs:
 #        id: set_version
 #        run: echo "::set-output name=version::$(echo $VERSION)"
   release:
+    permissions: write-all
     needs: [build-macos, build-windows]
     runs-on: ubuntu-latest
     steps:

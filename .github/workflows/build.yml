@@ -56,7 +56,7 @@ jobs:
           path: ./gui/Parsagon_Installer_v${{ env.VERSION }}.exe
       - name: Set VERSION as output
         id: set_version
-        run: echo "::set-output name=version::$(echo 100)"
+        run: echo "::set-output name=version::$(echo $VERSION)"
   release:
     permissions:
       contents: write

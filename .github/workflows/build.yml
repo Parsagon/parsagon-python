@@ -61,11 +61,12 @@ jobs:
     needs: [build-macos, build-windows]
     runs-on: ubuntu-latest
     steps:
+      - name: Get Run ID
+        run: echo "RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
       - name: Download all artifacts
         run: |
           mkdir artifacts
-          ARTIFACTS_URL=$(gh run view ${{ github.run_id }} --json artifactsUrl -q .artifactsUrl)
-          ARTIFACTS=$(gh api $ARTIFACTS_URL | jq -r '.artifacts[].archive_download_url')
+          ARTIFACTS=$(gh api /repos/${{ github.repository }}/actions/runs/${RUN_ID}/artifacts | jq -r '.artifacts[].archive_download_url')
           for url in $ARTIFACTS; do
             gh api -X GET $url --output artifacts/
           done

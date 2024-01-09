@@ -8,6 +8,10 @@ OutFile "Parsagon_Installer_v${VERSION}.exe"
 # Define the installation directory
 InstallDir "$PROGRAMFILES\Parsagon"
 
+Name "Parsagon"
+
+BrandingText " "
+
 # Default installation section
 Section "Parsagon Installation"
 

@@ -16,7 +16,7 @@ jobs:
       run: ./gui/install_certs.sh "${{ secrets.APP_CERTIFICATE }}" "${{ secrets.INSTALLER_CERTIFICATE }}" "${{ secrets.CERT_PASSWORD }}" "${{ secrets.KEYCHAIN_PASSWORD }}"
     - name: Run Build Script
       run: |
-        bash ./gui/build.sh
+        bash ./gui/build.sh 0
       env:
         DEV_EMAIL: ${{ secrets.DEV_EMAIL }}
         APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}

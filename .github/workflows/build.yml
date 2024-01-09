@@ -72,13 +72,10 @@ jobs:
           merge-multiple: true
       - name: Create Release and Upload Assets
         run: |
-          ls -la .
-          ls -la ./artifacts/
           gh release create v${{ env.VERSION }} \
             --title "v${{ env.VERSION }}" \
             --notes "Release notes here" \
-            ./artifacts/Parsagon_Installer_v${{ env.VERSION }}_macOS \
-            ./artifacts/Parsagon_Installer_v${{ env.VERSION }}_Windows
+            ./artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.your_previous_job.outputs.version }}

@@ -66,6 +66,8 @@ jobs:
         with:
           path: ./artifacts
           merge-multiple: true
+      - name: Checkout Repository
+        uses: actions/checkout@v2
       - name: Create Release and Upload Assets
         run: |
           gh release create v${{ env.VERSION }} \

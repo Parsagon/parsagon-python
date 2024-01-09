@@ -67,7 +67,7 @@ if [ "$SHOULD_SIGN" -eq 1 ]; then
   if [ -d "/tmp/parsagon" ]; then
     rm -rf "/tmp/parsagon"
   fi
-  mkdir -p /tmp/parsagon
+  mkdir /tmp/parsagon
 
   ditto ../src/dist /tmp/parsagon/
   productbuild --identifier "com.parsagon.parsagon" --sign "$INSTALLER_HASH" --timestamp --root /tmp/parsagon /Applications "./dist/Parsagon_Installer_v${VERSION}.pkg"

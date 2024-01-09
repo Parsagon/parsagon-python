@@ -63,13 +63,13 @@ jobs:
     needs: [build-macos, build-windows]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
       - name: Download All Artifacts
         uses: actions/download-artifact@v2
         with:
           path: ./artifacts
           merge-multiple: true
-      - name: Checkout Repository
-        uses: actions/checkout@v2
       - name: Create Release and Upload Assets
         run: |
           ls -la .

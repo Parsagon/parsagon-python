@@ -61,30 +61,17 @@ jobs:
     needs: [build-macos, build-windows]
     runs-on: ubuntu-latest
     steps:
-      - name: Get Run ID
-        run: echo "RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
-      - name: Download all artifacts
-        run: |
-          mkdir artifacts
-          ARTIFACTS=$(gh api /repos/${{ github.repository }}/actions/runs/${RUN_ID}/artifacts | jq -r '.artifacts[].archive_download_url')
-          for url in $ARTIFACTS; do
-            gh api -X GET $url --output artifacts/
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create Release
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: ./artifacts
+          merge-multiple: true
+      - name: Create Release and Upload Assets
         run: |
           gh release create v${{ env.VERSION }} \
-            --title "Release v${{ env.VERSION }}" \
-            --notes "Release notes here"
+            --title "v${{ env.VERSION }}" \
+            --notes "Release notes here" \
+            ./artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.build-windows.outputs.version }}
-      - name: Upload artifacts to release
-        run: |
-          for file in artifacts/*; do
-            gh release upload v${{ env.VERSION }} "$file" --clobber
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.build-windows.outputs.version }}
+          VERSION: ${{ needs.your_previous_job.outputs.version }}

@@ -54,7 +54,6 @@ VERSION=$(python "${GUI_DIR}/update_gui_env.py")
 python3 -m PyInstaller \
     --name Parsagon \
     --icon "$GUI_DIR/macos.icns" \
-    --onefile \
     --windowed \
     --osx-bundle-identifier "com.parsagon.parsagon" \
     --add-data "$PARSAGON_DIR/highlights.js:." \
@@ -81,4 +80,7 @@ if [ "$SHOULD_SIGN" -eq 1 ]; then
   xcrun stapler staple "./dist/Parsagon_Installer_v${VERSION}.pkg"
 fi
 
-echo "VERSION=$VERSION" >> $GITHUB_ENV
+if [ -n "${GITHUB_ENV-}" ]; then
+  echo "VERSION=$VERSION" >> $GITHUB_ENV
+fi
+

@@ -70,16 +70,13 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           path: ./artifacts
-          pattern: build.*
-          merge-multiple: true
       - name: Create Release and Upload Assets
         run: |
-          ls -la ./artifacts/
-          ls -la ./artifacts/Parsagon_Installer_v_macOS
           gh release create v${{ env.VERSION }} \
             --title "v${{ env.VERSION }}" \
             --notes "Release notes here" \
-            ./artifacts/Parsagon_Installer_v${{ env.VERSION }}_Windows
+            ./artifacts/Parsagon_Installer_v${{ env.VERSION }}_macOS/build.sh \
+            ./artifacts/Parsagon_Installer_v${{ env.VERSION }}_Windows/build.bat
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.your_previous_job.outputs.version }}

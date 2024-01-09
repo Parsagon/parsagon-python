@@ -70,10 +70,11 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           path: ./artifacts
-          pattern: Parsagon_Installer_*
+          pattern: build.*
           merge-multiple: true
       - name: Create Release and Upload Assets
         run: |
+          ls -la ./artifacts/
           ls -la ./artifacts/Parsagon_Installer_v_macOS
           gh release create v${{ env.VERSION }} \
             --title "v${{ env.VERSION }}" \

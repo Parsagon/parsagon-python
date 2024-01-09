@@ -5,6 +5,8 @@ on:
 jobs:
   build-macos:
     runs-on: macos-11
+    outputs:
+      version: ${{ steps.set_version.outputs.version }}
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v2
@@ -28,10 +30,11 @@ jobs:
       with:
         name: Parsagon_Installer_v${{ env.VERSION }}_macOS
         path: ./src/dist/Parsagon_Installer_v${{ env.VERSION }}.pkg
+    - name: Set VERSION as output
+      id: set_version
+      run: echo "::set-output name=version::$(echo $VERSION)"
   build-windows:
     runs-on: windows-2019
-    outputs:
-      version: ${{ steps.set_version.outputs.version }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -54,9 +57,6 @@ jobs:
         with:
           name: Parsagon_Installer_v${{ env.VERSION }}_Windows
           path: ./gui/Parsagon_Installer_v${{ env.VERSION }}.exe
-      - name: Set VERSION as output
-        id: set_version
-        run: echo "::set-output name=version::$(echo $VERSION)"
   release:
     permissions:
       contents: write
@@ -83,4 +83,4 @@ jobs:
             ./artifacts/Parsagon_Installer_v${{ env.VERSION }}_Windows/Parsagon_Installer_v${{ env.VERSION }}.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.build-windows.outputs.version }}
+          VERSION: ${{ needs.build-macos.outputs.version }}

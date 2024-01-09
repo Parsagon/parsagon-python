@@ -8,26 +8,27 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v2
-    - name: Set Up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.11' # Specify the Python version
-    - name: Install Application Certificate
-      run: ./gui/install_certs.sh "${{ secrets.APP_CERTIFICATE }}" "${{ secrets.INSTALLER_CERTIFICATE }}" "${{ secrets.CERT_PASSWORD }}" "${{ secrets.KEYCHAIN_PASSWORD }}"
-    - name: Run Build Script
-      run: |
-        bash ./gui/build.sh 0
-      env:
-        DEV_EMAIL: ${{ secrets.DEV_EMAIL }}
-        APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
-        TEAM_ID: ${{ secrets.TEAM_ID }}
-        APP_HASH: ${{ secrets.APP_HASH }}
-        INSTALLER_HASH: ${{ secrets.INSTALLER_HASH }}
+#    - name: Set Up Python
+#      uses: actions/setup-python@v2
+#      with:
+#        python-version: '3.11' # Specify the Python version
+#    - name: Install Application Certificate
+#      run: ./gui/install_certs.sh "${{ secrets.APP_CERTIFICATE }}" "${{ secrets.INSTALLER_CERTIFICATE }}" "${{ secrets.CERT_PASSWORD }}" "${{ secrets.KEYCHAIN_PASSWORD }}"
+#    - name: Run Build Script
+#      run: |
+#        bash ./gui/build.sh 0
+#      env:
+#        DEV_EMAIL: ${{ secrets.DEV_EMAIL }}
+#        APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+#        TEAM_ID: ${{ secrets.TEAM_ID }}
+#        APP_HASH: ${{ secrets.APP_HASH }}
+#        INSTALLER_HASH: ${{ secrets.INSTALLER_HASH }}
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
         name: Parsagon_Installer_v${{ env.VERSION }}_macOS
-        path: ./src/dist/Parsagon_Installer_v${{ env.VERSION }}.pkg
+        path: ./gui/build.sh
+#        path: ./src/dist/Parsagon_Installer_v${{ env.VERSION }}.pkg
   build-windows:
     runs-on: windows-2019
     outputs:
@@ -35,28 +36,29 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.11'
-      - name: Install Python Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          # Add any additional Python dependencies here
-      - name: Install NSIS
-        run: |
-          choco install nsis
-      - name: Run Build Script
-        run: |
-          ./gui/build.bat
+#      - name: Set up Python 3.11
+#        uses: actions/setup-python@v2
+#        with:
+#          python-version: '3.11'
+#      - name: Install Python Dependencies
+#        run: |
+#          python -m pip install --upgrade pip
+#          # Add any additional Python dependencies here
+#      - name: Install NSIS
+#        run: |
+#          choco install nsis
+#      - name: Run Build Script
+#        run: |
+#          ./gui/build.bat
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
           name: Parsagon_Installer_v${{ env.VERSION }}_Windows
-          path: ./gui/Parsagon_Installer_v${{ env.VERSION }}.exe
-      - name: Set VERSION as output
-        id: set_version
-        run: echo "::set-output name=version::$(echo $VERSION)"
+          path: ./gui/build.bat
+#          path: ./gui/Parsagon_Installer_v${{ env.VERSION }}.exe
+#      - name: Set VERSION as output
+#        id: set_version
+#        run: echo "::set-output name=version::$(echo $VERSION)"
   release:
     needs: [build-macos, build-windows]
     runs-on: ubuntu-latest

@@ -20,7 +20,17 @@ from parsagon.print import status, Progress
 logger = logging.getLogger(__name__)
 
 
-def run(program_name, variables={}, headless=False, remote=False, output_log=False, output_file=None, undetected=False, verbose=False):
+def run(
+    program_name,
+    variables={},
+    headless=False,
+    remote=False,
+    output_log=False,
+    output_file=None,
+    undetected=False,
+    optimize=False,
+    verbose=False,
+):
     """
     Executes pipeline code
     """
@@ -70,7 +80,7 @@ def run(program_name, variables={}, headless=False, remote=False, output_log=Fal
                 time.sleep(5)
 
     run = create_pipeline_run(pipeline_id, variables, True)
-    code = get_pipeline_code(program_name, variables, headless, undetected)["code"]
+    code = get_pipeline_code(program_name, variables, headless, undetected, optimize)["code"]
     start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
     run_data = {"start_time": start_time}
 

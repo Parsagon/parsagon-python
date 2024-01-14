@@ -139,6 +139,11 @@ def get_args(argv):
         action="store_true",
         help="run in undetected mode",
     )
+    parser_run.add_argument(
+        "--optimize",
+        action="store_true",
+        help="run in optimized mode",
+    )
     parser_run.set_defaults(func=run)
 
     # Delete

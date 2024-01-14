@@ -140,31 +140,31 @@ def poll_about_data(url, json):
     raise APIException("Request timed out")
 
 
-def get_str_about_data(data, question):
+def get_str_about_data(data, question, model=None):
     """
     Asks GPT a question about the given data.
     :param data: the data to give GPT
     :param question: the question to ask about the data
     """
-    return poll_about_data("/transformers/get-str-about-data/", {"data": data, "question": question})
+    return poll_about_data("/transformers/get-str-about-data/", {"data": data, "question": question, "model": model})
 
 
-def get_bool_about_data(data, question):
+def get_bool_about_data(data, question, model=None):
     """
     Asks GPT a question about the given data.
     :param data: the data to give GPT
     :param question: the question to ask about the data
     """
-    return poll_about_data("/transformers/get-bool-about-data/", {"data": data, "question": question})
+    return poll_about_data("/transformers/get-bool-about-data/", {"data": data, "question": question, "model": model})
 
 
-def get_json_about_data(data, question):
+def get_json_about_data(data, question, model=None):
     """
     Asks GPT a question about the given data.
     :param data: the data to give GPT
     :param question: the question to ask about the data
     """
-    return poll_about_data("/transformers/get-json-about-data/", {"data": data, "question": question})
+    return poll_about_data("/transformers/get-json-about-data/", {"data": data, "question": question, "model": model})
 
 
 def create_pipeline(name, description, program_sketch, pseudocode, secrets):

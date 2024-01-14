@@ -40,9 +40,9 @@ def error_print(text):
 
 
 # === Input, prompting ===
-def ask(prompt):
+def ask(prompt, choices=None, show_choices=True):
     if not gui_enabled:
-        return Prompt.ask(prompt)
+        return Prompt.ask(prompt, choices=choices, show_choices=show_choices)
     else:
         return GUIController.shared().input(prompt + ":")
 

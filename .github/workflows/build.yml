@@ -1,7 +1,7 @@
 name: Build macOS App
 on:
   push:
-    branches: [ windows-gui, main ]
+    branches: [ main ]
 jobs:
   build-macos:
     runs-on: macos-11

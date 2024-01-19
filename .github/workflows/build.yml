@@ -1,0 +1,86 @@
+name: Build macOS App
+on:
+  push:
+    branches: [ main ]
+jobs:
+  build-macos:
+    runs-on: macos-11
+    outputs:
+      version: ${{ steps.set_version.outputs.version }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+    - name: Set Up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
+    - name: Install Application Certificate
+      run: ./gui/install_certs.sh "${{ secrets.APP_CERTIFICATE }}" "${{ secrets.INSTALLER_CERTIFICATE }}" "${{ secrets.CERT_PASSWORD }}" "${{ secrets.KEYCHAIN_PASSWORD }}"
+    - name: Run Build Script
+      run: |
+        bash ./gui/build.sh
+      env:
+        DEV_EMAIL: ${{ secrets.DEV_EMAIL }}
+        APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+        TEAM_ID: ${{ secrets.TEAM_ID }}
+        APP_HASH: ${{ secrets.APP_HASH }}
+        INSTALLER_HASH: ${{ secrets.INSTALLER_HASH }}
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: Parsagon_Installer_v${{ env.VERSION }}_macOS
+        path: ./src/dist/Parsagon_Installer_v${{ env.VERSION }}.pkg
+    - name: Set VERSION as output
+      id: set_version
+      run: echo "::set-output name=version::$(echo $VERSION)"
+  build-windows:
+    runs-on: windows-2019
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Add any additional Python dependencies here
+      - name: Install NSIS
+        run: |
+          choco install nsis
+      - name: Run Build Script
+        run: |
+          ./gui/build.bat
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Parsagon_Installer_v${{ env.VERSION }}_Windows
+          path: ./gui/Parsagon_Installer_v${{ env.VERSION }}.exe
+  release:
+    permissions:
+      contents: write
+      issues: none
+      deployments: none
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: ./artifacts
+      - name: Create Release and Upload Assets
+        run: |
+          gh release create v${{ env.VERSION }} \
+            --title "v${{ env.VERSION }}" \
+            ./artifacts/Parsagon_Installer_v${{ env.VERSION }}_macOS/Parsagon_Installer_v${{ env.VERSION }}.pkg \
+            ./artifacts/Parsagon_Installer_v${{ env.VERSION }}_Windows/Parsagon_Installer_v${{ env.VERSION }}.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build-macos.outputs.version }}

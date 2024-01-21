@@ -6,6 +6,7 @@ import httpx
 
 from parsagon import settings
 from parsagon.exceptions import APIException, ProgramNotFoundException
+from parsagon.settings import get_save_api_key_interactive
 
 environment = "PANDAS_1.x"
 
@@ -32,6 +33,8 @@ def _request_to_exception(response):
         raise APIException("Lost connection to server.", status_code)
     try:
         errors = response.json()
+        if "detail" in errors and errors["detail"] == "Invalid token.":
+            raise APIException("Invalid API key.", status_code)
         if "non_field_errors" in errors:
             raise APIException(errors["non_field_errors"], status_code)
         else:

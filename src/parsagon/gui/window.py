@@ -1,8 +1,9 @@
-import contextlib
+import os
+from datetime import datetime
 from threading import Condition
 
-from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, QEventLoop, QSize, QTimer
 from PyQt6.QtCore import Qt
+from PyQt6.QtCore import pyqtSlot, QSize, QTimer
 from PyQt6.QtGui import (
     QMovie,
     QKeyEvent,
@@ -10,6 +11,7 @@ from PyQt6.QtGui import (
     QPixmap,
     QIcon,
     QTextOption,
+    QAction,
 )
 from PyQt6.QtWidgets import (
     QMainWindow,
@@ -24,102 +26,27 @@ from PyQt6.QtWidgets import (
     QSpacerItem,
     QSizePolicy,
     QFrame,
+    QMessageBox,
 )
 
+from parsagon.gui.controller import GUIController
+from parsagon.gui.menu import MenuManager
 from parsagon.settings import get_graphic
 
 message_padding_constant = 0
 message_width_proportion = 0.85
+is_windows = os.name == "nt"
+font_size_messages = 13 if not is_windows else 10
+font_size_input = 15 if not is_windows else 11
 
 
-class ResultContainer:
-    def __init__(self):
-        self.value = None
+try:
+    from ctypes import windll
 
-
-class GUIController(QThread):
-    """
-    The GUI controller is a background thread that runs the CLI if the GUI is enabled.  It then delegates all interaction between the CLI code and the GUI.  It is designed as a singleton so that references to the controller don't have to be passed around.
-    """
-
-    _instance = None
-
-    update_text_signal = pyqtSignal(str, str, str)  # Include text color
-    request_input_signal = pyqtSignal()
-    set_loading_signal = pyqtSignal(bool)
-    show_progress_signal = pyqtSignal(bool)
-    set_progress_title_signal = pyqtSignal(str)
-    set_progress_signal = pyqtSignal(int)
-    execute_on_main_thread_signal = pyqtSignal(object, QEventLoop, ResultContainer)
-
-    @classmethod
-    def shared(cls):
-        if cls._instance is None:
-            raise RuntimeError("GUIController has not been initialized")
-        return cls._instance
-
-    def __init__(self, condition, parent=None):
-        super().__init__(parent)
-        self.timer = None
-        self.condition = condition
-        self.current_input = None
-        self.progress_total = None
-        assert self.__class__._instance is None, "GUIController is a singleton"
-        self.__class__._instance = self
-
-    def run(self):
-        self.__class__._instance._instance = self
-        try:
-            from parsagon.assistant import assist
-            from parsagon.settings import get_graphic, get_api_key
-
-            _ = get_api_key(interactive=True)
-            assist(True)
-        except Exception as e:
-            if isinstance(e, (KeyboardInterrupt, SystemExit)):
-                raise
-            else:
-                from parsagon.print import error_print
-
-                error_print(str(e))
-                error_print(
-                    "Parsagon encountered an error.  Please restart the application to continue.  You may want to copy any messages above you want to save."
-                )
-
-    def input(self, prompt):
-        if prompt:
-            self.print(prompt)
-        self.request_input_signal.emit()
-        with self.condition:
-            self.condition.wait()
-            return self.current_input
-
-    def print(self, text, color="black", background="#CBCED2"):
-        html = text.replace("\n", "<br>")
-        self.update_text_signal.emit(html, color, background)
-
-    @contextlib.contextmanager
-    def spinner(self):
-        self.set_loading_signal.emit(True)  # Show spinner
-        try:
-            yield
-        finally:
-            self.set_loading_signal.emit(False)  # Hide spinner
-
-    def show_progress(self, show_progress, text=""):
-        self.show_progress_signal.emit(show_progress)
-        if show_progress:
-            self.set_progress_title_signal.emit(text)
-
-    def set_progress(self, progress_iteration_num):
-        self.set_progress_signal.emit(int(progress_iteration_num / self.progress_total * 100))
-
-    def on_main_thread(self, callback):
-        loop = QEventLoop()
-        result_container = ResultContainer()
-        self.execute_on_main_thread_signal.emit(callback, loop, result_container)
-        loop.exec()  # Block until loop.quit() is called in the main thread
-        return result_container.value  # Return the result stored in the container
+    app_id = "parsagon.parsagon.gui.1"
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+except ImportError:
+    pass
 
 
 class CustomTextEdit(QTextEdit):
@@ -202,7 +129,7 @@ class GUIWindow(QMainWindow):
         input_layout.setContentsMargins(0, 0, 0, 0)
 
         self.user_input_edit = CustomTextEdit(self.on_user_input, self)
-        self.user_input_edit.setFont(QFont("Menlo", 15))
+        self.user_input_edit.setFont(QFont("Menlo", font_size_input))
         self.user_input_edit.setFixedHeight(43)
         input_layout.addWidget(self.user_input_edit, alignment=Qt.AlignmentFlag.AlignVCenter)
         self.user_input_edit.setEnabled(True)
@@ -211,10 +138,10 @@ class GUIWindow(QMainWindow):
 
         pixmap = QPixmap(get_graphic("send@2x.png"))
         pixmap.setDevicePixelRatio(2.0)
-        icon = QIcon(pixmap)
+        send_icon = QIcon(pixmap)
         self.send_button = QPushButton("", self)
         self.send_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.send_button.setIcon(icon)
+        self.send_button.setIcon(send_icon)
         self.send_button.setIconSize(QSize(33, 33))
         self.send_button.clicked.connect(self.on_user_input)
         input_layout.addWidget(self.send_button, alignment=Qt.AlignmentFlag.AlignVCenter)
@@ -236,6 +163,9 @@ class GUIWindow(QMainWindow):
         self.central_widget.setLayout(main_layout)
         self.setCentralWidget(self.central_widget)
 
+        self.menu_manager = MenuManager(self)
+        self.menu_manager.make_menu()
+
         # Signals
         self.controller = GUIController(self.condition)
         self.controller.set_loading_signal.connect(self.set_loading)
@@ -244,9 +174,9 @@ class GUIWindow(QMainWindow):
         self.controller.set_progress_signal.connect(self.set_progress)
         self.controller.update_text_signal.connect(self.update_text_ui)
         self.controller.request_input_signal.connect(self.focus_input)
-        self.controller.execute_on_main_thread_signal.connect(self.execute_callback)
         self.show()
 
+        # Start the assist function after a delay to prevent layout blip upon opening
         self.timer = QTimer.singleShot(500, self.delayed_setup)
 
     def delayed_setup(self):
@@ -278,6 +208,10 @@ class GUIWindow(QMainWindow):
     def set_progress(self, progress):
         self.progress_bar.setValue(progress)
 
+    @pyqtSlot()
+    def focus_input(self):
+        self.user_input_edit.setFocus()
+
     @pyqtSlot(str, str, str)
     def update_text_ui(self, text, text_color="user", background_color="#33B1FF"):
         text = text.replace("\n", "<br>")
@@ -287,7 +221,7 @@ class GUIWindow(QMainWindow):
         align_right = is_user
 
         message_edit = QTextEdit(self)
-        message_edit.setFont(QFont("Menlo", 13))
+        message_edit.setFont(QFont("Menlo", font_size_messages))
         message_edit.insertHtml(text)
         message_edit.setReadOnly(True)
         message_edit.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -369,12 +303,3 @@ class GUIWindow(QMainWindow):
         self.messages_layout.addSpacerItem(self.spacer)
 
         self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
-
-    @pyqtSlot()
-    def focus_input(self):
-        self.user_input_edit.setFocus()
-
-    @pyqtSlot(object, QEventLoop, ResultContainer)
-    def execute_callback(self, callback, loop, result_container):
-        result_container.value = callback()  # Store the result of the callback
-        loop.quit()  # Exit the event loop to unblock the background thread

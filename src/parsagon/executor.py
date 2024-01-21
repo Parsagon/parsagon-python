@@ -226,7 +226,7 @@ class Executor:
             if elem in visible_elems:
                 continue
             visible_elems.add(elem)
-            visible_elems.update(elem.iterancestors())
+            # visible_elems.update(elem.iterancestors())
         max_elem_id = self.max_elem_ids[self.driver.current_window_handle]
         with Progress() as progress:
             for elem_id in progress.track(range(max_elem_id), description="[green]Analyzing page"):

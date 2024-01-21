@@ -212,23 +212,33 @@ class Executor:
             elem.getparent().remove(elem)
 
         # Remove invisible elements
-        visible_elem_ids = set(
-            driver.execute_script(
-                "return Array.from(document.getElementsByTagName('*')).filter((elem) => { const style = getComputedStyle(elem); return style.opacity > 0.1 && style.display !== 'none' && style.visibility === 'visible' && elem.offsetWidth && elem.offsetHeight && elem.getClientRects().length }).map((elem) => elem.getAttribute('data-psgn-id'))"
-            )
+        id_to_elem = {}
+        for elem in root.iter():
+            elem_id = elem.get("data-psgn-id")
+            if elem_id is not None:
+                id_to_elem[elem_id] = elem
+        visible_elem_ids = driver.execute_script(
+            "return Array.from(document.getElementsByTagName('*')).filter((elem) => { const style = getComputedStyle(elem); const rect = elem.getBoundingClientRect(); return style.opacity > 0.1 && style.display !== 'none' && style.visibility === 'visible' && elem.offsetWidth && elem.offsetHeight && elem.getClientRects().length && rect.left + window.scrollX >= 0 && rect.top + window.scrollY >= 0 }).map((elem) => elem.getAttribute('data-psgn-id'))"
         )
+        visible_elems = set()
+        for elem_id in visible_elem_ids[::-1]:
+            elem = id_to_elem[elem_id]
+            if elem in visible_elems:
+                continue
+            visible_elems.add(elem)
+            visible_elems.update(elem.iterancestors())
         max_elem_id = self.max_elem_ids[self.driver.current_window_handle]
         with Progress() as progress:
             for elem_id in progress.track(range(max_elem_id), description="[green]Analyzing page"):
-                is_visible = str(elem_id) in visible_elem_ids
+                elem_id = str(elem_id)
+                if elem_id not in id_to_elem:
+                    continue
+                elem = id_to_elem[elem_id]
+                is_visible = elem in visible_elems
                 if not is_visible:
-                    try:
-                        lxml_elem = root.xpath(f'//*[@data-psgn-id="{elem_id}"]')[0]
-                        parent = lxml_elem.getparent()
-                        if parent is not None:
-                            parent.remove(lxml_elem)
-                    except IndexError:
-                        continue
+                    parent = elem.getparent()
+                    if parent is not None:
+                        parent.remove(elem)
 
         return lxml.html.tostring(root).decode()
 

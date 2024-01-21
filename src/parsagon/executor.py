@@ -212,6 +212,11 @@ class Executor:
             elem.getparent().remove(elem)
 
         # Remove invisible elements
+        id_to_elem = {}
+        for elem in root.iter():
+            elem_id = elem.get("data-psgn-id")
+            if elem_id:
+                id_to_elem[elem_id] = elem
         visible_elem_ids = set(
             driver.execute_script(
                 "return Array.from(document.getElementsByTagName('*')).filter((elem) => { const style = getComputedStyle(elem); return style.opacity > 0.1 && style.display !== 'none' && style.visibility === 'visible' && elem.offsetWidth && elem.offsetHeight && elem.getClientRects().length }).map((elem) => elem.getAttribute('data-psgn-id'))"
@@ -220,15 +225,12 @@ class Executor:
         max_elem_id = self.max_elem_ids[self.driver.current_window_handle]
         with Progress() as progress:
             for elem_id in progress.track(range(max_elem_id), description="[green]Analyzing page"):
-                is_visible = str(elem_id) in visible_elem_ids
-                if not is_visible:
-                    try:
-                        lxml_elem = root.xpath(f'//*[@data-psgn-id="{elem_id}"]')[0]
-                        parent = lxml_elem.getparent()
-                        if parent is not None:
-                            parent.remove(lxml_elem)
-                    except IndexError:
-                        continue
+                elem_id = str(elem_id)
+                if elem_id in id_to_elem and elem_id not in visible_elem_ids:
+                    lxml_elem = id_to_elem[elem_id]
+                    parent = lxml_elem.getparent()
+                    if parent is not None:
+                        parent.remove(lxml_elem)
 
         return lxml.html.tostring(root).decode()
 

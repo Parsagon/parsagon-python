@@ -48,9 +48,9 @@ def run(
         with status("Program running remotely..."):
             while True:
                 run = get_run(result["id"])
-                status = run["status"]
+                run_status = run["status"]
 
-                if output_log and status in ("FINISHED", "ERROR"):
+                if output_log and run_status in ("FINISHED", "ERROR"):
                     result = {k: v for k, v in run.items() if k in ("output", "status", "log", "warnings", "error")}
                     if output_file:
                         with open(output_file, "w") as f:
@@ -59,7 +59,7 @@ def run(
                     else:
                         return result
 
-                if status == "FINISHED":
+                if run_status == "FINISHED":
                     if verbose:
                         logger.info(run["log"])
                         for warning in run["warnings"]:
@@ -72,9 +72,9 @@ def run(
                         return
                     else:
                         return result
-                elif status == "ERROR":
+                elif run_status == "ERROR":
                     raise ParsagonException(f"Program failed to run: {run['error']}")
-                elif status == "CANCELED":
+                elif run_status == "CANCELED":
                     raise ParsagonException("Program execution was canceled")
 
                 time.sleep(5)

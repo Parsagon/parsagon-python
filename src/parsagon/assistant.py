@@ -67,7 +67,7 @@ def assist(verbose=False):
 
 def get_page_html(url, headless=False, use_uc=False):
     browser_print(f"Checking what {url} looks like...")
-    executor = Executor("")
+    executor = Executor("", headless=headless, use_uc=use_uc)
     executor.goto(url)
     html = executor.get_visible_html()
     executor.quit()
@@ -76,7 +76,7 @@ def get_page_html(url, headless=False, use_uc=False):
 
 def get_page_text(url, headless=False, use_uc=False):
     browser_print(f"Checking what {url} looks like...")
-    executor = Executor("")
+    executor = Executor("", headless=headless, use_uc=use_uc)
     executor.goto(url)
     text = executor.driver.execute_script("return document.body.innerText;")
     executor.quit()

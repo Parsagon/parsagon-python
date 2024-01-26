@@ -2,3 +2,4 @@ from parsagon.main import update, detail, delete, get_product, get_review_articl
 from parsagon.create import create_program as create
 from parsagon.runs import run, batch_runs
 from parsagon.api import get_json_about_data
+from parsagon.assistant import get_page_html, get_page_text

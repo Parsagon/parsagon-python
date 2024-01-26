@@ -34,7 +34,7 @@ def assist(verbose=False):
                 args = json.loads(function_call["function"]["arguments"])
                 output = {"tool_call_id": function_call["id"], "function_name": name}
                 if name == "investigate_page":
-                    html = investigate_page(**args)
+                    html = get_page_html(**args)
                     output["output"] = html
                     outputs.append(output)
                 elif name == "create_program":
@@ -65,10 +65,19 @@ def assist(verbose=False):
             break
 
 
-def investigate_page(url):
+def get_page_html(url, headless=False, use_uc=False):
     browser_print(f"Checking what {url} looks like...")
     executor = Executor("")
     executor.goto(url)
     html = executor.get_visible_html()
     executor.quit()
     return html
+
+
+def get_page_text(url, headless=False, use_uc=False):
+    browser_print(f"Checking what {url} looks like...")
+    executor = Executor("")
+    executor.goto(url)
+    text = executor.driver.execute_script("return document.body.innerText;")
+    executor.quit()
+    return text

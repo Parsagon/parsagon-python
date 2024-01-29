@@ -65,18 +65,22 @@ def assist(verbose=False):
             break
 
 
-def get_page_html(url, headless=False, use_uc=False):
+def get_page_html(url, headless=False, use_uc=False, timeout=None):
     browser_print(f"Checking what {url} looks like...")
     executor = Executor("", headless=headless, use_uc=use_uc)
+    if timeout:
+        executor.driver.set_page_load_timeout(timeout)
     executor.goto(url)
     html = executor.get_visible_html()
     executor.quit()
     return html
 
 
-def get_page_text(url, headless=False, use_uc=False):
+def get_page_text(url, headless=False, use_uc=False, timeout=None):
     browser_print(f"Checking what {url} looks like...")
     executor = Executor("", headless=headless, use_uc=use_uc)
+    if timeout:
+        executor.driver.set_page_load_timeout(timeout)
     executor.goto(url)
     text = executor.driver.execute_script("return document.body.innerText;")
     executor.quit()

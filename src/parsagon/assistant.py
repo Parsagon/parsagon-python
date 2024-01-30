@@ -70,9 +70,11 @@ def get_page_html(url, headless=False, use_uc=False, timeout=None):
     executor = Executor("", headless=headless, use_uc=use_uc)
     if timeout:
         executor.driver.set_page_load_timeout(timeout)
-    executor.goto(url)
-    html = executor.get_visible_html()
-    executor.quit()
+    try:
+        executor.goto(url)
+        html = executor.get_visible_html()
+    finally:
+        executor.quit()
     return html
 
 
@@ -81,7 +83,9 @@ def get_page_text(url, headless=False, use_uc=False, timeout=None):
     executor = Executor("", headless=headless, use_uc=use_uc)
     if timeout:
         executor.driver.set_page_load_timeout(timeout)
-    executor.goto(url)
-    text = executor.driver.execute_script("return document.body.innerText;")
-    executor.quit()
+    try:
+        executor.goto(url)
+        text = executor.driver.execute_script("return document.body.innerText;")
+    finally:
+        executor.quit()
     return text

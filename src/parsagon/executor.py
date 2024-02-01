@@ -64,7 +64,16 @@ class Executor:
     Executes code produced by GPT with the proper context.  Records custom_function usage along the way.
     """
 
-    def __init__(self, task, headless=False, infer=False, use_uc=False, function_bank={}):
+    def __init__(
+        self,
+        task,
+        headless=False,
+        infer=False,
+        use_uc=False,
+        page_load_timeout=None,
+        script_timeout=None,
+        function_bank={},
+    ):
         self.task = task
         self.headless = headless
         self.function_bank = function_bank
@@ -79,6 +88,10 @@ class Executor:
             chrome_options = webdriver.ChromeOptions()
             chrome_options.add_argument("--start-maximized")
             self.driver = webdriver.Chrome(service=ChromeService(driver_executable_path), options=chrome_options)
+        if page_load_timeout:
+            self.driver.set_page_load_timeout(page_load_timeout)
+        if script_timeout:
+            self.driver.set_script_timeout(script_timeout)
         self.max_elem_ids = defaultdict(int)
         self.execution_context = {
             "custom_assert": self.custom_assert,

@@ -65,11 +65,11 @@ def assist(verbose=False):
             break
 
 
-def get_page_html(url, headless=False, use_uc=False, timeout=None):
+def get_page_html(url, headless=False, use_uc=False, page_load_timeout=None, script_timeout=None):
     browser_print(f"Checking what {url} looks like...")
-    executor = Executor("", headless=headless, use_uc=use_uc)
-    if timeout:
-        executor.driver.set_page_load_timeout(timeout)
+    executor = Executor(
+        "", headless=headless, use_uc=use_uc, page_load_timeout=page_load_timeout, script_timeout=script_timeout
+    )
     try:
         executor.goto(url)
         html = executor.get_visible_html()
@@ -78,11 +78,11 @@ def get_page_html(url, headless=False, use_uc=False, timeout=None):
     return html
 
 
-def get_page_text(url, headless=False, use_uc=False, timeout=None):
+def get_page_text(url, headless=False, use_uc=False, page_load_timeout=None, script_timeout=None):
     browser_print(f"Checking what {url} looks like...")
-    executor = Executor("", headless=headless, use_uc=use_uc)
-    if timeout:
-        executor.driver.set_page_load_timeout(timeout)
+    executor = Executor(
+        "", headless=headless, use_uc=use_uc, page_load_timeout=page_load_timeout, script_timeout=script_timeout
+    )
     try:
         executor.goto(url)
         text = executor.driver.execute_script("return document.body.innerText;")

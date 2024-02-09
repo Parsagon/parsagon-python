@@ -63,14 +63,23 @@ def create_program(task, headless=False, undetected=False, program_name=None, as
             except:
                 delete_pipeline(pipeline_id)
                 assistant_print(f"An error occurred while saving the program. The program has been discarded.")
-                return {"success": False, "outcome": f"User decided not to save the program"}
+                return {
+                    "success": False,
+                    "outcome": f"User decided not to save the program",
+                    "final_url": executor.final_url,
+                }
         else:
             assistant_print("Discarded program.")
-            return {"success": False, "outcome": f"User decided not to save the program"}
+            return {
+                "success": False,
+                "outcome": f"User decided not to save the program",
+                "final_url": executor.final_url,
+            }
 
     assistant_print("Done.")
     return {
         "success": True,
         "outcome": f"Program successfully saved with name {program_name}",
         "program_name": program_name,
+        "final_url": executor.final_url,
     }

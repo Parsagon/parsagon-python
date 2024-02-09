@@ -68,6 +68,7 @@ class Executor:
         self.task = task
         self.headless = headless
         self.function_bank = function_bank
+        self.final_url = None
         if self.headless:
             self.display = Display(visible=False, size=(1280, 1050)).start()
         driver_executable_path = ChromeDriverManager().install()
@@ -597,6 +598,7 @@ class Executor:
         loc = {}
         try:
             exec(code, self.execution_context, loc)
+            self.final_url = self.driver.current_url
             browser_print(f"Program finished and returned a value of:\n{loc['output']}\n")
         finally:
             self.quit()

@@ -18,6 +18,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.driver_cache import DriverCacheManager
 
 from parsagon import settings
 from parsagon.api import (
@@ -70,6 +71,7 @@ class Executor:
         headless=False,
         infer=False,
         use_uc=False,
+        driver_path=None,
         page_load_timeout=None,
         script_timeout=None,
         function_bank={},
@@ -79,7 +81,11 @@ class Executor:
         self.function_bank = function_bank
         if self.headless:
             self.display = Display(visible=False, size=(1280, 1050)).start()
-        driver_executable_path = ChromeDriverManager().install()
+        if driver_path:
+            cache_manager = DriverCacheManager(root_dir=driver_path)
+            driver_executable_path = ChromeDriverManager(cache_manager=cache_manager).install()
+        else:
+            driver_executable_path = ChromeDriverManager().install()
         if use_uc:
             chrome_options = uc.ChromeOptions()
             chrome_options.add_argument("--start-maximized")

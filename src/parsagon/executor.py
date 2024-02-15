@@ -72,6 +72,7 @@ class Executor:
         infer=False,
         use_uc=False,
         driver_path=None,
+        user_data_dir=None,
         page_load_timeout=None,
         script_timeout=None,
         function_bank={},
@@ -89,10 +90,14 @@ class Executor:
         if use_uc:
             chrome_options = uc.ChromeOptions()
             chrome_options.add_argument("--start-maximized")
+            if user_data_dir:
+                chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
             self.driver = uc.Chrome(driver_executable_path=driver_executable_path, options=chrome_options)
         else:
             chrome_options = webdriver.ChromeOptions()
             chrome_options.add_argument("--start-maximized")
+            if user_data_dir:
+                chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
             self.driver = webdriver.Chrome(service=ChromeService(driver_executable_path), options=chrome_options)
         if page_load_timeout:
             self.driver.set_page_load_timeout(page_load_timeout)

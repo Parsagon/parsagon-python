@@ -1,11 +1,21 @@
-from parsagon.api import get_program_sketches, create_pipeline, create_custom_function, delete_pipeline
-from parsagon.exceptions import APIException
+from parsagon.api import get_program_sketches, get_pipeline, create_pipeline, create_custom_function, delete_pipeline
+from parsagon.exceptions import APIException, ProgramNotFoundException
 from parsagon.executor import Executor, custom_functions_to_descriptions
 from parsagon.print import assistant_print, ask, input, confirm
 from parsagon.secrets import extract_secrets
 
 
 def create_program(task, headless=False, undetected=False, program_name=None, assume_yes=False):
+    if program_name:
+        try:
+            get_pipeline(program_name)
+            assistant_print(f"A program with the name {program_name} already exists.")
+            return {
+                "success": False,
+                "outcome": f"A program with the name {program_name} already exists. The user must choose a different name.",
+            }
+        except ProgramNotFoundException:
+            pass
     assistant_print("Creating a program based on your specifications...")
     task, secrets = extract_secrets(task)
     program_sketches = get_program_sketches(task)

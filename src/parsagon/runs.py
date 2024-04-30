@@ -29,6 +29,7 @@ def run(
     output_file=None,
     undetected=False,
     optimize=False,
+    use_proxy=False,
     verbose=False,
 ):
     """
@@ -80,7 +81,7 @@ def run(
                 time.sleep(5)
 
     run = create_pipeline_run(pipeline_id, variables, True)
-    code = get_pipeline_code(program_name, variables, headless, undetected, optimize)["code"]
+    code = get_pipeline_code(program_name, variables, headless, undetected, optimize, use_proxy)["code"]
     start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
     run_data = {"start_time": start_time}
 

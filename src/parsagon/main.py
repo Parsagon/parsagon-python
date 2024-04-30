@@ -142,6 +142,11 @@ def get_args(argv):
         action="store_true",
         help="run in optimized mode",
     )
+    parser_run.add_argument(
+        "--use_proxy",
+        action="store_true",
+        help="run with proxy",
+    )
     parser_run.set_defaults(func=run)
 
     # Delete

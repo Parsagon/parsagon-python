@@ -1,13 +1,16 @@
 from collections import defaultdict
 import copy
+import glob
 import json
 import logging
+import os
 from pathlib import Path
 import psutil
 import time
 from urllib.parse import urljoin
 
 import lxml.html
+from pypdf import PdfReader
 from pyvirtualdisplay import Display
 import undetected_chromedriver as uc
 from selenium import webdriver
@@ -92,12 +95,30 @@ class Executor:
             chrome_options.add_argument("--start-maximized")
             for option in options:
                 chrome_options.add_argument(option)
+            chrome_options.add_experimental_option(
+                "prefs",
+                {
+                    "download.default_directory": os.getcwd(),
+                    "download.prompt_for_download": False,
+                    "download.directory_upgrade": True,
+                    "plugins.always_open_pdf_externally": True,
+                },
+            )
             self.driver = uc.Chrome(driver_executable_path=driver_executable_path, options=chrome_options)
         else:
             chrome_options = webdriver.ChromeOptions()
             chrome_options.add_argument("--start-maximized")
             for option in options:
                 chrome_options.add_argument(option)
+            chrome_options.add_experimental_option(
+                "prefs",
+                {
+                    "download.default_directory": os.getcwd(),
+                    "download.prompt_for_download": False,
+                    "download.directory_upgrade": True,
+                    "plugins.always_open_pdf_externally": True,
+                },
+            )
             self.driver = webdriver.Chrome(service=ChromeService(driver_executable_path), options=chrome_options)
         if page_load_timeout:
             self.driver.set_page_load_timeout(page_load_timeout)
@@ -124,6 +145,7 @@ class Executor:
             "get_str_about_data": get_str_about_data,
             "get_bool_about_data": get_bool_about_data,
             "get_json_about_data": get_json_about_data,
+            "get_pdf_text": self.get_pdf_text,
         }
         self.custom_functions = {}
         self.infer = infer
@@ -616,6 +638,19 @@ class Executor:
         )
         self.add_custom_function(call_id, custom_function)
         return scraped_data
+
+    def get_pdf_text(self, url):
+        window_id = self.goto(url)
+        self.close_window(window_id)
+        files = glob.glob("*")
+        most_recent_file = max(files, key=os.path.getmtime)
+        reader = PdfReader(most_recent_file)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text(extraction_mode="layout", layout_mode_space_vertically=False)
+            text += "\n"
+        os.remove(most_recent_file)
+        return text
 
     def execute(self, code):
         loc = {}

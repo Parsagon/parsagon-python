@@ -141,6 +141,7 @@ class Executor:
             "join_text": self.join_text,
             "wait": self.wait,
             "get_inner_text": self.get_inner_text,
+            "get_inner_text_by_id": self.get_inner_text_by_id,
             "scrape_data": self.scrape_data,
             "get_str_about_data": get_str_about_data,
             "get_bool_about_data": get_bool_about_data,
@@ -566,7 +567,15 @@ class Executor:
         self.inject_highlights_script()
 
     def get_inner_text(self, window_id):
+        if self.driver.current_window_handle != window_id:
+            self.driver.switch_to.window(window_id)
         return self.driver.execute_script("return document.body.innerText;")
+
+    def get_inner_text_by_id(self, elem_id, window_id):
+        if self.driver.current_window_handle != window_id:
+            self.driver.switch_to.window(window_id)
+        elem = self._id_to_elem(elem_id)
+        return elem.get_attribute("innerText")
 
     def scrape_data(self, schema, window_id, call_id):
         """

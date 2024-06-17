@@ -235,7 +235,19 @@ def get_pipelines():
     return _api_call(httpx.get, f"/pipelines/")
 
 
-def get_pipeline_code(pipeline_name, variables, headless, use_uc, optimize, use_proxy):
+def get_pipeline_code(pipeline_name, variables, headless, use_uc, optimize, use_proxy, pipeline_id=None):
+    if pipeline_id:
+        return _api_call(
+            httpx.post,
+            f"/pipelines/{pipeline_id}/code/",
+            json={
+                "variables": variables,
+                "headless": headless,
+                "use_uc": use_uc,
+                "optimize": optimize,
+                "use_proxy": use_proxy,
+            },
+        )
     escaped_pipeline_name = double_quote(pipeline_name)
     with RaiseProgramNotFound(pipeline_name):
         return _api_call(

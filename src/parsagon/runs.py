@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 def run(
     program_name,
+    program_id=None,
     variables={},
     headless=False,
     remote=False,
@@ -42,7 +43,7 @@ def run(
         raise ParsagonException("Variables must be a dictionary")
 
     logger.info("Preparing to run program %s", program_name)
-    pipeline_id = get_pipeline(program_name)["id"]
+    pipeline_id = program_id or get_pipeline(program_name)["id"]
 
     if remote:
         result = create_pipeline_run(pipeline_id, variables, False)
@@ -81,7 +82,9 @@ def run(
                 time.sleep(5)
 
     run = create_pipeline_run(pipeline_id, variables, True)
-    code = get_pipeline_code(program_name, variables, headless, undetected, optimize, use_proxy)["code"]
+    code = get_pipeline_code(
+        program_name, variables, headless, undetected, optimize, use_proxy, pipeline_id=program_id
+    )["code"]
     start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
     run_data = {"start_time": start_time}
 

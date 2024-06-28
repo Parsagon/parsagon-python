@@ -32,6 +32,7 @@ from parsagon.api import (
     get_str_about_data,
     get_bool_about_data,
     get_json_about_data,
+    get_serp_data,
 )
 from parsagon.custom_function import CustomFunction
 from parsagon.exceptions import ParsagonException
@@ -146,6 +147,7 @@ class Executor:
             "get_str_about_data": get_str_about_data,
             "get_bool_about_data": get_bool_about_data,
             "get_json_about_data": get_json_about_data,
+            "get_serp_data": get_serp_data,
             "get_pdf_text": self.get_pdf_text,
         }
         self.custom_functions = {}

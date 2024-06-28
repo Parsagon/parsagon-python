@@ -170,6 +170,14 @@ def get_json_about_data(data, question, model=None):
     return poll_about_data("/transformers/get-json-about-data/", {"data": data, "question": question, "model": model})
 
 
+def get_serp_data(url):
+    """
+    Get Google results
+    :param url: the search url
+    """
+    return _api_call(httpx.post, "/transformers/get-serp-data/", json={"url": url})
+
+
 def create_pipeline(name, description, program_sketch, pseudocode, secrets):
     return _api_call(
         httpx.post,

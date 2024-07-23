@@ -9,6 +9,7 @@ import psutil
 import time
 from urllib.parse import urljoin
 
+from lxml import etree
 import lxml.html
 from pypdf import PdfReader
 from pyvirtualdisplay import Display
@@ -291,6 +292,7 @@ class Executor:
                             parent.remove(lxml_elem)
                     except IndexError:
                         continue
+        etree.indent(root)
         return lxml.html.tostring(root).decode()
 
     def get_elem(self, description, elem_type):

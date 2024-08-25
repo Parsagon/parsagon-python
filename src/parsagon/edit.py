@@ -1,4 +1,10 @@
-from parsagon.api import edit_program_sketch, get_pipeline, get_pipeline_code_parts, update_pipeline
+from parsagon.api import (
+    edit_program_sketch,
+    get_pipeline,
+    get_pipeline_code_parts,
+    update_pipeline,
+    add_examples_to_custom_function,
+)
 from parsagon.executor import Executor, custom_functions_to_descriptions
 from parsagon.print import assistant_print
 from rich.prompt import Confirm, Prompt
@@ -7,7 +13,10 @@ from rich.prompt import Confirm, Prompt
 def edit_program(task, program_name, variables={}, verbose=False):
     pipeline = get_pipeline(program_name)
     pipeline_code_parts = get_pipeline_code_parts(pipeline["id"])
-    custom_functions = {custom_function["call_id"]: custom_function["code"] for custom_function in pipeline_code_parts["custom_functions"]}
+    custom_functions = {
+        custom_function["call_id"]: custom_function["code"]
+        for custom_function in pipeline_code_parts["custom_functions"]
+    }
     program_sketches = edit_program_sketch(pipeline_code_parts["program_sketch"], task)
     full_program = program_sketches["full"]
     abridged_program = program_sketches["abridged"]
@@ -28,7 +37,7 @@ def edit_program(task, program_name, variables={}, verbose=False):
 
     program_name_input = Prompt.ask(
         f'Type "{program_name}" to update this program, or press enter without typing a name to CANCEL',
-        choices=[program_name, ""]
+        choices=[program_name, ""],
     )
     if not program_name_input:
         assistant_print("Discarded edits.")
@@ -45,10 +54,12 @@ def edit_program(task, program_name, variables={}, verbose=False):
             assistant_print(f"  Saving function{description}...")
             add_examples_to_custom_function(pipeline_id, call_id, custom_function, True)
         assistant_print(f"Finalizing program...")
-        update_pipeline(pipeline_id, {"program_sketch": full_program, "abridged_sketch": abridged_program, "pseudocode": pseudocode})
+        update_pipeline(
+            pipeline_id, {"program_sketch": full_program, "abridged_sketch": abridged_program, "pseudocode": pseudocode}
+        )
         assistant_print(f"Saved.")
     except Exception as e:
-        error_message = "An error occurred while saving the program. The program was not updated."
+        error_message = f"An error occurred while saving the program. The program was not updated. {repr(e)}"
         assistant_print(error_message)
         return {"success": False, "outcome": error_message}
 

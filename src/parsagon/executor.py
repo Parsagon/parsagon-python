@@ -168,8 +168,14 @@ class Executor:
         code = self.function_bank[call_id]
         args_dict["call_id"] = call_id
         args_str = ", ".join(f"{k}={repr(v)}" for k, v in args_dict.items())
-        code = f"{code}\noutput = {name}{call_id}({args_str})"
-        context = {"driver": self.driver, "PARSAGON_API_KEY": settings.get_api_key()}
+        code = f"import lxml.html\nfrom urllib.parse import urljoin\n{code}\noutput = {name}{call_id}({args_str})"
+        context = {
+            "driver": self.driver,
+            "PARSAGON_API_KEY": settings.get_api_key(),
+            "parsagon_elem_data": {"idx": self.max_elem_ids[self.driver.current_window_handle]},
+            "parsagon_log": [],
+            "parsagon_warnings": [],
+        }
         exec(code, context, context)
         return context["output"]
 

@@ -168,7 +168,7 @@ class Executor:
         code = self.function_bank[call_id]
         args_dict["call_id"] = call_id
         args_str = ", ".join(f"{k}={repr(v)}" for k, v in args_dict.items())
-        code = f"import lxml.html\nfrom urllib.parse import urljoin\n{code}\noutput = {name}{call_id}({args_str})"
+        code = f"import time\nimport lxml.html\nfrom urllib.parse import urljoin\nfrom selenium.webdriver.common.by import By\n{code}\noutput = {name}{call_id}({args_str})"
         context = {
             "driver": self.driver,
             "PARSAGON_API_KEY": settings.get_api_key(),

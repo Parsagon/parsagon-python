@@ -1,5 +1,6 @@
 from collections import defaultdict
 import copy
+import dateutil.parser
 import glob
 import json
 import logging
@@ -150,6 +151,7 @@ class Executor:
             "get_json_about_data": get_json_about_data,
             "get_serp_data": get_serp_data,
             "get_pdf_text": self.get_pdf_text,
+            "str_to_iso8601": self.str_to_iso8601,
         }
         self.custom_functions = {}
         self.infer = infer
@@ -670,6 +672,9 @@ class Executor:
             text += "\n"
         os.remove(most_recent_file)
         return text
+
+    def str_to_iso8601(self, s):
+        return dateutil.parser.parse(s).isoformat()
 
     def execute(self, code):
         loc = {}

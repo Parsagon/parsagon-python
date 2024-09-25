@@ -674,7 +674,12 @@ class Executor:
         return text
 
     def str_to_iso8601(self, s):
-        return dateutil.parser.parse(s).isoformat()
+        while s:
+            try:
+                return dateutil.parser.parse(s).isoformat()
+            except dateutil.parser._parser.ParserError:
+                s = " ".join(s.split()[:-1])
+        return ""
 
     def execute(self, code):
         loc = {}

@@ -10,6 +10,7 @@ import psutil
 import time
 from urllib.parse import urljoin
 
+import html2text
 from lxml import etree
 import lxml.html
 from pypdf import PdfReader
@@ -588,6 +589,12 @@ class Executor:
             self.driver.switch_to.window(window_id)
         elem = self._id_to_elem(elem_id)
         return elem.get_attribute("innerText")
+
+    def get_inner_markdown(self, window_id):
+        if self.driver.current_window_handle != window_id:
+            self.driver.switch_to.window(window_id)
+        html = self.driver.execute_script("return document.body.innerHTML;")
+        return html2text.html2text(html)
 
     def scrape_data(self, schema, window_id, call_id):
         """

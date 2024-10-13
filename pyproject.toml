@@ -16,7 +16,7 @@ line-length = 120
 
 [project]
 name = "parsagon"
-version = "0.14.34"
+version = "0.14.35"
 description = "Allows you to create browser automations with natural language"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -45,6 +45,7 @@ dependencies = [
     'simplejson==3.19.1',
     'pypdf==4.2.0',
     'python-dateutil==2.9.0.post0',
+    'html2text==2024.2.26',
 ]
 
 [project.optional-dependencies]

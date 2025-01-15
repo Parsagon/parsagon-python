@@ -44,7 +44,7 @@ def create_program(task, headless=False, undetected=False, program_name=None, as
 
     # Execute the abridged program to gather examples
     executor = Executor(task, headless=headless, infer=infer, use_uc=undetected)
-    executor.execute(abridged_program)
+    example_output = executor.execute(abridged_program)
 
     # The user must select a name
     while True:
@@ -83,4 +83,5 @@ def create_program(task, headless=False, undetected=False, program_name=None, as
         "success": True,
         "outcome": f"Program successfully saved with name {program_name}",
         "program_name": program_name,
+        "example_output": example_output,
     }

@@ -693,6 +693,7 @@ class Executor:
         try:
             exec(code, self.execution_context, loc)
             browser_print(f"Program finished and returned a value of:\n{loc['output']}\n")
+            return loc["output"]
         finally:
             self.quit()
 

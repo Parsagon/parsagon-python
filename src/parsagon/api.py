@@ -240,10 +240,7 @@ def get_pipeline(pipeline_name):
 
 
 def get_pipeline_by_id(pipeline_id):
-    results = _api_call(httpx.get, f"/pipelines/{pipeline_id}/")
-    if not results:
-        raise ProgramNotFoundException(pipeline_id)
-    return results[0]
+    return _api_call(httpx.get, f"/pipelines/{pipeline_id}/")
 
 
 def get_pipelines():

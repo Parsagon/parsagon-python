@@ -4,7 +4,14 @@ import logging.config
 import time
 
 
-from parsagon.api import delete_pipeline, add_examples_to_custom_function, get_pipeline, get_pipelines, poll_extract
+from parsagon.api import (
+    delete_pipeline,
+    add_examples_to_custom_function,
+    get_pipeline,
+    get_pipeline_by_id,
+    get_pipelines,
+    poll_extract,
+)
 from parsagon.assistant import assist
 from parsagon.api import delete_pipeline, add_examples_to_custom_function, get_pipeline, get_pipelines, poll_extract
 from parsagon.create import create_program
@@ -83,6 +90,11 @@ def get_args(argv):
         "--headless",
         action="store_true",
         help="run the browser in headless mode",
+    )
+    parser_update.add_argument(
+        "--undetected",
+        action="store_true",
+        help="run in undetected mode",
     )
     parser_update.add_argument(
         "--infer",
@@ -208,17 +220,29 @@ def edit(program_name, variables={}, verbose=False):
     edit_program(task, program_name)
 
 
-def update(program_name, variables={}, headless=False, infer=False, replace=False, verbose=False):
+def update(
+    program_name=None,
+    program_id=None,
+    variables={},
+    headless=False,
+    undetected=False,
+    infer=False,
+    replace=False,
+    verbose=False,
+):
     configure_logging(verbose)
 
-    pipeline = get_pipeline(program_name)
+    if program_id:
+        pipeline = get_pipeline_by_id(program_id)
+    else:
+        pipeline = get_pipeline(program_name)
     abridged_program = pipeline["abridged_sketch"]
     # Make the program runnable
     variables_str = ", ".join(f"{k}={repr(v)}" for k, v in variables.items())
     abridged_program += f"\n\noutput = func({variables_str})\n"
 
     # Execute the abridged program to gather examples
-    executor = Executor(pipeline["description"], headless=headless, infer=infer)
+    executor = Executor(pipeline["description"], headless=headless, infer=infer, use_uc=undetected)
     executor.execute(abridged_program)
 
     while True:

@@ -1,3 +1,4 @@
+import base64
 from collections import defaultdict
 import copy
 import dateutil.parser
@@ -11,8 +12,10 @@ import time
 from urllib.parse import urljoin
 
 import html2text
+import httpx
 from lxml import etree
 import lxml.html
+from lxml.html.clean import Cleaner
 from pypdf import PdfReader
 from pyvirtualdisplay import Display
 import undetected_chromedriver as uc
@@ -132,6 +135,7 @@ class Executor:
         self.execution_context = {
             "custom_assert": self.custom_assert,
             "goto": self.goto,
+            "goto_lite": self.goto_lite,
             "close_window": self.close_window,
             "click_elem": self.click_elem,
             "click_elem_by_id": self.click_elem_by_id,
@@ -378,6 +382,21 @@ class Executor:
         self.mark_html()
         self.inject_highlights_script()
 
+        return self.driver.current_window_handle
+
+    def goto_lite(self, url, window_id=None):
+        if window_id in self.driver.window_handles:
+            self.driver.switch_to.window(window_id)
+        else:
+            self.driver.switch_to.new_window("tab")
+        # This is usually called in programs that use a proxy, but executor does not use proxies
+        with httpx.Client(verify=False) as client:
+            r = client.get(url, timeout=60)
+        cleaner = Cleaner()
+        cleaner.javascript = True
+        html = lxml.html.tostring(cleaner.clean_html(lxml.html.fromstring(r.text)))
+        self.driver.get("data:text/html;base64," + base64.b64encode(html).decode())
+        time.sleep(1)
         return self.driver.current_window_handle
 
     def close_window(self, window_id):

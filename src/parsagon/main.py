@@ -234,6 +234,7 @@ def update(
 
     if program_id:
         pipeline = get_pipeline_by_id(program_id)
+        program_name = pipeline["name"]
     else:
         pipeline = get_pipeline(program_name)
     abridged_program = pipeline["abridged_sketch"]

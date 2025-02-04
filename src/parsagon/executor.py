@@ -634,6 +634,7 @@ class Executor:
         nodes = {}
         css_selectors = {}
         xpath_selectors = {}
+        flagged_fields = {}
         if not self.infer:
             field_types = get_schema_fields(schema)
             for field, field_type in field_types.items():
@@ -659,13 +660,17 @@ class Executor:
         else:
             browser_print("Scraping data...")
             result = scrape_page(self.get_visible_html(), schema, self.task, html)
+            print(result)
             scraped_data = result["data"]
             nodes = result["nodes"]
+            css_selectors = result["css"]
+            xpath_selectors = result["xpath"]
+            flagged_fields = result["flagged"]
             if not scraped_data or not nodes:
                 raise ParsagonException(
                     f"Parsagon could not find any data on the page that would fit the format {schema}. You can try rephrasing your prompt, or you can run Parsagon in manual mode to click on elements you want to scrape."
                 )
-        browser_print(f"Scraped data:\n{scraped_data}")
+        browser_print(f"Scraped data:\n{scraped_data}\nFlagged fields: {[k for k, v in flagged_fields.items() if v]}\n")
 
         custom_function = CustomFunction(
             "scrape_data",
@@ -679,6 +684,7 @@ class Executor:
                     "nodes": nodes,
                     "css_selectors": css_selectors,
                     "xpath_selectors": xpath_selectors,
+                    "flagged_fields": flagged_fields,
                     "scraped_data": copy.deepcopy(scraped_data),
                 }
             ],

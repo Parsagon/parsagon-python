@@ -17,17 +17,11 @@ from lxml import etree
 import lxml.html
 from lxml.html.clean import Cleaner
 from pypdf import PdfReader
-from pyvirtualdisplay import Display
-import undetected_chromedriver as uc
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.chrome.options import Options
+from seleniumbase import Driver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.driver_cache import DriverCacheManager
 
 from parsagon import settings
 from parsagon.api import (
@@ -82,7 +76,6 @@ class Executor:
         infer=False,
         use_uc=False,
         driver_path=None,
-        options=[],
         page_load_timeout=None,
         script_timeout=None,
         function_bank={},
@@ -90,43 +83,8 @@ class Executor:
         self.task = task
         self.headless = headless
         self.function_bank = function_bank
-        if self.headless:
-            self.display = Display(visible=False, size=(1280, 1050)).start()
-        if driver_path:
-            cache_manager = DriverCacheManager(root_dir=driver_path)
-            driver_executable_path = ChromeDriverManager(cache_manager=cache_manager).install()
-        else:
-            driver_executable_path = ChromeDriverManager().install()
-        if use_uc:
-            chrome_options = uc.ChromeOptions()
-            chrome_options.add_argument("--start-maximized")
-            for option in options:
-                chrome_options.add_argument(option)
-            chrome_options.add_experimental_option(
-                "prefs",
-                {
-                    "download.default_directory": os.getcwd(),
-                    "download.prompt_for_download": False,
-                    "download.directory_upgrade": True,
-                    "plugins.always_open_pdf_externally": True,
-                },
-            )
-            self.driver = uc.Chrome(driver_executable_path=driver_executable_path, options=chrome_options)
-        else:
-            chrome_options = webdriver.ChromeOptions()
-            chrome_options.add_argument("--start-maximized")
-            for option in options:
-                chrome_options.add_argument(option)
-            chrome_options.add_experimental_option(
-                "prefs",
-                {
-                    "download.default_directory": os.getcwd(),
-                    "download.prompt_for_download": False,
-                    "download.directory_upgrade": True,
-                    "plugins.always_open_pdf_externally": True,
-                },
-            )
-            self.driver = webdriver.Chrome(service=ChromeService(driver_executable_path), options=chrome_options)
+        self.driver = Driver(external_pdf=True, undetectable=use_uc)
+        self.driver.maximize_window()
         if page_load_timeout:
             self.driver.set_page_load_timeout(page_load_timeout)
         if script_timeout:

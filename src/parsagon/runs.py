@@ -101,8 +101,9 @@ def run(
     finally:
         end_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
         run_data["end_time"] = end_time
-        if "driver" in globals_locals:
-            globals_locals["driver"].quit()
+        if "camoufox" in globals_locals:
+            # globals_locals["camoufox"].__exit__()
+            pass
         if "display" in globals_locals:
             globals_locals["display"].stop()
         if "parsagon_log" in globals_locals:

@@ -1,3 +1,4 @@
+mw:
 window.prevDOM = null;
 window.currentFieldType = null;
 window.maxExamples = null;

@@ -145,6 +145,11 @@ def get_args(argv):
         help="write the data to the given file path",
     )
     parser_run.add_argument(
+        "--use_cdp",
+        action="store_true",
+        help="enable CDP (only in undetected mode)",
+    )
+    parser_run.add_argument(
         "--undetected",
         action="store_true",
         help="run in undetected mode",

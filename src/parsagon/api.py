@@ -247,7 +247,7 @@ def get_pipelines():
     return _api_call(httpx.get, f"/pipelines/")
 
 
-def get_pipeline_code(pipeline_name, variables, headless, use_uc, optimize, use_proxy, pipeline_id=None):
+def get_pipeline_code(pipeline_name, variables, headless, use_cdp, use_uc, optimize, use_proxy, pipeline_id=None):
     if pipeline_id:
         return _api_call(
             httpx.post,
@@ -255,6 +255,7 @@ def get_pipeline_code(pipeline_name, variables, headless, use_uc, optimize, use_
             json={
                 "variables": variables,
                 "headless": headless,
+                "use_cdp": use_cdp,
                 "use_uc": use_uc,
                 "optimize": optimize,
                 "use_proxy": use_proxy,
@@ -268,6 +269,7 @@ def get_pipeline_code(pipeline_name, variables, headless, use_uc, optimize, use_
             json={
                 "variables": variables,
                 "headless": headless,
+                "use_cdp": use_cdp,
                 "use_uc": use_uc,
                 "optimize": optimize,
                 "use_proxy": use_proxy,

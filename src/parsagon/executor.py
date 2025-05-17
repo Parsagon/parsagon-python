@@ -157,6 +157,7 @@ class Executor:
             "get_serp_data": get_serp_data,
             "get_pdf_text": self.get_pdf_text,
             "str_to_iso8601": self.str_to_iso8601,
+            "get_network_requests": self.get_network_requests,
         }
         self.custom_functions = {}
         self.infer = infer
@@ -712,6 +713,17 @@ class Executor:
             except dateutil.parser._parser.ParserError:
                 s = " ".join(s.split()[:-1])
         return ""
+
+    def get_network_requests(window_id, delay=30):
+        requests = []
+
+        def handle_request(event):
+            requests.append(event)
+
+        driver.switch_to.window(window_id)
+        driver.add_cdp_listener("Network.requestWillBeSent", handle_request)
+        wait(delay)
+        return requests
 
     def execute(self, code):
         loc = {}

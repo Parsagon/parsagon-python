@@ -28,6 +28,7 @@ def run(
     remote=False,
     output_log=False,
     output_file=None,
+    use_cdp=False,
     undetected=False,
     optimize=False,
     use_proxy=False,
@@ -83,7 +84,7 @@ def run(
 
     run = create_pipeline_run(pipeline_id, variables, True)
     code = get_pipeline_code(
-        program_name, variables, headless, undetected, optimize, use_proxy, pipeline_id=program_id
+        program_name, variables, headless, use_cdp, undetected, optimize, use_proxy, pipeline_id=program_id
     )["code"]
     start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
     run_data = {"start_time": start_time}

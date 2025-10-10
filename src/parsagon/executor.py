@@ -16,6 +16,7 @@ import httpx
 from lxml import etree
 import lxml.html
 from lxml.html.clean import Cleaner
+import pymupdf4llm
 from pypdf import PdfReader
 from pyvirtualdisplay import Display
 import undetected_chromedriver as uc
@@ -705,6 +706,15 @@ class Executor:
             text += "\n"
         os.remove(most_recent_file)
         return text
+
+    def get_pdf_md(self, url):
+        window_id = self.goto(url)
+        self.close_window(window_id)
+        files = glob.glob("*")
+        most_recent_file = max(files, key=os.path.getmtime)
+        md_text = pymupdf4llm.to_markdown(most_recent_file)
+        os.remove(most_recent_file)
+        return md_text
 
     def str_to_iso8601(self, s):
         while s:

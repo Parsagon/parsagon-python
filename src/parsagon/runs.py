@@ -32,6 +32,7 @@ def run(
     undetected=False,
     optimize=False,
     use_proxy=False,
+    global_variables={},
     verbose=False,
 ):
     """
@@ -90,7 +91,7 @@ def run(
     run_data = {"start_time": start_time}
 
     logger.info("Running program...")
-    globals_locals = {"PARSAGON_API_KEY": get_api_key()}
+    globals_locals = {"PARSAGON_API_KEY": get_api_key(), **global_variables}
     try:
         exec(code, globals_locals, globals_locals)
         run_data["status"] = "FINISHED"

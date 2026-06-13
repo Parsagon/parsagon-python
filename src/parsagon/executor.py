@@ -19,14 +19,13 @@ from lxml.html.clean import Cleaner
 import pymupdf4llm
 from pypdf import PdfReader
 from pyvirtualdisplay import Display
-import undetected_chromedriver as uc
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
+from seleniumbase import Driver
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.driver_cache import DriverCacheManager
 
@@ -93,27 +92,24 @@ class Executor:
         self.function_bank = function_bank
         if self.headless:
             self.display = Display(visible=False, size=(1280, 1050)).start()
-        if driver_path:
-            cache_manager = DriverCacheManager(root_dir=driver_path)
-            driver_executable_path = ChromeDriverManager(cache_manager=cache_manager).install()
-        else:
-            driver_executable_path = ChromeDriverManager().install()
         if use_uc:
-            chrome_options = uc.ChromeOptions()
-            chrome_options.add_argument("--start-maximized")
-            for option in options:
-                chrome_options.add_argument(option)
-            chrome_options.add_experimental_option(
-                "prefs",
-                {
-                    "download.default_directory": os.getcwd(),
-                    "download.prompt_for_download": False,
-                    "download.directory_upgrade": True,
-                    "plugins.always_open_pdf_externally": True,
-                },
+            self.driver = Driver(
+                browser="chrome",
+                uc=True,
+                headed=True,
+                chromium_arg=",".join(["--start-maximized", *options]),
+                external_pdf=True,
             )
-            self.driver = uc.Chrome(driver_executable_path=driver_executable_path, options=chrome_options)
+            self.driver.execute_cdp_cmd(
+                "Page.setDownloadBehavior",
+                {"behavior": "allow", "downloadPath": os.getcwd()},
+            )
         else:
+            if driver_path:
+                cache_manager = DriverCacheManager(root_dir=driver_path)
+                driver_executable_path = ChromeDriverManager(cache_manager=cache_manager).install()
+            else:
+                driver_executable_path = ChromeDriverManager().install()
             chrome_options = webdriver.ChromeOptions()
             chrome_options.add_argument("--start-maximized")
             for option in options:

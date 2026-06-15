@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools>=42",
+    "setuptools>=82.0.1",
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
@@ -16,7 +16,7 @@ line-length = 120
 
 [project]
 name = "parsagon"
-version = "1.0.0"
+version = "1.0.1"
 description = "Allows you to create browser automations with natural language"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -53,8 +53,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest==9.0.3",
-    "pytest-mock==3.11.1",
+    "pytest>=9.0.3",
+    "pytest-mock>=3.11.1",
     "pre-commit==3.6.0"
 ]
 

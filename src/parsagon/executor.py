@@ -369,21 +369,37 @@ class Executor:
     def custom_assert(self, v):
         assert v, "Web page interaction failed."
 
+    def _switch_to_window(self, window_id):
+        if hasattr(self.driver, "switch_to_window"):
+            return self.driver.switch_to_window(window_id)
+        return self.driver.switch_to.window(window_id)
+
+    def _open_new_tab(self):
+        if hasattr(self.driver, "open_new_tab"):
+            return self.driver.open_new_tab(switch_to=True)
+        if hasattr(self.driver, "open_new_window"):
+            return self.driver.open_new_window(switch_to=True)
+        return self.driver.switch_to.new_window("tab")
+
+    def _switch_to_last_window(self):
+        return self._switch_to_window(self.driver.window_handles[-1])
+
     def goto(self, url, window_id=None):
         if window_id in self.driver.window_handles:
-            self.driver.switch_to.window(window_id)
-            open_url = self.driver.uc_open if self.use_uc and hasattr(self.driver, "uc_open") else self.driver.get
+            self._switch_to_window(window_id)
+            target_window_id = window_id
         else:
-            if self.use_uc and hasattr(self.driver, "uc_open_with_tab"):
-                self.driver.open_new_window(switch_to=True)
-                open_url = self.driver.uc_open_with_tab
-            else:
-                self.driver.switch_to.new_window("tab")
-                open_url = self.driver.get
+            self._open_new_tab()
+            target_window_id = self.driver.current_window_handle
+
+        open_url = self.driver.uc_open if self.use_uc and hasattr(self.driver, "uc_open") else self.driver.get
 
         # Go to website
         browser_print(f"Going to {url}")
         open_url(url)
+
+        if target_window_id in self.driver.window_handles:
+            self._switch_to_window(target_window_id)
 
         # Wait for website to load
         time.sleep(2)
@@ -394,9 +410,9 @@ class Executor:
 
     def goto_lite(self, url, window_id=None):
         if window_id in self.driver.window_handles:
-            self.driver.switch_to.window(window_id)
+            self._switch_to_window(window_id)
         else:
-            self.driver.switch_to.new_window("tab")
+            self._open_new_tab()
         # This is usually called in programs that use a proxy, but executor does not use proxies
         with httpx.Client(verify=False) as client:
             r = client.get(url, timeout=60)
@@ -409,9 +425,9 @@ class Executor:
 
     def close_window(self, window_id):
         if self.driver.current_window_handle != window_id:
-            self.driver.switch_to.window(window_id)
+            self._switch_to_window(window_id)
         self.driver.close()
-        self.driver.switch_to.window(self.driver.window_handles[-1])
+        self._switch_to_last_window()
 
     def close_window_if_not_last(self, window_id):
         window_handles = self.driver.window_handles
@@ -433,7 +449,7 @@ class Executor:
 
     def _click_elem(self, elem, window_id):
         if self.driver.current_window_handle != window_id:
-            self.driver.switch_to.window(window_id)
+            self._switch_to_window(window_id)
 
         try:
             self.driver.execute_script("arguments[0].click();", elem)
@@ -501,7 +517,7 @@ class Executor:
 
     def _select_option(self, elem, option, window_id):
         if self.driver.current_window_handle != window_id:
-            self.driver.switch_to.window(window_id)
+            self._switch_to_window(window_id)
 
         for i in range(3):
             try:
@@ -549,7 +565,7 @@ class Executor:
 
     def _fill_input(self, elem, text, enter, window_id):
         if self.driver.current_window_handle != window_id:
-            self.driver.switch_to.window(window_id)
+            self._switch_to_window(window_id)
 
         for i in range(3):
             try:
@@ -600,7 +616,7 @@ class Executor:
 
     def scroll(self, x, y, window_id):
         if self.driver.current_window_handle != window_id:
-            self.driver.switch_to.window(window_id)
+            self._switch_to_window(window_id)
         browser_print(f"Scrolling {x * 100}% to the left and {y * 100}% down")
         self.driver.execute_script(
             f"window.scrollTo({{top: document.documentElement.scrollHeight * {y}, left: document.documentElement.scrollWidth * {x}, behavior: 'smooth'}});"
@@ -610,7 +626,7 @@ class Executor:
 
     def press_key(self, key, window_id):
         if self.driver.current_window_handle != window_id:
-            self.driver.switch_to.window(window_id)
+            self._switch_to_window(window_id)
         browser_print(f"Pressing {key}")
         ActionChains(self.driver).send_keys(getattr(Keys, key)).perform()
         time.sleep(1)
@@ -626,18 +642,18 @@ class Executor:
 
     def get_inner_text(self, window_id):
         if self.driver.current_window_handle != window_id:
-            self.driver.switch_to.window(window_id)
+            self._switch_to_window(window_id)
         return self.driver.execute_script("return document.body.innerText;")
 
     def get_inner_text_by_id(self, elem_id, window_id):
         if self.driver.current_window_handle != window_id:
-            self.driver.switch_to.window(window_id)
+            self._switch_to_window(window_id)
         elem = self._id_to_elem(elem_id)
         return elem.get_attribute("innerText")
 
     def get_inner_markdown(self, window_id):
         if self.driver.current_window_handle != window_id:
-            self.driver.switch_to.window(window_id)
+            self._switch_to_window(window_id)
         html = self.driver.execute_script("return document.body.innerHTML;")
         return html2text.html2text(html)
 
@@ -651,7 +667,7 @@ class Executor:
                 return self.exec_custom_function("scrape_data", call_id, {"schema": schema, "window_id": window_id})
 
         if self.driver.current_window_handle != window_id:
-            self.driver.switch_to.window(window_id)
+            self._switch_to_window(window_id)
 
         browser_print(f"Now collecting data in the format {schema}")
 
@@ -751,15 +767,15 @@ class Executor:
                 s = " ".join(s.split()[:-1])
         return ""
 
-    def get_network_requests(window_id, delay=30):
+    def get_network_requests(self, window_id, delay=30):
         requests = []
 
         def handle_request(event):
             requests.append(event)
 
-        driver.switch_to.window(window_id)
-        driver.add_cdp_listener("Network.requestWillBeSent", handle_request)
-        wait(delay)
+        self._switch_to_window(window_id)
+        self.driver.add_cdp_listener("Network.requestWillBeSent", handle_request)
+        self.wait(delay)
         return requests
 
     def execute(self, code):

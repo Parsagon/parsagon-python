@@ -2,6 +2,7 @@ gui_env.py
 ParsagonInstaller.exe
 test.html
 .idea
+downloaded_files/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

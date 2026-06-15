@@ -89,7 +89,10 @@ class Executor:
     ):
         self.task = task
         self.headless = headless
+        self.use_uc = use_uc
         self.function_bank = function_bank
+        self.download_dir = os.path.abspath("downloaded_files")
+        os.makedirs(self.download_dir, exist_ok=True)
         if self.headless:
             self.display = Display(visible=False, size=(1280, 1050)).start()
         if use_uc:
@@ -97,12 +100,12 @@ class Executor:
                 browser="chrome",
                 uc=True,
                 headed=True,
-                chromium_arg=",".join(["--start-maximized", *options]),
+                chromium_arg=",".join(options),
                 external_pdf=True,
             )
             self.driver.execute_cdp_cmd(
                 "Page.setDownloadBehavior",
-                {"behavior": "allow", "downloadPath": os.getcwd()},
+                {"behavior": "allow", "downloadPath": self.download_dir},
             )
         else:
             if driver_path:
@@ -111,19 +114,19 @@ class Executor:
             else:
                 driver_executable_path = ChromeDriverManager().install()
             chrome_options = webdriver.ChromeOptions()
-            chrome_options.add_argument("--start-maximized")
             for option in options:
                 chrome_options.add_argument(option)
             chrome_options.add_experimental_option(
                 "prefs",
                 {
-                    "download.default_directory": os.getcwd(),
+                    "download.default_directory": self.download_dir,
                     "download.prompt_for_download": False,
                     "download.directory_upgrade": True,
                     "plugins.always_open_pdf_externally": True,
                 },
             )
             self.driver = webdriver.Chrome(service=ChromeService(driver_executable_path), options=chrome_options)
+        self.driver.set_window_size(1280, 1050)
         if page_load_timeout:
             self.driver.set_page_load_timeout(page_load_timeout)
         if script_timeout:
@@ -153,6 +156,7 @@ class Executor:
             "get_json_about_data": get_json_about_data,
             "get_serp_data": get_serp_data,
             "get_pdf_text": self.get_pdf_text,
+            "get_pdf_md": self.get_pdf_md,
             "str_to_iso8601": self.str_to_iso8601,
             "get_network_requests": self.get_network_requests,
         }
@@ -368,12 +372,18 @@ class Executor:
     def goto(self, url, window_id=None):
         if window_id in self.driver.window_handles:
             self.driver.switch_to.window(window_id)
+            open_url = self.driver.uc_open if self.use_uc and hasattr(self.driver, "uc_open") else self.driver.get
         else:
-            self.driver.switch_to.new_window("tab")
+            if self.use_uc and hasattr(self.driver, "uc_open_with_tab"):
+                self.driver.open_new_window(switch_to=True)
+                open_url = self.driver.uc_open_with_tab
+            else:
+                self.driver.switch_to.new_window("tab")
+                open_url = self.driver.get
 
         # Go to website
         browser_print(f"Going to {url}")
-        self.driver.get(url)
+        open_url(url)
 
         # Wait for website to load
         time.sleep(2)
@@ -402,6 +412,24 @@ class Executor:
             self.driver.switch_to.window(window_id)
         self.driver.close()
         self.driver.switch_to.window(self.driver.window_handles[-1])
+
+    def close_window_if_not_last(self, window_id):
+        window_handles = self.driver.window_handles
+        if window_id in window_handles and len(window_handles) > 1:
+            self.close_window(window_id)
+
+    def get_downloaded_file(self, existing_files, url):
+        deadline = time.time() + 60
+        while time.time() < deadline:
+            files = [
+                f
+                for f in glob.glob(os.path.join(self.download_dir, "*"))
+                if f not in existing_files and os.path.isfile(f) and not f.endswith(".crdownload")
+            ]
+            if files:
+                return max(files, key=os.path.getmtime)
+            time.sleep(0.5)
+        raise ParsagonException(f"Timed out waiting for file to download from {url}.")
 
     def _click_elem(self, elem, window_id):
         if self.driver.current_window_handle != window_id:
@@ -691,26 +719,29 @@ class Executor:
         return scraped_data
 
     def get_pdf_text(self, url):
+        existing_files = set(glob.glob(os.path.join(self.download_dir, "*")))
         window_id = self.goto(url)
-        self.close_window(window_id)
-        files = glob.glob("*")
-        most_recent_file = max(files, key=os.path.getmtime)
-        reader = PdfReader(most_recent_file)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text(extraction_mode="layout", layout_mode_space_vertically=False)
-            text += "\n"
-        os.remove(most_recent_file)
-        return text
+        self.close_window_if_not_last(window_id)
+        pdf_file = self.get_downloaded_file(existing_files, url)
+        try:
+            reader = PdfReader(pdf_file)
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text(extraction_mode="layout", layout_mode_space_vertically=False)
+                text += "\n"
+            return text
+        finally:
+            os.remove(pdf_file)
 
     def get_pdf_md(self, url):
+        existing_files = set(glob.glob(os.path.join(self.download_dir, "*")))
         window_id = self.goto(url)
-        self.close_window(window_id)
-        files = glob.glob("*")
-        most_recent_file = max(files, key=os.path.getmtime)
-        md_text = pymupdf4llm.to_markdown(most_recent_file)
-        os.remove(most_recent_file)
-        return md_text
+        self.close_window_if_not_last(window_id)
+        pdf_file = self.get_downloaded_file(existing_files, url)
+        try:
+            return pymupdf4llm.to_markdown(pdf_file)
+        finally:
+            os.remove(pdf_file)
 
     def str_to_iso8601(self, s):
         while s:
